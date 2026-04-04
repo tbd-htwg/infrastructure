@@ -1,0 +1,35 @@
+# docker-compose.yml
+version: "3.9"
+
+services:
+  caddy:
+    image: ghcr.io/tbd-htwg/caddy-hetzner:latest
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      CADDY_DOMAIN: ${CADDY_DOMAIN}
+      HETZNER_API_TOKEN: ${HETZNER_API_TOKEN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
+      - backend
+    restart: unless-stopped
+
+  frontend:
+    image: ghcr.io/tbd-htwg/frontend:main
+    restart: unless-stopped
+
+  backend:
+    image: ghcr.io/tbd-htwg/backend:main
+    restart: unless-stopped
+    volumes:
+      - backend_db:/app/db
+
+volumes:
+  caddy_data:
+  caddy_config:
+  backend_db:

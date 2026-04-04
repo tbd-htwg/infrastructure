@@ -1,0 +1,31 @@
+{
+	log {
+		output file /var/log/caddy/access.log {
+			roll_size 10mb
+			roll_keep 5
+		}
+	}
+}
+
+{$CADDY_DOMAIN} {
+	tls {
+		dns hetzner {env.HETZNER_API_TOKEN}
+	}
+
+	handle /v1/* {
+		reverse_proxy backend:8080
+	}
+
+	# Expose API docs served by the backend (springdoc / Swagger UI)
+	handle /v3/* {
+		reverse_proxy backend:8080
+	}
+
+	handle /swagger-ui/* {
+		reverse_proxy backend:8080
+	}
+
+	handle {
+		reverse_proxy frontend:80
+	}
+}
