@@ -14,7 +14,7 @@ This repo contains the deployment stack for the trip-planning app.
 
 Application images are built in their own repos and published to GHCR:
 
-1. Push to `master` in `frontend` -> GitHub Actions builds and pushes `ghcr.io/tbd-htwg/frontend:master`.
+1. Push to `main` in `frontend` -> GitHub Actions builds and pushes `ghcr.io/tbd-htwg/frontend:main`.
 2. Push to `main` in `backend` -> GitHub Actions builds and pushes `ghcr.io/tbd-htwg/backend:main`.
 3. Push tag in `caddy-hetzner` -> GitHub Actions builds and pushes `ghcr.io/tbd-htwg/caddy-hetzner:<tag>` and `latest`.
 4. This infrastructure repo pulls those images and starts/restarts the stack on the VM.
