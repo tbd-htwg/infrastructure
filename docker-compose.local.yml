@@ -1,0 +1,28 @@
+services:
+  caddy:
+    image: caddy:2.10-alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - ./Caddyfile.local:/etc/caddy/Caddyfile:ro
+    depends_on:
+      - frontend
+      - backend
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    volumes:
+      - backend_db:/app/db
+    restart: unless-stopped
+
+volumes:
+  backend_db:
