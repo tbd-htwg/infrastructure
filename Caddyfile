@@ -8,6 +8,10 @@
 }
 
 {$CADDY_DOMAIN} {
+	
+	tls {
+		dns hetzner {env.HETZNER_API_TOKEN}
+	}
 
 	handle /v1/* {
 		reverse_proxy backend:8080
