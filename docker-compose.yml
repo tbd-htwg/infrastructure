@@ -22,12 +22,16 @@ services:
   frontend:
     image: ghcr.io/tbd-htwg/frontend:main
     restart: unless-stopped
+    networks:
+      - caddy-network
 
   backend:
     image: ghcr.io/tbd-htwg/backend:main
     restart: unless-stopped
     volumes:
       - backend_db:/app/db
+    networks:
+      - caddy-network
 
 volumes:
   caddy_data:
