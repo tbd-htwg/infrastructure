@@ -8,16 +8,16 @@ services:
       - "80:80"
       - "443:443"
     environment:
-      CADDY_DOMAIN: ${CADDY_DOMAIN}
-      HETZNER_API_TOKEN: ${HETZNER_API_TOKEN}
+      - CADDY_DOMAIN=${CADDY_DOMAIN}
+      - HETZNER_API_TOKEN=${HETZNER_API_TOKEN}
     volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
-    depends_on:
-      - frontend
-      - backend
-    restart: unless-stopped
+      - ./Caddyfile:/etc/caddy/Caddyfile:Z
+      - ./data:/data:rw,Z
+      - ./config:/config:rw,Z
+      - ./static:/srv/static:ro,Z
+      - ./logs:/var/log/caddy:rw,Z
+    networks:
+      - caddy-network
 
   frontend:
     image: ghcr.io/tbd-htwg/frontend:main
@@ -33,3 +33,7 @@ volumes:
   caddy_data:
   caddy_config:
   backend_db:
+
+networks:
+  caddy-network:
+    driver: bridge
