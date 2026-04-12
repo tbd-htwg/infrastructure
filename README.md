@@ -4,7 +4,7 @@ This repo contains the deployment stack for the trip-planning app.
 
 ## What This Repo Does
 
-- Runs `frontend`, `backend`, and `caddy` with Docker Compose.
+- Runs `frontend`, `backend`, `postgres`, and `caddy` with Docker Compose.
 - Exposes only Caddy on ports `80` and `443` in production.
 - Routes traffic:
 	- `/v1/*`, `/v3/*`, `/swagger-ui/*` -> backend
@@ -28,6 +28,9 @@ Copy `.env.example` to `.env` and set values:
 ```env
 CADDY_DOMAIN=yourdomain.com
 HETZNER_API_TOKEN=your_hetzner_dns_token
+POSTGRES_DB=tripplanning
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=secret
 ```
 
 ### 2) Start or update stack
@@ -50,6 +53,8 @@ Two simple options are available.
 ### Option A: Full local stack with one compose file
 
 This mimics production routing with local builds.
+It also starts a local Postgres container used by the backend.
+Database credentials for local compose are read from `.env` in this folder.
 
 ```bash
 docker compose -f docker-compose.local.yml up --build
@@ -88,5 +93,5 @@ The frontend uses relative API paths (`/v1/...`) and Vite proxy forwards them to
 
 - `docker-compose.yml`: production stack using GHCR images
 - `Caddyfile`: production reverse-proxy + TLS (Hetzner DNS challenge)
-- `docker-compose.local.yml`: local all-in-one stack (builds frontend/backend locally)
+- `docker-compose.local.yml`: local all-in-one stack (builds frontend/backend locally + runs Postgres)
 - `Caddyfile.local`: local reverse-proxy routing (HTTP only)
