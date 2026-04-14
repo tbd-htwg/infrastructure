@@ -1,137 +1,134 @@
-# Guide for deploying on Google Cloud Run
+# Google Cloud PaaS Deployment (Project-Specific)
 
-Precondition: image has been built.
+This guide adds a parallel deployment path to Google Cloud Run for frontend and backend, with Cloud SQL (PostgreSQL) for backend.
 
-### Create Google Cloud Environment
+## What This Setup Deploys
 
-Create Google Cloud project. After creation you need to activate billing in the Google cloud console.
-```bash
-APP_NAME="Camping Application 2026s-swqs"
-PROJECT_ID="swqs-2026s-camping-application"
-VERSION=26.2
-REGION="europe-west1"
-SERVICE="camping-app"
-RUN_SA="swqs-2026s-camping-app-sa"
-```
-DB Config:
-``` bash
-INSTANCE="camping-mysql-2026s-swqs"
-DB="cad_test"
-DB_USER="usercad_test"
-```
+- Frontend container -> Cloud Run service (`tripplanning-frontend`)
+- Backend container -> Cloud Run service (`tripplanning-backend`)
+- PostgreSQL database -> Cloud SQL instance
+- Images -> Artifact Registry
+- Database password -> Secret Manager
 
-Set password
-```
-DB_PASS="...."
-```
+## Prerequisites
 
+- `gcloud` CLI installed and authenticated
+- Docker installed locally
+- Billing enabled on your Google Cloud project
+- A local config file based on `gcp.env.example`
 
-## Create ressources
+## 1) One-Time Project Setup
+
+1. Copy env template:
 
 ```bash
-gcloud auth login   
-
-gcloud projects create "$PROJECT_ID" --name="$APP_NAME"
-
-gcloud config set project "$PROJECT_ID" 
-
-gcloud services enable run.googleapis.com   
-gcloud services enable sqladmin.googleapis.com secretmanager.googleapis.com
-gcloud services enable artifactregistry.googleapis.com  
-```
-```bash
-gcloud sql instances create "$INSTANCE" \
-  --database-version=MYSQL_8_0 \
-  --cpu=1 \
-  --memory=3840MB \
-  --region="$REGION" \
-  --root-password='my-root-password'
-
-gcloud sql databases create "$DB" --instance="$INSTANCE"
-gcloud sql users create "$DB_USER" --instance="$INSTANCE" --password="$DB_PASS"
-CONN_NAME="$(gcloud sql instances describe "$INSTANCE" --format='value(connectionName)')"
-echo "Connection name: $CONN_NAME"   # looks like: PROJECT:REGION:INSTANCE
+cd infrastructure/paas
+cp gcp.env.example gcp.env
 ```
 
-### Create docker repo and activate cloud run
+2. Fill `gcp.env` with your project values and a strong DB password.
+
+3. Run setup script:
 
 ```bash
-gcloud artifacts repositories create docker-repo \                                                          
-    --repository-format=docker \
-    --location="$REGION" \
-    --description="Docker repository for Camping application"
-
- gcloud auth configure-docker europe-west1-docker.pkg.dev 
+bash setup-gcp-cloudrun.sh
 ```
 
-### Deployment to Google Cloud Environment
+This creates/updates:
+- required APIs
+- Artifact Registry repo
+- Cloud SQL Postgres instance + DB + user
+- Cloud Run runtime service account
+- Secret Manager secret for DB password
+- IAM bindings for Cloud SQL and Secret Manager access
 
-To deploy a container follow the steps below. Change version if needed:
+## 2) Manual Deploy to Cloud Run
 
-Service Account to connect SQL Database to Cloud Run:
+Deploy backend:
 
 ```bash
-gcloud iam service-accounts create "$RUN_SA" --display-name="Cloud Run SA for camping app"
-gcloud projects add-iam-policy-binding ${PROJECT_ID} \
-  --member="serviceAccount:${RUN_SA}@${PROJECT_ID}.iam.gserviceaccount.com" \
-  --role="roles/cloudsql.client"
+bash deploy-backend-cloudrun.sh
 ```
 
+Deploy frontend:
 
-On mac with ARM Architecture first build a linux/amd64 image, on amd64 architectures you can omit this step:
 ```bash
-mvn package
-docker build --platform linux/amd64 -t de.htwg-konstanz.in/camping:"$VERSION" .
+bash deploy-frontend-cloudrun.sh
 ```
-Then tag it and push it:
+
+API base strategy on PaaS:
+- Frontend image is built with `VITE_API_BASE_URL` (set to your backend public URL, for example `https://api.paas.tbd-htwg.de`).
+- This avoids any dependency on VM path routing.
+
+What scripts do:
+- `deploy-backend-cloudrun.sh`: builds backend image, pushes to Artifact Registry, deploys backend with Cloud SQL + secret + CORS env
+- `deploy-frontend-cloudrun.sh`: builds frontend image with `VITE_API_BASE_URL`, pushes image, deploys frontend service
+
+## 3) Parallel CI/CD Pipeline (GitHub Actions)
+
+Dedicated workflows exist at:
+- `backend/.github/workflows/deploy-gcp-cloudrun.yml`
+- `frontend/.github/workflows/deploy-gcp-cloudrun.yml`
+
+They run in parallel to your existing GHCR/VM pipelines.
+
+### Required GitHub repository secrets
+
+- `GCP_SA_KEY`: JSON key of a deploy service account
+
+### Required GitHub repository variables
+
+- `GCP_PROJECT_ID`
+- `GCP_REGION`
+- `GCP_ARTIFACT_REPO`
+- `GCP_BACKEND_SERVICE`
+- `GCP_FRONTEND_SERVICE`
+- `GCP_RUN_SA_EMAIL`
+- `GCP_CLOUDSQL_CONNECTION_NAME` (format: `project:region:instance`)
+- `GCP_DB_NAME`
+- `GCP_DB_USER`
+- `GCP_DB_PASSWORD_SECRET` (Secret Manager name)
+- `GCP_FRONTEND_API_BASE_URL` (for example `https://api.paas.tbd-htwg.de`)
+- `GCP_CORS_ALLOWED_ORIGINS` (for example `https://paas.tbd-htwg.de`)
+
+### Minimum IAM roles for deploy service account
+
+- `roles/run.admin`
+- `roles/iam.serviceAccountUser` (on runtime service account)
+- `roles/artifactregistry.writer`
+- `roles/cloudsql.client`
+- `roles/secretmanager.secretAccessor`
+
+## Notes
+
+- Backend config in `backend/src/main/resources/application.yml` reads datasource from environment variables. This is compatible with Cloud Run.
+- `caddy-hetzner` is not needed for Cloud Run. Cloud Run handles TLS and custom domain mapping directly.
+
+## Domain Setup: `paas.tbd-htwg.de` and `iaas.tbd-htwg.de`
+
+Yes, this split is possible.
+
+Recommended mapping:
+- `paas.tbd-htwg.de` -> Cloud Run frontend service
+- `api.paas.tbd-htwg.de` -> Cloud Run backend service
+- `iaas.tbd-htwg.de` -> your VM public IP (Caddy on the VM)
+
+Cloud Run domain mapping examples:
+
 ```bash
-docker tag de.htwg-konstanz.in/camping:"$VERSION" europe-west1-docker.pkg.dev/"$PROJECT_ID"/docker-repo/camping:"$VERSION"
+gcloud run domain-mappings create \
+	--region=europe-west1 \
+	--service=tripplanning-frontend \
+	--domain=paas.tbd-htwg.de
 
-docker push europe-west1-docker.pkg.dev/"$PROJECT_ID"/docker-repo/camping:"$VERSION"
+gcloud run domain-mappings create \
+	--region=europe-west1 \
+	--service=tripplanning-backend \
+	--domain=api.paas.tbd-htwg.de
 ```
 
-With Cloud SQL
-```bash
-gcloud run deploy "$SERVICE" \
---image=europe-west1-docker.pkg.dev/${PROJECT_ID}/docker-repo/camping:${VERSION} \
---platform=managed \
---region=${REGION} \
---allow-unauthenticated \
---port=8081 \
---memory=1Gi \
---service-account="${RUN_SA}@${PROJECT_ID}.iam.gserviceaccount.com" \
---add-cloudsql-instances="${PROJECT_ID}:${REGION}:${INSTANCE}" \
---set-env-vars \
-"SPRING_PROFILES_ACTIVE=dev,SPRING_DATASOURCE_URL=jdbc:mysql:///cad_test?cloudSqlInstance=${PROJECT_ID}:${REGION}:${INSTANCE}&socketFactory=com.google.cloud.sql.mysql.SocketFactory,SPRING_DATASOURCE_USERNAME=${DB_USER},SPRING_DATASOURCE_PASSWORD=${DB_PASS}"
-```
+Then add the DNS records requested by Google Cloud for each mapping.
 
-### DNS
-
-To map the domain to the cloud run service you need to add a DNS entry.
-```bash
-gcloud domains verify htwg-cloud.org
-
-gcloud beta run domain-mappings create --region=europe-west1 --service camping-app --domain my-camping.htwg-cloud.org
-```
-
-# CI
-
-## Setup service account to push docker container to google cloud registry
-
-gcloud iam service-accounts create camping-ci-push-image
-gcloud iam service-accounts keys create camping-ci-push-image.json --iam-account camping-ci-push-image@swqs-camping.iam.gserviceaccount.com
-gcloud artifacts repositories add-iam-policy-binding docker-repo --location=europe-west1 --member="serviceAccount:camping-ci-push-image@swqs-camping.iam.gserviceaccount.com" --role="roles/artifactregistry.createOnPushWriter"
-
-### Cleanup
-
-gcloud sql instances delete "$INSTANCE" --quiet
-
-## Heroku
-
-For running the app on heroku use:
-```
-SPRING_PROFILES_ACTIVE=dev
-SPRING_DATASOURCE_URL=jdbc:mysql://193.196.53.194:33061/cad_test
-SPRING_DATASOURCE_USERNAME=usercad_test
-SPRING_DATASOURCE_PASSWORD=a11699
-```
+For IaaS:
+- point `iaas.tbd-htwg.de` DNS to your VM IP
+- keep current Caddy-based routing there
