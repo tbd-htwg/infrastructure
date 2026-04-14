@@ -8,13 +8,13 @@ services:
     depends_on:
       - frontend
       - backend
-    restart: unless-stopped
+    restart: always
 
   frontend:
     build:
       context: ../frontend
       dockerfile: Dockerfile
-    restart: unless-stopped
+    restart: always
 
   backend:
     build:
@@ -28,7 +28,7 @@ services:
       - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER}
       - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD}
       - SPRING_DATASOURCE_DRIVER_CLASS_NAME=org.postgresql.Driver
-    restart: unless-stopped
+    restart: always
 
   postgres:
     image: postgres:15
@@ -43,7 +43,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    restart: unless-stopped
+    restart: always
 
 volumes:
   postgres_data:

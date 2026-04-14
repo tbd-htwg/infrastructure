@@ -1,6 +1,7 @@
 services:
   caddy:
     image: ghcr.io/tbd-htwg/caddy-hetzner:latest
+    restart: always
     ports:
       - "80:80"
       - "443:443"
@@ -18,13 +19,13 @@ services:
 
   frontend:
     image: ghcr.io/tbd-htwg/frontend:main
-    restart: unless-stopped
+    restart: always
     networks:
       - caddy-network
 
   backend:
     image: ghcr.io/tbd-htwg/backend:main
-    restart: unless-stopped
+    restart: always
     depends_on:
       postgres:
         condition: service_healthy
@@ -38,7 +39,7 @@ services:
 
   postgres:
     image: postgres:15
-    restart: unless-stopped
+    restart: always
     environment:
       - POSTGRES_DB=${POSTGRES_DB}
       - POSTGRES_USER=${POSTGRES_USER}
