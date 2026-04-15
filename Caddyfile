@@ -13,7 +13,7 @@
 		dns hetzner {env.HETZNER_API_TOKEN}
 	}
 
-	handle /v1/* {
+	handle /api/v2/* {
 		reverse_proxy backend:8080
 	}
 
