@@ -7,7 +7,7 @@ This repo contains the deployment stack for the trip-planning app.
 - Runs `frontend`, `backend`, `postgres`, and `caddy` with Docker Compose.
 - Exposes only Caddy on ports `80` and `443` in production.
 - Routes traffic:
-	- `/v1/*`, `/v3/*`, `/swagger-ui/*` -> backend
+	- `/api/v2/*`, `/v3/*`, `/swagger-ui/*` -> backend
 	- everything else -> frontend
 
 ## CI/CD Overview
@@ -87,7 +87,7 @@ npm run dev
 
 Open: `http://localhost:5173`
 
-The frontend uses relative API paths (`/v1/...`) and Vite proxy forwards them to `http://localhost:8080` during local dev.
+The frontend uses relative API paths (`/api/v2/...`) and Vite proxy forwards them to `http://localhost:8080` during local dev.
 
 ## Files
 

@@ -3,7 +3,7 @@
     output stdout
   }
 
-  handle /v1/* {
+  handle /api/v2/* {
     reverse_proxy backend:8080
   }
 
