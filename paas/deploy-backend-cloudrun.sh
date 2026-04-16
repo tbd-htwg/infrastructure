@@ -69,8 +69,8 @@ gcloud run deploy "${BACKEND_SERVICE}" \
   --allow-unauthenticated \
   --port=8080 \
   --service-account="${RUN_SA_EMAIL}" \
-  --add-cloudsql-instances="${CONNECTION_NAME}" \
-  --set-env-vars="SPRING_DATASOURCE_URL=jdbc:postgresql:///${DB_NAME}?socketFactory=com.google.cloud.sql.postgres.SocketFactory&cloudSqlInstance=${CONNECTION_NAME},SPRING_DATASOURCE_USERNAME=${DB_USER},SPRING_DATASOURCE_DRIVER_CLASS_NAME=org.postgresql.Driver,CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS}" \
+  --set-cloudsql-instances="${CONNECTION_NAME}" \
+  --set-env-vars="^@^SPRING_DATASOURCE_URL=jdbc:postgresql:///${DB_NAME}?socketFactory=com.google.cloud.sql.postgres.SocketFactory&cloudSqlInstance=${CONNECTION_NAME}@SPRING_DATASOURCE_USERNAME=${DB_USER}@SPRING_DATASOURCE_DRIVER_CLASS_NAME=org.postgresql.Driver@CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS}" \
   --set-secrets="SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD_SECRET}:latest"
 
 echo "Deploy completed."
