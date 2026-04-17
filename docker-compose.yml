@@ -1,19 +1,22 @@
 services:
   caddy:
-    image: ghcr.io/tbd-htwg/caddy-hetzner:latest
+    image: ghcr.io/tbd-htwg/caddy-google:latest
     restart: always
     ports:
       - "80:80"
       - "443:443"
     environment:
       - CADDY_DOMAIN=${CADDY_DOMAIN}
-      - HETZNER_API_TOKEN=${HETZNER_API_TOKEN}
+      - GCP_PROJECT=${GCP_PROJECT}
+      - GOOGLE_APPLICATION_CREDENTIALS=${GOOGLE_APPLICATION_CREDENTIALS}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:Z
       - ./data:/data:rw,Z
       - ./config:/config:rw,Z
       - ./static:/srv/static:ro,Z
       - ./logs:/var/log/caddy:rw,Z
+      # Uncomment after placing a service account JSON and setting GOOGLE_APPLICATION_CREDENTIALS in .env:
+      # - ./gcp-sa.json:/secrets/gcp-sa.json:ro,Z
     networks:
       - caddy-network
 
