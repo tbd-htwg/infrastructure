@@ -39,6 +39,11 @@ done
 IMAGE_TAG="${IMAGE_TAG:-$(date +%Y%m%d-%H%M%S)}"
 IMAGE_URI="${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPO}/tripplanning-frontend:${IMAGE_TAG}"
 
+PAAS_API_BASE_URL="${PAAS_BACKEND_URL%/}"
+if [[ "${PAAS_API_BASE_URL}" != */api/v2 ]]; then
+  PAAS_API_BASE_URL="${PAAS_API_BASE_URL}/api/v2"
+fi
+
 ############################################################################
 # BUILD AND PUSH CONTAINER IMAGE
 ############################################################################
@@ -48,7 +53,7 @@ gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
 
 echo "Building frontend image: ${IMAGE_URI}"
 docker build \
-  --build-arg "VITE_API_BASE_URL=${PAAS_BACKEND_URL}" \
+  --build-arg "VITE_API_BASE_URL=${PAAS_API_BASE_URL}" \
   -t "${IMAGE_URI}" \
   "${REPO_ROOT}/frontend"
 
