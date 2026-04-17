@@ -29,11 +29,14 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      elasticsearch:
+        condition: service_started
     environment:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/${POSTGRES_DB}
       - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER}
       - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD}
       - SPRING_DATASOURCE_DRIVER_CLASS_NAME=org.postgresql.Driver
+      - SPRING_JPA_PROPERTIES_HIBERNATE_SEARCH_BACKEND_HOSTS=elasticsearch:9200
     networks:
       - caddy-network
 
@@ -54,10 +57,23 @@ services:
     networks:
       - caddy-network
 
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.12.0
+    restart: always
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false 
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    networks:
+      - caddy-network
+
 volumes:
   caddy_data:
   caddy_config:
   postgres_data:
+  elasticsearch_data:
 
 networks:
   caddy-network:

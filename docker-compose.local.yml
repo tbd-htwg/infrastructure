@@ -10,6 +10,18 @@ services:
       - backend
     restart: always
 
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.12.0
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+
   frontend:
     build:
       context: ../frontend
@@ -23,6 +35,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      elasticsearch:
+        condition: service_started
     environment:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/${POSTGRES_DB:-tripplanning}
       - SPRING_DATASOURCE_USERNAME=${POSTGRES_USER:-postgres}
@@ -30,7 +44,7 @@ services:
       - SPRING_DATASOURCE_DRIVER_CLASS_NAME=org.postgresql.Driver
     restart: always
 
-  postgres:
+/*  postgres:
     image: postgres:18
     environment:
       - POSTGRES_DB=${POSTGRES_DB:-tripplanning}
@@ -47,3 +61,4 @@ services:
 
 volumes:
   postgres_data:
+  es_data:
