@@ -16,7 +16,7 @@ Application images are built in their own repos and published to GHCR:
 
 1. Push to `main` in `frontend` -> GitHub Actions builds and pushes `ghcr.io/tbd-htwg/frontend:main`.
 2. Push to `main` in `backend` -> GitHub Actions builds and pushes `ghcr.io/tbd-htwg/backend:main`.
-3. Push tag in `caddy-hetzner` -> GitHub Actions builds and pushes `ghcr.io/tbd-htwg/caddy-hetzner:<tag>` and `latest`.
+3. Push tag in `caddy-google` -> GitHub Actions builds and pushes `ghcr.io/tbd-htwg/caddy-google:<tag>` and `latest`.
 4. This infrastructure repo pulls those images and starts/restarts the stack on the VM.
 
 ## Production Usage (VM)
@@ -26,12 +26,15 @@ Application images are built in their own repos and published to GHCR:
 Copy `.env.example` to `.env` and set values:
 
 ```env
-CADDY_DOMAIN=yourdomain.com
-HETZNER_API_TOKEN=your_hetzner_dns_token
+CADDY_DOMAIN=iaas.tbd-htwg.de
+GCP_PROJECT=your-gcp-project-id
+GOOGLE_APPLICATION_CREDENTIALS=/secrets/gcp-sa.json
 POSTGRES_DB=tripplanning
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=secret
 ```
+
+Set `GOOGLE_APPLICATION_CREDENTIALS` to the path of a [service account](https://cloud.google.com/iam/docs/service-accounts) JSON key inside the container and mount that file in `docker-compose.yml`, or use another [Google Cloud auth method](https://github.com/libdns/googleclouddns#authenticating) supported by the client library.
 
 ### 2) Start or update stack
 
@@ -92,6 +95,6 @@ The frontend uses relative API paths (`/api/v2/...`) and Vite proxy forwards the
 ## Files
 
 - `docker-compose.yml`: production stack using GHCR images
-- `Caddyfile`: production reverse-proxy + TLS (Hetzner DNS challenge)
+- `Caddyfile`: production reverse-proxy + TLS (Google Cloud DNS challenge)
 - `docker-compose.local.yml`: local all-in-one stack (builds frontend/backend locally + runs Postgres)
 - `Caddyfile.local`: local reverse-proxy routing (HTTP only)

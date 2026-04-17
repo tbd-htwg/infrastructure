@@ -1,2 +1,4 @@
 .env
 paas/gcp.env
+gcp-sa.json
+project-*.json

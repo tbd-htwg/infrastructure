@@ -89,7 +89,7 @@ They run in parallel to your existing GHCR/VM pipelines.
 - `GCP_DB_USER`
 - `GCP_DB_PASSWORD_SECRET` (Secret Manager name)
 - `GCP_FRONTEND_API_BASE_URL` (for example `https://api.paas.tbd-htwg.de`)
-- `GCP_CORS_ALLOWED_ORIGINS` (for example `https://paas.tbd-htwg.de`)
+- `GCP_CORS_ALLOWED_ORIGINS` (for example `https://paas.tbd-htwg.de,https://iaas.tbd-htwg.de`)
 
 ### Minimum IAM roles for deploy service account
 
@@ -102,7 +102,7 @@ They run in parallel to your existing GHCR/VM pipelines.
 ## Notes
 
 - Backend config in `backend/src/main/resources/application.yml` reads datasource from environment variables. This is compatible with Cloud Run.
-- `caddy-hetzner` is not needed for Cloud Run. Cloud Run handles TLS and custom domain mapping directly.
+- `caddy-google` is not needed for Cloud Run. Cloud Run handles TLS and custom domain mapping directly.
 
 ## Domain Setup: `paas.tbd-htwg.de` and `iaas.tbd-htwg.de`
 
