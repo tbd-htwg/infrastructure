@@ -17,6 +17,10 @@
 		reverse_proxy backend:8080
 	}
 
+	handle /api/search/* {
+		reverse_proxy backend:8080
+	}
+
 	# Expose API docs served by the backend (springdoc / Swagger UI)
 	handle /v3/* {
 		reverse_proxy backend:8080
