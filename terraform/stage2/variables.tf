@@ -157,3 +157,19 @@ variable "cloud_armor_rate_limit_rps" {
   type        = number
   default     = 600
 }
+
+variable "remote_elasticsearch" {
+  description = <<-EOT
+    When non-null, the Cloud Run backend uses Hibernate Search with Elasticsearch over HTTPS
+    (e.g. IaaS tier URL via Caddy /es). password_secret_id is a Secret Manager secret id in this
+    project (create with terraform_iaas per tier, then grant the Cloud Run runtime SA accessor).
+  EOT
+  type = object({
+    hosts              = string
+    password_secret_id = string
+    protocol           = optional(string, "https")
+    path_prefix        = optional(string, "/es")
+    username           = optional(string, "elastic")
+  })
+  default = null
+}

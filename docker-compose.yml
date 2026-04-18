@@ -40,6 +40,10 @@ services:
       - SPRING_DATASOURCE_PASSWORD=${POSTGRES_PASSWORD}
       - SPRING_DATASOURCE_DRIVER_CLASS_NAME=org.postgresql.Driver
       - SPRING_JPA_PROPERTIES_HIBERNATE_SEARCH_BACKEND_HOSTS=elasticsearch:9200
+      - SPRING_JPA_PROPERTIES_HIBERNATE_SEARCH_BACKEND_PROTOCOL=http
+      - SPRING_JPA_PROPERTIES_HIBERNATE_SEARCH_BACKEND_USERNAME=${ELASTICSEARCH_USERNAME:-}
+      - SPRING_JPA_PROPERTIES_HIBERNATE_SEARCH_BACKEND_PASSWORD=${ELASTICSEARCH_PASSWORD:-}
+      - SPRING_JPA_PROPERTIES_HIBERNATE_SEARCH_BACKEND_PATH_PREFIX=${ELASTICSEARCH_PATH_PREFIX:-}
     networks:
       - caddy-network
 
@@ -65,12 +69,17 @@ services:
     restart: always
     environment:
       - discovery.type=single-node
-      - xpack.security.enabled=false 
+      - xpack.security.enabled=${ES_SECURITY_ENABLED:-false}
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD:-}
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
     volumes:
       - elasticsearch_data:/usr/share/elasticsearch/data
     healthcheck:
-      test: ["CMD-SHELL", "curl -sSf http://localhost:9200 >/dev/null || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          'if [ -n "$$ELASTIC_PASSWORD" ]; then curl -sfu "elastic:$$ELASTIC_PASSWORD" http://127.0.0.1:9200 >/dev/null; else curl -sf http://127.0.0.1:9200 >/dev/null; fi',
+        ]
       interval: 10s
       timeout: 10s
       retries: 5
