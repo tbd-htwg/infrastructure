@@ -6,6 +6,20 @@ locals {
   backend_jdbc_url = "jdbc:postgresql:///${var.db_name}?socketFactory=com.google.cloud.sql.postgres.SocketFactory&cloudSqlInstance=${google_sql_database_instance.main.connection_name}"
 
   backend_image = "${var.region}-docker.pkg.dev/${var.project_id}/${data.google_artifact_registry_repository.docker.repository_id}/${var.cloud_run_backend_service_name}:${var.backend_image_tag}"
+
+  use_remote_elasticsearch = var.remote_elasticsearch != null
+
+  search_env_static = local.use_remote_elasticsearch ? [
+    { name = "SPRING_JPA_PROPERTIES_HIBERNATE_SEARCH_BACKEND_TYPE", value = "elasticsearch" },
+    { name = "SPRING_JPA_PROPERTIES_HIBERNATE_SEARCH_BACKEND_PROTOCOL", value = var.remote_elasticsearch.protocol },
+    { name = "SPRING_JPA_PROPERTIES_HIBERNATE_SEARCH_BACKEND_HOSTS", value = var.remote_elasticsearch.hosts },
+    { name = "SPRING_JPA_PROPERTIES_HIBERNATE_SEARCH_BACKEND_PATH_PREFIX", value = var.remote_elasticsearch.path_prefix },
+    { name = "SPRING_JPA_PROPERTIES_HIBERNATE_SEARCH_BACKEND_USERNAME", value = var.remote_elasticsearch.username },
+    ] : [
+    { name = "SPRING_JPA_PROPERTIES_HIBERNATE_SEARCH_BACKEND_TYPE", value = "lucene" },
+    { name = "SPRING_JPA_PROPERTIES_HIBERNATE_SEARCH_BACKEND_DIRECTORY_ROOT", value = "/tmp/tripplanning-search" },
+    { name = "SPRING_JPA_PROPERTIES_HIBERNATE_SEARCH_BACKEND_ANALYSIS_CONFIGURER", value = "class:com.tripplanning.search.LuceneEnglishAnalysisConfigurer" },
+  ]
 }
 
 resource "google_cloud_run_v2_service" "backend" {
@@ -81,17 +95,26 @@ resource "google_cloud_run_v2_service" "backend" {
         name  = "CORS_ALLOWED_ORIGINS"
         value = var.cors_allowed_origins
       }
-      env {
-        name  = "SPRING_JPA_PROPERTIES_HIBERNATE_SEARCH_BACKEND_TYPE"
-        value = "lucene"
+
+      dynamic "env" {
+        for_each = local.search_env_static
+        content {
+          name  = env.value.name
+          value = env.value.value
+        }
       }
-      env {
-        name  = "SPRING_JPA_PROPERTIES_HIBERNATE_SEARCH_BACKEND_DIRECTORY_ROOT"
-        value = "/tmp/tripplanning-search"
-      }
-      env {
-        name  = "SPRING_JPA_PROPERTIES_HIBERNATE_SEARCH_BACKEND_ANALYSIS_CONFIGURER"
-        value = "class:com.tripplanning.search.LuceneEnglishAnalysisConfigurer"
+
+      dynamic "env" {
+        for_each = local.use_remote_elasticsearch ? [1] : []
+        content {
+          name = "SPRING_JPA_PROPERTIES_HIBERNATE_SEARCH_BACKEND_PASSWORD"
+          value_source {
+            secret_key_ref {
+              secret  = var.remote_elasticsearch.password_secret_id
+              version = "latest"
+            }
+          }
+        }
       }
 
       env {
@@ -106,10 +129,22 @@ resource "google_cloud_run_v2_service" "backend" {
     }
   }
 
-  depends_on = [
-    google_project_service.run,
-    google_secret_manager_secret_version.db_password,
-  ]
+  depends_on = concat(
+    [
+      google_project_service.run,
+      google_secret_manager_secret_version.db_password,
+    ],
+    values(google_secret_manager_secret_iam_member.cloud_run_elasticsearch_password),
+  )
+}
+
+resource "google_secret_manager_secret_iam_member" "cloud_run_elasticsearch_password" {
+  for_each = var.remote_elasticsearch != null ? { elasticsearch = var.remote_elasticsearch } : {}
+
+  project   = var.project_id
+  secret_id = each.value.password_secret_id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.cloud_run.email}"
 }
 
 resource "google_cloud_run_v2_service_iam_member" "backend_invoker_public" {

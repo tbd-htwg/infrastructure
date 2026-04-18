@@ -50,3 +50,16 @@ manage_cloud_dns_records = true
 # --- Optional Cloud Armor (WAF + per-IP rate limiting on the API backend) ---
 enable_cloud_armor         = false
 cloud_armor_rate_limit_rps = 600   # requests per minute per client IP before throttle
+
+# --- Optional: Cloud Run uses remote Elasticsearch (IaaS tier + Caddy /es) instead of Lucene ---
+# Apply terraform_iaas first; use outputs `elasticsearch_secret_ids` and `tier_hostnames`.
+# Grant the Cloud Run runtime SA secretAccessor on that secret (terraform_iaas can do this via
+# elasticsearch_secret_accessor_members), then set for example:
+#
+# remote_elasticsearch = {
+#   hosts              = "small-iaas.tbd-htwg.de:443"
+#   password_secret_id = "tbd-iaas-elasticsearch-small"
+#   protocol           = "https"
+#   path_prefix        = "/es"
+#   username           = "elastic"
+# }

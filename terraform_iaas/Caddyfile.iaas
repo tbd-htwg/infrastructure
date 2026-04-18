@@ -1,0 +1,44 @@
+{
+	log {
+		output file /var/log/caddy/access.log {
+			roll_size 10mb
+			roll_keep 5
+		}
+	}
+}
+
+{$CADDY_DOMAIN} {
+
+	tls {
+		dns googleclouddns {
+			gcp_project {$GCP_PROJECT}
+		}
+	}
+
+	handle /api/v2/* {
+		reverse_proxy backend:8080
+	}
+
+	handle /api/search/* {
+		reverse_proxy backend:8080
+	}
+
+	# Expose API docs served by the backend (springdoc / Swagger UI)
+	handle /v3/* {
+		reverse_proxy backend:8080
+	}
+
+	handle /swagger-ui/* {
+		reverse_proxy backend:8080
+	}
+
+	# Elasticsearch REST API via HTTPS (xpack security; use elastic user + password from Secret Manager).
+	# Internal backend on the VM still uses http://elasticsearch:9200 with the same credentials in .env.
+	handle_path /es/* {
+		reverse_proxy elasticsearch:9200
+	}
+
+	handle {
+		reverse_proxy frontend:80
+	}
+}
