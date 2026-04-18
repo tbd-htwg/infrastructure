@@ -36,7 +36,7 @@ Example (see also [`../terraform/terraform.tfvars.example`](../terraform/terrafo
 
 ```hcl
 remote_elasticsearch = {
-  hosts              = "es.example.com:443"
+  hosts              = "es.tbd-htwg.de:443"
   password_secret_id = "<output elastic_password_secret_id>"
   protocol           = "https"
   path_prefix        = "/es"
