@@ -2,7 +2,7 @@
 
 This module provisions **one GCE VM per tier** (e.g. small / medium / large), **Cloud DNS** A records like `small-iaas.example.de`, a private **GCS** bucket with your **Docker Compose** stack files, and **Secret Manager** secrets for `.env`, the **GCP service account JSON** (Caddy DNS-01), **per-tier Elasticsearch passwords**, and optionally a **GitHub PAT** for **ghcr.io**.
 
-Each VM runs the same stack as [`../docker-compose.yml`](../docker-compose.yml) (Caddy, frontend, backend, Postgres, Elasticsearch). **Elasticsearch** is exposed over HTTPS at `https://<tier>-iaas.<domain>/es/` with user **`elastic`** and a password stored in Secret Manager per tier.
+Each VM runs the same stack as [`../docker-compose.yml`](../docker-compose.yml) (Caddy, frontend, backend, Postgres, Elasticsearch). **Elasticsearch** is **not** exposed on the public hostname; the app uses **`http://elasticsearch:9200`** on the VM with user **`elastic`** and a per-tier password from Secret Manager.
 
 ## Prerequisites
 
@@ -155,8 +155,8 @@ After apply, metadata on each VM includes the Secret Manager id for the token; b
 
 ## Elasticsearch and Caddy
 
-- In-cluster: backend uses `http://elasticsearch:9200` with **`elastic`** + password from bootstrap.
-- Public HTTPS: **`https://<tier>-iaas.<domain>/es/`** (basic auth / ES security as configured). PaaS can use the same host, `https`, path prefix `/es`, and the per-tier password secret (see Terraform outputs and stage2 `remote_elasticsearch` in the main PaaS stack).
+- **IaaS**: only the web app and API are on **`https://<tier>-iaas.<domain>`**; Elasticsearch stays on the Docker network.
+- **PaaS / Cloud Run** remote search: use **[`../terraform_es`](../terraform_es)** (dedicated VM with **`/es`** behind Caddy) and stage2 **`remote_elasticsearch`**.
 
 ## Troubleshooting
 
@@ -167,7 +167,7 @@ After apply, metadata on each VM includes the Secret Manager id for the token; b
 
 ## PaaS (optional)
 
-The main repo’s **stage2** Terraform can point the Cloud Run backend at this Elasticsearch using the `remote_elasticsearch` variable and granting the Cloud Run runtime SA access to the tier password secrets; see [`../terraform/terraform.tfvars.example`](../terraform/terraform.tfvars.example). This module can add **`elasticsearch_secret_accessor_members`** for that service account.
+For Hibernate Search from **Cloud Run**, apply **`../terraform_es`** and wire **`remote_elasticsearch`** in the main PaaS stack to that host and password secret (not the IaaS tier secrets). See [`../terraform/terraform.tfvars.example`](../terraform/terraform.tfvars.example).
 
 ## State
 

@@ -4,7 +4,7 @@ variable "project_id" {
 }
 
 variable "region" {
-  description = "GCP region for regional resources (Artifact Registry, GCS bucket)."
+  description = "GCP region for regional resources (Artifact Registry, GCS bucket). Use the same value for stage2, terraform_iaas, and terraform_es so all workloads stay in one European region."
   type        = string
 }
 

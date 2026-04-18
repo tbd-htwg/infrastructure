@@ -49,30 +49,12 @@ output "vm_service_account" {
   value       = google_service_account.iaas_vm.email
 }
 
-output "elasticsearch_https_path" {
-  description = "Path on each tier hostname for Elasticsearch via Caddy (TLS)."
-  value       = "/es/"
-}
-
 output "elasticsearch_username" {
-  description = "Elasticsearch built-in superuser used for HTTP basic auth (elastic)."
+  description = "Elasticsearch built-in superuser on each tier (elastic); used only on the VM, not exposed publicly."
   value       = "elastic"
 }
 
 output "elasticsearch_secret_ids" {
-  description = "Secret Manager secret id per tier holding that VM's elasticsearch user password (for PaaS / Cloud Run)."
+  description = "Secret Manager secret id per tier for that VM's elastic user password (in-cluster only; IaaS does not expose /es publicly)."
   value       = { for k, v in google_secret_manager_secret.elasticsearch : k => v.secret_id }
-}
-
-output "paas_elasticsearch_env_hint" {
-  description = "Example env for Cloud Run / Hibernate Search against a tier (replace tier and use secret as ELASTICSEARCH_PASSWORD)."
-  value = {
-    for k in keys(local.tiers_enabled) : k => {
-      ELASTICSEARCH_HOSTS     = "${k}-iaas.${var.iaas_domain_suffix}:443"
-      ELASTICSEARCH_PROTOCOL  = "https"
-      ELASTICSEARCH_PATH_PREFIX = "/es"
-      ELASTICSEARCH_USERNAME  = "elastic"
-      ELASTICSEARCH_PASSWORD  = "<from Secret Manager: ${var.instance_name_prefix}-elasticsearch-${k}>"
-    }
-  }
 }

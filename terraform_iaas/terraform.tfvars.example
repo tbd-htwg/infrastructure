@@ -15,10 +15,11 @@
 # then per VM either `gcloud compute instances reset <name> --zone=...` or SSH and:
 #   sudo gsutil cp gs://<assets_bucket>/bootstrap-compose.sh /tmp/ && sudo bash /tmp/bootstrap-compose.sh
 # See output compose_bootstrap_hint. Caddy needs the SA in Secret Manager to manage DNS for the zone.
-# Elasticsearch HTTPS (via Caddy): https://<tier>-iaas.<suffix>/es/ — e.g. .../es/_cluster/health
-# The Spring backend on the VM still uses internal elasticsearch:9200 (see docker-compose.yml).
+# Elasticsearch on the VM is only at http://elasticsearch:9200 (not exposed on the public hostname).
+# For Cloud Run remote search, use ../terraform_es (HTTPS /es/) and stage2 remote_elasticsearch.
 
 project_id = "your-gcp-project-id"
+# GCE zone must lie in the same region as PaaS (../terraform region) and terraform_es.
 region     = "europe-west1"
 zone       = "europe-west1-b"
 

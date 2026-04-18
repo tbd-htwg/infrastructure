@@ -111,7 +111,7 @@ iaas_log "Fetching Elasticsearch password for this tier"
 ES_PASS="$(gcloud secrets versions access latest --secret="${ELASTIC_SECRET_ID}" --project="${PROJECT_ID}")"
 {
   echo ""
-  echo "# Elasticsearch (xpack; HTTPS via Caddy /es/)"
+  echo "# Elasticsearch (xpack; in-cluster only on IaaS)"
   echo "ES_SECURITY_ENABLED=true"
   echo "ELASTIC_PASSWORD=${ES_PASS}"
   echo "ELASTICSEARCH_USERNAME=elastic"
