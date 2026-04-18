@@ -2,3 +2,5 @@
 paas/gcp.env
 gcp-sa.json
 project-*.json
+paas/gcp-dev.env
+paas/gcp-stag.env
