@@ -4,7 +4,7 @@ variable "project_id" {
 }
 
 variable "region" {
-  description = "GCP region for regional resources (Cloud SQL, Cloud Run, serverless NEG)."
+  description = "GCP region for regional resources (Cloud SQL, Cloud Run, serverless NEG). Match terraform_iaas/terraform_es region; place GCE VMs in a zone in this region."
   type        = string
 }
 
@@ -161,8 +161,9 @@ variable "cloud_armor_rate_limit_rps" {
 variable "remote_elasticsearch" {
   description = <<-EOT
     When non-null, the Cloud Run backend uses Hibernate Search with Elasticsearch over HTTPS
-    (e.g. IaaS tier URL via Caddy /es). password_secret_id is a Secret Manager secret id in this
-    project (create with terraform_iaas per tier, then grant the Cloud Run runtime SA accessor).
+    (e.g. dedicated ES gateway from infrastructure/terraform_es: host:443, path_prefix /es).
+    password_secret_id is a Secret Manager secret id in this project (terraform_es output
+    elastic_password_secret_id; grant the Cloud Run runtime SA roles/secretmanager.secretAccessor).
   EOT
   type = object({
     hosts              = string

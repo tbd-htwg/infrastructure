@@ -32,12 +32,6 @@
 		reverse_proxy backend:8080
 	}
 
-	# Elasticsearch REST API via HTTPS (xpack security; use elastic user + password from Secret Manager).
-	# Internal backend on the VM still uses http://elasticsearch:9200 with the same credentials in .env.
-	handle_path /es/* {
-		reverse_proxy elasticsearch:9200
-	}
-
 	handle {
 		reverse_proxy frontend:80
 	}

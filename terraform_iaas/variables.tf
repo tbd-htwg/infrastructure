@@ -9,7 +9,7 @@ variable "region" {
 }
 
 variable "zone" {
-  description = "Zone for Compute Engine VMs and zonal disks (e.g. europe-west1-b)."
+  description = "Zone for Compute Engine VMs; must be in the same region as var.region and the same region as PaaS (infrastructure/terraform)."
   type        = string
 }
 
@@ -120,8 +120,8 @@ variable "tiers" {
 
 variable "elasticsearch_secret_accessor_members" {
   description = <<-EOT
-    Extra IAM members allowed to read per-tier Elasticsearch passwords (e.g.
-    serviceAccount:YOUR_CLOUD_RUN_RUNTIME@PROJECT.iam.gserviceaccount.com for PaaS).
+    Extra IAM members allowed to read per-tier Elasticsearch passwords (e.g. CI or break-glass).
+    For Cloud Run remote Elasticsearch, use infrastructure/terraform_es and secret_accessor_members there.
   EOT
   type    = list(string)
   default = []

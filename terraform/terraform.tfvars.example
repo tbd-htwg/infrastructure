@@ -13,6 +13,7 @@
 # (or TAG=...), not here.
 
 project_id    = "your-gcp-project-id"
+# PaaS regional resources (Cloud Run, Cloud SQL, AR). Match IaaS/ES: use the same region and put GCE VMs in a zone in this region (e.g. europe-west1-b).
 region        = "europe-west1"
 artifact_repo = "tbd-tf"
 run_sa_name   = "tbd-tf-run"
@@ -51,14 +52,14 @@ manage_cloud_dns_records = true
 enable_cloud_armor         = false
 cloud_armor_rate_limit_rps = 600   # requests per minute per client IP before throttle
 
-# --- Optional: Cloud Run uses remote Elasticsearch (IaaS tier + Caddy /es) instead of Lucene ---
-# Apply terraform_iaas first; use outputs `elasticsearch_secret_ids` and `tier_hostnames`.
-# Grant the Cloud Run runtime SA secretAccessor on that secret (terraform_iaas can do this via
-# elasticsearch_secret_accessor_members), then set for example:
+# --- Optional: Cloud Run uses remote Elasticsearch (terraform_es VM + Caddy /es) instead of Lucene ---
+# Apply infrastructure/terraform_es; use output `elastic_password_secret_id` and your
+# `elasticsearch_fqdn`. Grant the Cloud Run runtime SA secretAccessor on that secret
+# (terraform_es variable secret_accessor_members), then set for example:
 #
 # remote_elasticsearch = {
-#   hosts              = "small-iaas.tbd-htwg.de:443"
-#   password_secret_id = "tbd-iaas-elasticsearch-small"
+#   hosts              = "es.tbd-htwg.de:443"
+#   password_secret_id = "tbd-es-gateway-elastic-password"
 #   protocol           = "https"
 #   path_prefix        = "/es"
 #   username           = "elastic"
