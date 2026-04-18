@@ -1,0 +1,10 @@
+# After creating a GCS bucket for Terraform state (with versioning + uniform access),
+# copy this file to backend.tf and set bucket/prefix. Do not commit real bucket names
+# if they reveal internal naming; many teams use a private ops repo for backend config.
+#
+# terraform {
+#   backend "gcs" {
+#     bucket = "YOUR-PROJECT-TFSTATE"
+#     prefix = "tripplanning/terraform"
+#   }
+# }
