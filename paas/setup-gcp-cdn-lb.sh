@@ -2,7 +2,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ENV_FILE="${SCRIPT_DIR}/gcp.env"
+ENV_FILE="${SCRIPT_DIR}/gcp-stag.env"
 
 if [[ -f "${ENV_FILE}" ]]; then source "${ENV_FILE}"; else echo "Missing gcp.env"; exit 1; fi
 
@@ -14,11 +14,15 @@ done
 gcloud config set project "${PROJECT_ID}"
 PROJECT_NUMBER=$(gcloud projects describe ${PROJECT_ID} --format="value(projectNumber)")
 
-BUCKET_NAME="${PROJECT_ID}-frontend-bucket"
-LB_NAME="tripplanning-lb"
-FRONTEND_BACKEND_SERVICE="tripplanning-frontend-backend"
-BACKEND_NEG="tripplanning-backend-neg"
-BACKEND_BACKEND_SERVICE="tripplanning-api-backend"
+# Derive prefix dynamically (e.g. tripplanning-dev-backend -> tripplanning-dev)
+APP_PREFIX="${BACKEND_SERVICE%-backend}"
+
+BUCKET_NAME="${PROJECT_ID}-${APP_PREFIX}-frontend"
+LB_NAME="${APP_PREFIX}-lb"
+FRONTEND_BACKEND_SERVICE="${APP_PREFIX}-frontend-backend"
+BACKEND_NEG="${APP_PREFIX}-neg"
+BACKEND_BACKEND_SERVICE="${APP_PREFIX}-api-backend"
+CERT_NAME="${APP_PREFIX}-certs"
 
 echo "1. Creating Cloud Storage bucket for frontend..."
 if ! gcloud storage buckets describe "gs://${BUCKET_NAME}" >/dev/null 2>&1; then
@@ -75,15 +79,15 @@ fi
 rm url-map.yaml
 
 echo "5. Creating SSL Certificates (Google Managed)..."
-if ! gcloud compute ssl-certificates describe "tripplanning-certs" >/dev/null 2>&1; then
-  gcloud compute ssl-certificates create "tripplanning-certs" \
+if ! gcloud compute ssl-certificates describe "${CERT_NAME}" >/dev/null 2>&1; then
+  gcloud compute ssl-certificates create "${CERT_NAME}" \
     --domains="${FRONTEND_DOMAIN},${BACKEND_DOMAIN}" --global
 fi
 
 echo "6. Creating HTTP/HTTPS Proxies and Forwarding Rules..."
 if ! gcloud compute target-https-proxies describe "${LB_NAME}-https-proxy" >/dev/null 2>&1; then
   gcloud compute target-https-proxies create "${LB_NAME}-https-proxy" \
-    --url-map="${LB_NAME}" --ssl-certificates="tripplanning-certs"
+    --url-map="${LB_NAME}" --ssl-certificates="${CERT_NAME}"
 fi
 
 if ! gcloud compute forwarding-rules describe "${LB_NAME}-https-rule" --global >/dev/null 2>&1; then
