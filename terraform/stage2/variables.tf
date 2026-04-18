@@ -162,8 +162,9 @@ variable "remote_elasticsearch" {
   description = <<-EOT
     When non-null, the Cloud Run backend uses Hibernate Search with Elasticsearch over HTTPS
     (e.g. dedicated ES gateway from infrastructure/terraform_es: host:443, path_prefix /es).
-    password_secret_id is a Secret Manager secret id in this project (terraform_es output
-    elastic_password_secret_id; grant the Cloud Run runtime SA roles/secretmanager.secretAccessor).
+    password_secret_id is the Secret Manager secret *short name* in this project (terraform_es output
+    elastic_password_secret_id), not the password value. Grant the Cloud Run runtime SA
+    roles/secretmanager.secretAccessor (stage2 adds IAM; terraform_es may also use secret_accessor_members).
   EOT
   type = object({
     hosts              = string

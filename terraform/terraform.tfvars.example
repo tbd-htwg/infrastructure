@@ -53,9 +53,8 @@ enable_cloud_armor         = false
 cloud_armor_rate_limit_rps = 600   # requests per minute per client IP before throttle
 
 # --- Optional: Cloud Run uses remote Elasticsearch (terraform_es VM + Caddy /es) instead of Lucene ---
-# Apply infrastructure/terraform_es; use output `elastic_password_secret_id` and your
-# `elasticsearch_fqdn`. Grant the Cloud Run runtime SA secretAccessor on that secret
-# (terraform_es variable secret_accessor_members), then set for example:
+# password_secret_id must be the Secret Manager secret *name* (terraform output elastic_password_secret_id),
+# never the password string you see in "View secret value".
 #
 # remote_elasticsearch = {
 #   hosts              = "es.tbd-htwg.de:443"
