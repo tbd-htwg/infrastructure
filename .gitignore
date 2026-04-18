@@ -4,3 +4,4 @@ gcp-sa.json
 project-*.json
 paas/gcp-dev.env
 paas/gcp-stag.env
+github-pat-ghcr.txt

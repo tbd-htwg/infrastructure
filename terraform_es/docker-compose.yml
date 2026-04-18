@@ -1,0 +1,52 @@
+# Dedicated Elasticsearch + Caddy (TLS, DNS-01). PaaS connects to https://<host>/es/ with elastic + password.
+services:
+  caddy:
+    image: ghcr.io/tbd-htwg/caddy-google:latest
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - CADDY_DOMAIN=${CADDY_DOMAIN}
+      - GCP_PROJECT=${GCP_PROJECT}
+      - GOOGLE_APPLICATION_CREDENTIALS=${GOOGLE_APPLICATION_CREDENTIALS}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:Z
+      - ./data:/data:rw,Z
+      - ./config:/config:rw,Z
+      - ./logs:/var/log/caddy:rw,Z
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - es-net
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.12.0
+    restart: always
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=true
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          'curl -sfu "elastic:$$ELASTIC_PASSWORD" http://127.0.0.1:9200 >/dev/null',
+        ]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    networks:
+      - es-net
+
+volumes:
+  es_data:
+
+networks:
+  es-net:
+    driver: bridge
