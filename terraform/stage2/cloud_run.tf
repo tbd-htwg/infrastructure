@@ -129,13 +129,13 @@ resource "google_cloud_run_v2_service" "backend" {
     }
   }
 
-  depends_on = concat(
-    [
-      google_project_service.run,
-      google_secret_manager_secret_version.db_password,
-    ],
-    values(google_secret_manager_secret_iam_member.cloud_run_elasticsearch_password),
-  )
+  # google_cloud_run_v2_service.depends_on must be a static list (no concat/values).
+  # Ensure ES password Secret Manager IAM is applied before the service mounts that secret.
+  depends_on = [
+    google_project_service.run,
+    google_secret_manager_secret_version.db_password,
+    google_secret_manager_secret_iam_member.cloud_run_elasticsearch_password,
+  ]
 }
 
 resource "google_secret_manager_secret_iam_member" "cloud_run_elasticsearch_password" {
