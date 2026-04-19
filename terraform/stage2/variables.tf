@@ -111,15 +111,45 @@ variable "cloud_run_max_instances" {
 }
 
 variable "cloud_run_cpu" {
-  description = "Cloud Run container CPU limit (e.g. \"1\", \"2\", \"4\"). Must be allowed for the chosen tier/region."
+  description = "Cloud Run container CPU limit (e.g. \"1\", \"2\", \"4\"). Must be allowed for the chosen tier/region. Default matches backend/.github/workflows/terraform-paas-develop.yml."
   type        = string
-  default     = "1"
+  default     = "2"
 }
 
 variable "cloud_run_memory" {
-  description = "Cloud Run container memory limit (e.g. \"512Mi\", \"1Gi\", \"2Gi\")."
+  description = "Cloud Run container memory limit (e.g. \"512Mi\", \"1Gi\", \"2Gi\"). Default matches terraform-paas-develop.yml."
   type        = string
-  default     = "1Gi"
+  default     = "2Gi"
+}
+
+variable "cloud_run_concurrency" {
+  description = "Max concurrent requests per instance. Default matches terraform-paas-develop.yml (same idea as gcloud --concurrency)."
+  type        = number
+  default     = 80
+}
+
+variable "cloud_run_startup_probe_initial_delay_seconds" {
+  description = "Startup probe: wait before first check (JVM / Spring). Matches terraform-paas-develop.yml default."
+  type        = number
+  default     = 30
+}
+
+variable "cloud_run_startup_probe_timeout_seconds" {
+  description = "Startup probe: per-check timeout."
+  type        = number
+  default     = 5
+}
+
+variable "cloud_run_startup_probe_period_seconds" {
+  description = "Startup probe: interval between checks."
+  type        = number
+  default     = 5
+}
+
+variable "cloud_run_startup_probe_failure_threshold" {
+  description = "Startup probe: failures before marking the revision unhealthy (~ period × threshold max wait after initial delay)."
+  type        = number
+  default     = 60
 }
 
 variable "cloud_run_request_timeout_seconds" {

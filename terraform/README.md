@@ -154,16 +154,17 @@ standby in another zone; ~2× cost).
 
 ## Cloud Run
 
-- `EXECUTION_ENVIRONMENT_GEN2`, `startup_cpu_boost`, `cpu_idle`, `max_instance_request_concurrency = 80`.
-- Startup probe: TCP on `:8080`, up to ~2.5 minutes for JVM warmup.
+- `EXECUTION_ENVIRONMENT_GEN2`, `startup_cpu_boost`, `cpu_idle`, `max_instance_request_concurrency` from `cloud_run_concurrency` (default **80**, same as `terraform-paas-develop.yml` / `CLOUD_RUN_CONCURRENCY`).
+- Defaults align with that workflow: **`cloud_run_cpu` = "2"**, **`cloud_run_memory` = "2Gi"**.
+- Startup probe: TCP on `:8080`; `cloud_run_startup_probe_*` defaults match the workflow (30s initial delay, 5s period/timeout, 60 failure threshold ≈ long JVM warmup window).
 - CloudSQL proxy volume mount at `/cloudsql` (the Spring datasource URL uses the socket factory).
 - Image URI is derived — the wrapper passes `-var backend_image_tag=<git SHA>` and Terraform
   builds `${region}-docker.pkg.dev/${project}/${artifact_repo}/${service_name}:${tag}` from the
   stage 1 Artifact Registry data source.
 
 Tune with `cloud_run_min_instances` (1+ to keep a warm instance and eliminate cold starts),
-`cloud_run_max_instances`, `cloud_run_cpu`, `cloud_run_memory`,
-`cloud_run_request_timeout_seconds`.
+`cloud_run_max_instances`, `cloud_run_cpu`, `cloud_run_memory`, `cloud_run_concurrency`,
+`cloud_run_startup_probe_*`, `cloud_run_request_timeout_seconds`.
 
 ## Destroy everything
 

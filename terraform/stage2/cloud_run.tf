@@ -34,7 +34,7 @@ resource "google_cloud_run_v2_service" "backend" {
     service_account                  = google_service_account.cloud_run.email
     execution_environment            = "EXECUTION_ENVIRONMENT_GEN2"
     timeout                          = "${var.cloud_run_request_timeout_seconds}s"
-    max_instance_request_concurrency = 80
+    max_instance_request_concurrency = var.cloud_run_concurrency
 
     scaling {
       min_instance_count = var.cloud_run_min_instances
@@ -68,10 +68,10 @@ resource "google_cloud_run_v2_service" "backend" {
         tcp_socket {
           port = 8080
         }
-        initial_delay_seconds = 5
-        timeout_seconds       = 3
-        period_seconds        = 5
-        failure_threshold     = 30
+        initial_delay_seconds = var.cloud_run_startup_probe_initial_delay_seconds
+        timeout_seconds       = var.cloud_run_startup_probe_timeout_seconds
+        period_seconds        = var.cloud_run_startup_probe_period_seconds
+        failure_threshold     = var.cloud_run_startup_probe_failure_threshold
       }
 
       volume_mounts {

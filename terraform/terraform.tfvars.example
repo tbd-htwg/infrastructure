@@ -40,8 +40,14 @@ frontend_bucket_force_destroy = false    # flip to true + `terraform-stage.sh 1`
 cloud_run_backend_service_name = "tbd-tf-backend"
 cloud_run_min_instances        = 0       # 1+ to keep a warm instance (avoids cold starts)
 cloud_run_max_instances        = 10
-cloud_run_cpu                  = "1"
-cloud_run_memory               = "1Gi"
+# Match backend/.github/workflows/terraform-paas-develop.yml defaults (avoid 1 vCPU / 1Gi bottlenecks).
+cloud_run_cpu                  = "2"
+cloud_run_memory               = "2Gi"
+cloud_run_concurrency          = 80
+cloud_run_startup_probe_initial_delay_seconds = 30
+cloud_run_startup_probe_timeout_seconds       = 5
+cloud_run_startup_probe_period_seconds        = 5
+cloud_run_startup_probe_failure_threshold     = 60
 cors_allowed_origins           = "https://tf.tbd-htwg.de"
 
 # --- Cloud DNS (A records only; zone itself is not managed here) ---
