@@ -15,7 +15,12 @@ done
 # Derive prefix dynamically (e.g. tripplanning-dev-backend -> tripplanning-dev)
 APP_PREFIX="${BACKEND_SERVICE%-backend}"
 
-BUCKET_NAME="${PROJECT_ID}-${APP_PREFIX}-frontend"
+if [ "$APP_PREFIX" = "tripplanning" ]; then
+  BUCKET_NAME="${PROJECT_ID}-frontend-bucket"
+else
+  BUCKET_NAME="${PROJECT_ID}-${APP_PREFIX}-frontend"
+fi
+
 LB_NAME="${APP_PREFIX}-lb"
 
 PAAS_API_BASE_URL="${PAAS_BACKEND_URL%/}"

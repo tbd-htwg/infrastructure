@@ -17,7 +17,12 @@ PROJECT_NUMBER=$(gcloud projects describe ${PROJECT_ID} --format="value(projectN
 # Derive prefix dynamically (e.g. tripplanning-dev-backend -> tripplanning-dev)
 APP_PREFIX="${BACKEND_SERVICE%-backend}"
 
-BUCKET_NAME="${PROJECT_ID}-${APP_PREFIX}-frontend"
+if [ "$APP_PREFIX" = "tripplanning" ]; then
+  BUCKET_NAME="${PROJECT_ID}-frontend-bucket"
+else
+  BUCKET_NAME="${PROJECT_ID}-${APP_PREFIX}-frontend"
+fi
+
 LB_NAME="${APP_PREFIX}-lb"
 FRONTEND_BACKEND_SERVICE="${APP_PREFIX}-frontend-backend"
 BACKEND_NEG="${APP_PREFIX}-neg"
