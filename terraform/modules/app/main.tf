@@ -1,5 +1,9 @@
 locals {
   resource_suffix = var.name_prefix == "" ? "" : "-${var.name_prefix}"
+  image_signer_account_id = coalesce(
+    var.image_signer_account_id,
+    "tripplanning-${var.env_prefix}-image-url-sig"
+  )
 }
 
 # -------------------------
@@ -11,33 +15,93 @@ resource "google_service_account" "backend_runtime" {
 }
 
 resource "google_service_account" "backend_deploy" {
-  account_id = "tripplanning-${var.env_prefix}-be-deploy"
+  account_id   = "tripplanning-${var.env_prefix}-be-deploy"
   display_name = "tripplanning ${var.env_prefix} backend deployer"
 }
 
 resource "google_service_account" "frontend_deploy" {
-  account_id = "tripplanning-${var.env_prefix}-fe-deploy"
+  account_id   = "tripplanning-${var.env_prefix}-fe-deploy"
   display_name = "tripplanning ${var.env_prefix} frontend deployer"
+}
+
+resource "google_service_account" "image_signer" {
+  account_id   = local.image_signer_account_id
+  display_name = "tripplanning-${var.env_prefix}-image-url-signer"
+  description  = "Signs image upload URLs for upload to buckets from frontend"
+}
+
+resource "google_service_account" "image_store" {
+  account_id   = "tripplanning-${var.env_prefix}-img-store"
+  display_name = "tripplanning ${var.env_prefix} images object store"
+}
+
+resource "google_service_account" "identity_admin" {
+  account_id   = "tripplanning-${var.env_prefix}-id-admin"
+  display_name = "tripplanning ${var.env_prefix} identity admin"
 }
 
 # -------------------------
 # IAM
 # -------------------------
 resource "google_project_iam_member" "run_admin" {
-  role   = "roles/run.admin"
-  member = "serviceAccount:${google_service_account.backend_deploy.email}"
+  role    = "roles/run.admin"
+  member  = "serviceAccount:${google_service_account.backend_deploy.email}"
   project = var.project_id
 }
 
 resource "google_project_iam_member" "cloudsql_client" {
-  role   = "roles/cloudsql.client"
-  member = "serviceAccount:${google_service_account.backend_runtime.email}"
+  role    = "roles/cloudsql.client"
+  member  = "serviceAccount:${google_service_account.backend_runtime.email}"
   project = var.project_id
+}
+
+resource "google_project_iam_member" "datastore_user" {
+  project = var.project_id
+  role    = "roles/datastore.user"
+  member  = "serviceAccount:${google_service_account.backend_runtime.email}"
+}
+
+resource "google_project_iam_member" "identitytoolkit_admin" {
+  project = var.project_id
+  role    = "roles/identitytoolkit.admin"
+  member  = "serviceAccount:${google_service_account.identity_admin.email}"
+}
+
+resource "google_project_iam_member" "frontend_cdn_invalidator" {
+  project = var.project_id
+  role    = var.frontend_cdn_invalidator_role_id
+  member  = "serviceAccount:${google_service_account.frontend_deploy.email}"
+}
+
+resource "google_project_iam_member" "image_signer_token_creator_project" {
+  project = var.project_id
+  role    = "roles/iam.serviceAccountTokenCreator"
+  member  = "serviceAccount:${google_service_account.image_signer.email}"
+}
+
+resource "google_service_account_iam_member" "backend_runtime_can_impersonate_image_signer" {
+  service_account_id = google_service_account.image_signer.name
+  role               = "roles/iam.serviceAccountTokenCreator"
+  member             = "serviceAccount:${google_service_account.backend_runtime.email}"
 }
 
 # -------------------------
 # SECRET
 # -------------------------
+resource "google_secret_manager_secret_iam_member" "db_password_accessor" {
+  project   = var.project_id
+  secret_id = var.db_password_secret_id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.backend_runtime.email}"
+}
+
+resource "google_secret_manager_secret_iam_member" "elasticsearch_password_accessor" {
+  project   = var.project_id
+  secret_id = var.elasticsearch_secret_id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.backend_runtime.email}"
+}
+
 # -------------------------
 # CLOUD SQL
 # -------------------------
@@ -163,7 +227,7 @@ resource "google_cloud_run_service" "backend" {
 
         env {
           name  = "SPRING_CLOUD_GCP_IMPERSONATE_SERVICE_ACCOUNT"
-          value = var.image_signer_sa_email
+          value = google_service_account.image_signer.email
         }
 
         env {
@@ -200,6 +264,61 @@ resource "google_storage_bucket" "frontend" {
   }
 }
 
+resource "google_storage_bucket_iam_member" "image_bucket_backend_object_admin" {
+  bucket = var.image_bucket_name
+  role   = "roles/storage.objectAdmin"
+  member = "serviceAccount:${google_service_account.backend_runtime.email}"
+}
+
+resource "google_storage_bucket_iam_member" "image_bucket_store_bucket_viewer" {
+  bucket = var.image_bucket_name
+  role   = "roles/storage.bucketViewer"
+  member = "serviceAccount:${google_service_account.image_store.email}"
+}
+
+resource "google_storage_bucket_iam_member" "image_bucket_store_object_admin" {
+  bucket = var.image_bucket_name
+  role   = "roles/storage.objectAdmin"
+  member = "serviceAccount:${google_service_account.image_store.email}"
+}
+
+resource "google_storage_bucket_iam_member" "image_bucket_signer_object_creator" {
+  bucket = var.image_bucket_name
+  role   = "roles/storage.objectCreator"
+  member = "serviceAccount:${google_service_account.image_signer.email}"
+}
+
+resource "google_storage_bucket_iam_member" "image_bucket_signer_object_viewer" {
+  bucket = var.image_bucket_name
+  role   = "roles/storage.objectViewer"
+  member = "serviceAccount:${google_service_account.image_signer.email}"
+}
+
+resource "google_cloud_run_service" "frontend" {
+  count    = var.frontend_run_image == null ? 0 : 1
+  name     = "tripplanning${local.resource_suffix}-frontend"
+  location = "europe-west1"
+
+  lifecycle {
+    ignore_changes = [
+      metadata[0].annotations,
+      metadata[0].labels,
+      template[0].metadata[0].annotations,
+      template[0].metadata[0].labels,
+    ]
+  }
+
+  template {
+    spec {
+      service_account_name = var.frontend_run_service_account_email
+
+      containers {
+        image = var.frontend_run_image
+      }
+    }
+  }
+}
+
 # -------------------------
 # LOAD BALANCER (FULL)
 # -------------------------
@@ -229,9 +348,9 @@ resource "google_compute_region_network_endpoint_group" "backend_neg" {
 
 # Backend service (API)
 resource "google_compute_backend_service" "api_backend" {
-  name                  = "tripplanning${local.resource_suffix}-api-backend"
-  protocol              = "HTTP"
-  load_balancing_scheme = "EXTERNAL"
+  name                            = "tripplanning${local.resource_suffix}-api-backend"
+  protocol                        = "HTTP"
+  load_balancing_scheme           = "EXTERNAL"
   connection_draining_timeout_sec = 0
 
   backend {
@@ -305,4 +424,32 @@ resource "google_dns_record_set" "api" {
   managed_zone = "tbd-example-zone"
 
   rrdatas = [google_compute_global_forwarding_rule.https.ip_address]
+}
+
+resource "google_cloud_run_domain_mapping" "frontend" {
+  count    = var.manage_cloud_run_domain_mappings && var.frontend_run_image != null ? 1 : 0
+  name     = var.domain_main
+  location = "europe-west1"
+
+  metadata {
+    namespace = var.project_id
+  }
+
+  spec {
+    route_name = google_cloud_run_service.frontend[0].name
+  }
+}
+
+resource "google_cloud_run_domain_mapping" "api" {
+  count    = var.manage_cloud_run_domain_mappings ? 1 : 0
+  name     = var.domain_api
+  location = "europe-west1"
+
+  metadata {
+    namespace = var.project_id
+  }
+
+  spec {
+    route_name = google_cloud_run_service.backend.name
+  }
 }

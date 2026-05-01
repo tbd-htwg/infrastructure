@@ -55,10 +55,6 @@ variable "jwt_secret" {
   sensitive   = true
 }
 
-variable "image_signer_sa_email" {
-  description = "Service account for image URL signing"
-}
-
 variable "ssl_cert_name" {
   description = "Managed SSL certificate name"
 }
@@ -69,4 +65,9 @@ variable "backend_neg_name" {
 
 variable "enable_dataplex_integration" {
   description = "Enable Dataplex integration for Cloud SQL"
+}
+
+variable "image_signer_account_id" {
+  description = "Service account ID for image URL signing"
+  default     = "tripplanning-dev-image-url-sig"
 }

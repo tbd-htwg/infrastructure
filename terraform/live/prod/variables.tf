@@ -55,10 +55,6 @@ variable "jwt_secret" {
   sensitive   = true
 }
 
-variable "image_signer_sa_email" {
-  description = "Service account for image URL signing"
-}
-
 variable "ssl_cert_name" {
   description = "Managed SSL certificate name"
 }
@@ -69,4 +65,24 @@ variable "backend_neg_name" {
 
 variable "enable_dataplex_integration" {
   description = "Enable Dataplex integration for Cloud SQL"
+}
+
+variable "image_signer_account_id" {
+  description = "Service account ID for image URL signing"
+  default     = "tripplanning-prod-image-url-si"
+}
+
+variable "frontend_run_image" {
+  description = "Legacy Cloud Run frontend image"
+  default     = null
+}
+
+variable "frontend_run_service_account_email" {
+  description = "Service account email for the legacy Cloud Run frontend"
+  default     = "1001763908245-compute@developer.gserviceaccount.com"
+}
+
+variable "manage_cloud_run_domain_mappings" {
+  description = "Manage existing Cloud Run domain mappings in addition to load balancer DNS"
+  default     = false
 }

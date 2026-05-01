@@ -31,6 +31,15 @@ projects/$PROJECT/serviceAccounts/tripplanning-$ENV-be-deploy@$PROJECT.iam.gserv
 tf_import module.app.google_service_account.frontend_deploy \
 projects/$PROJECT/serviceAccounts/tripplanning-$ENV-fe-deploy@$PROJECT.iam.gserviceaccount.com
 
+tf_import module.app.google_service_account.image_signer \
+projects/$PROJECT/serviceAccounts/tripplanning-$ENV-image-url-sig@$PROJECT.iam.gserviceaccount.com
+
+tf_import module.app.google_service_account.image_store \
+projects/$PROJECT/serviceAccounts/tripplanning-$ENV-img-store@$PROJECT.iam.gserviceaccount.com
+
+tf_import module.app.google_service_account.identity_admin \
+projects/$PROJECT/serviceAccounts/tripplanning-$ENV-id-admin@$PROJECT.iam.gserviceaccount.com
+
 echo "Importing Cloud SQL..."
 tf_import module.app.google_sql_database_instance.db \
 $PROJECT/tripplanning-$ENV-pg
@@ -46,6 +55,21 @@ $PROJECT/tripplanning-$ENV-pg/tripplanning_app
 echo "Importing Storage..."
 tf_import module.app.google_storage_bucket.frontend \
 project-9118634e-c9f1-4f29-804-tripplanning-$ENV-frontend
+
+tf_import module.app.google_storage_bucket_iam_member.image_bucket_backend_object_admin \
+"b/$PROJECT-images-bucket roles/storage.objectAdmin serviceAccount:tripplanning-$ENV-be-rt@$PROJECT.iam.gserviceaccount.com"
+
+tf_import module.app.google_storage_bucket_iam_member.image_bucket_store_bucket_viewer \
+"b/$PROJECT-images-bucket roles/storage.bucketViewer serviceAccount:tripplanning-$ENV-img-store@$PROJECT.iam.gserviceaccount.com"
+
+tf_import module.app.google_storage_bucket_iam_member.image_bucket_store_object_admin \
+"b/$PROJECT-images-bucket roles/storage.objectAdmin serviceAccount:tripplanning-$ENV-img-store@$PROJECT.iam.gserviceaccount.com"
+
+tf_import module.app.google_storage_bucket_iam_member.image_bucket_signer_object_creator \
+"b/$PROJECT-images-bucket roles/storage.objectCreator serviceAccount:tripplanning-$ENV-image-url-sig@$PROJECT.iam.gserviceaccount.com"
+
+tf_import module.app.google_storage_bucket_iam_member.image_bucket_signer_object_viewer \
+"b/$PROJECT-images-bucket roles/storage.objectViewer serviceAccount:tripplanning-$ENV-image-url-sig@$PROJECT.iam.gserviceaccount.com"
 
 echo "Importing NEG..."
 tf_import module.app.google_compute_region_network_endpoint_group.backend_neg \
@@ -88,5 +112,26 @@ tf_import module.app.google_project_iam_member.run_admin \
 
 tf_import module.app.google_project_iam_member.cloudsql_client \
 "$PROJECT roles/cloudsql.client serviceAccount:tripplanning-$ENV-be-rt@$PROJECT.iam.gserviceaccount.com"
+
+tf_import module.app.google_project_iam_member.datastore_user \
+"$PROJECT roles/datastore.user serviceAccount:tripplanning-$ENV-be-rt@$PROJECT.iam.gserviceaccount.com"
+
+tf_import module.app.google_project_iam_member.identitytoolkit_admin \
+"$PROJECT roles/identitytoolkit.admin serviceAccount:tripplanning-$ENV-id-admin@$PROJECT.iam.gserviceaccount.com"
+
+tf_import module.app.google_project_iam_member.frontend_cdn_invalidator \
+"$PROJECT projects/$PROJECT/roles/tripplanningFrontendCdnInvalidator serviceAccount:tripplanning-$ENV-fe-deploy@$PROJECT.iam.gserviceaccount.com"
+
+tf_import module.app.google_project_iam_member.image_signer_token_creator_project \
+"$PROJECT roles/iam.serviceAccountTokenCreator serviceAccount:tripplanning-$ENV-image-url-sig@$PROJECT.iam.gserviceaccount.com"
+
+tf_import module.app.google_service_account_iam_member.backend_runtime_can_impersonate_image_signer \
+"projects/$PROJECT/serviceAccounts/tripplanning-$ENV-image-url-sig@$PROJECT.iam.gserviceaccount.com roles/iam.serviceAccountTokenCreator serviceAccount:tripplanning-$ENV-be-rt@$PROJECT.iam.gserviceaccount.com"
+
+tf_import module.app.google_secret_manager_secret_iam_member.db_password_accessor \
+"projects/$PROJECT/secrets/tripplanning-db-password roles/secretmanager.secretAccessor serviceAccount:tripplanning-$ENV-be-rt@$PROJECT.iam.gserviceaccount.com"
+
+tf_import module.app.google_secret_manager_secret_iam_member.elasticsearch_password_accessor \
+"projects/$PROJECT/secrets/tbd-es-gateway-elastic-password roles/secretmanager.secretAccessor serviceAccount:tripplanning-$ENV-be-rt@$PROJECT.iam.gserviceaccount.com"
 
 echo "DONE"
