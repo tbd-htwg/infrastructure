@@ -102,6 +102,12 @@ resource "google_secret_manager_secret_iam_member" "elasticsearch_password_acces
   member    = "serviceAccount:${google_service_account.backend_runtime.email}"
 }
 
+data "google_secret_manager_secret_version" "db_password" {
+  project = var.project_id
+  secret  = var.db_password_secret_id
+  version = "latest"
+}
+
 # -------------------------
 # CLOUD SQL
 # -------------------------
@@ -135,6 +141,7 @@ resource "google_sql_database" "app" {
 resource "google_sql_user" "app" {
   name     = "tripplanning_app"
   instance = google_sql_database_instance.db.name
+  password = data.google_secret_manager_secret_version.db_password.secret_data
 }
 
 # -------------------------
@@ -143,6 +150,14 @@ resource "google_sql_user" "app" {
 resource "google_cloud_run_service" "backend" {
   name     = "tripplanning${local.resource_suffix}-backend"
   location = "europe-west1"
+
+  depends_on = [
+    google_project_iam_member.cloudsql_client,
+    google_secret_manager_secret_iam_member.db_password_accessor,
+    google_secret_manager_secret_iam_member.elasticsearch_password_accessor,
+    google_sql_database.app,
+    google_sql_user.app,
+  ]
 
   lifecycle {
     ignore_changes = [
@@ -255,13 +270,26 @@ resource "google_cloud_run_service" "backend" {
 # STORAGE (FRONTEND)
 # -------------------------
 resource "google_storage_bucket" "frontend" {
-  name     = var.frontend_bucket_name
-  location = "EU"
+  name                        = var.frontend_bucket_name
+  location                    = "EU"
+  uniform_bucket_level_access = true
 
   website {
     main_page_suffix = "index.html"
     not_found_page   = "index.html"
   }
+}
+
+resource "google_storage_bucket_iam_member" "frontend_deploy_bucket_viewer" {
+  bucket = google_storage_bucket.frontend.name
+  role   = "roles/storage.bucketViewer"
+  member = "serviceAccount:${google_service_account.frontend_deploy.email}"
+}
+
+resource "google_storage_bucket_iam_member" "frontend_deploy_object_admin" {
+  bucket = google_storage_bucket.frontend.name
+  role   = "roles/storage.objectAdmin"
+  member = "serviceAccount:${google_service_account.frontend_deploy.email}"
 }
 
 resource "google_storage_bucket_iam_member" "image_bucket_backend_object_admin" {
