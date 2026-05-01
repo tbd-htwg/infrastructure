@@ -1,4 +1,0 @@
-services:
-  caddy:
-    volumes:
-      - ./gcp-sa.json:/secrets/gcp-sa.json:ro
