@@ -1,5 +1,0 @@
-# Merged on the VM with docker-compose.yml: mounts the SA JSON for Caddy DNS-01.
-services:
-  caddy:
-    volumes:
-      - ./gcp-sa.json:/secrets/gcp-sa.json:ro
