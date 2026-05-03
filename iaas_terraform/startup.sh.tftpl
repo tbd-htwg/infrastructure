@@ -1,0 +1,156 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+log() {
+  echo "[startup] $*"
+}
+
+export DEBIAN_FRONTEND=noninteractive
+
+log "Installing base packages"
+apt-get update -y
+apt-get install -y ca-certificates curl git gnupg lsb-release
+
+log "Installing Google Cloud CLI"
+if ! command -v gcloud >/dev/null 2>&1; then
+  echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] http://packages.cloud.google.com/apt cloud-sdk main" \
+    > /etc/apt/sources.list.d/google-cloud-sdk.list
+  curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | \
+    gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg
+  apt-get update -y
+  apt-get install -y google-cloud-cli
+fi
+
+if ! command -v docker >/dev/null 2>&1; then
+  log "Installing Docker"
+  apt-get install -y docker.io
+  systemctl enable --now docker
+else
+  log "Docker already installed"
+fi
+
+compose_cmd="docker compose"
+if ! docker compose version >/dev/null 2>&1; then
+  log "Installing Docker Compose (legacy package)"
+  apt-get install -y docker-compose
+  compose_cmd="docker-compose"
+fi
+
+data_disk="/dev/disk/by-id/google-${data_disk_name}"
+
+if [[ -b "$${data_disk}" ]]; then
+  log "Configuring persistent Docker disk"
+  if ! blkid "$${data_disk}" >/dev/null 2>&1; then
+    mkfs.ext4 -F "$${data_disk}"
+  fi
+
+  mkdir -p /var/lib/docker
+
+  if ! grep -q "$${data_disk} /var/lib/docker" /etc/fstab; then
+    systemctl stop docker || true
+    if [[ -n "$(ls -A /var/lib/docker 2>/dev/null)" ]]; then
+      mkdir -p /var/lib/docker.bak
+      cp -a /var/lib/docker/. /var/lib/docker.bak/ || true
+    fi
+    echo "$${data_disk} /var/lib/docker ext4 defaults,nofail 0 2" >> /etc/fstab
+  fi
+
+  mount /var/lib/docker || true
+  systemctl start docker || true
+fi
+
+if id "${vm_user}" >/dev/null 2>&1; then
+  if ! id -nG "${vm_user}" | grep -q "\bdocker\b"; then
+    log "Adding ${vm_user} to docker group"
+    usermod -aG docker "${vm_user}" || true
+  fi
+else
+  log "User ${vm_user} not found; skipping docker group update"
+fi
+
+repo_dir="/opt/tripplanning"
+infra_dir="$${repo_dir}/${repo_subdir}"
+
+log "Preparing infrastructure repo"
+
+# Always start clean to avoid corruption
+rm -rf "$${repo_dir}"
+
+log "Cloning infrastructure repo"
+git -c credential.helper= clone \
+  --branch "${repo_branch}" \
+  --single-branch \
+  "${repo_url}" \
+  "$${repo_dir}"
+
+
+log "Validating required variables"
+
+if [[ -z "${caddy_domain}" ]]; then
+  echo "Missing caddy_domain" >&2
+  exit 1
+fi
+
+if [[ -z "${postgres_db}" ]]; then
+  echo "Missing postgres_db" >&2
+  exit 1
+fi
+
+if [[ -z "${postgres_user}" ]]; then
+  echo "Missing postgres_user" >&2
+  exit 1
+fi
+
+if [[ -z "${gcp_project}" ]]; then
+  echo "Missing gcp_project" >&2
+  exit 1
+fi
+
+log "Writing .env for Docker Compose"
+mkdir -p "$${infra_dir}"
+
+gcloud config set project "${gcp_project}" >/dev/null
+
+postgres_password=""
+if [[ -n "${postgres_password_secret_id}" ]]; then
+  postgres_password="$(gcloud secrets versions access latest --secret="${postgres_password_secret_id}" --project="${gcp_project}" 2>/dev/null || true)"
+fi
+
+elasticsearch_password=""
+if [[ -n "${elasticsearch_password_secret}" ]]; then
+  elasticsearch_password="$(gcloud secrets versions access latest --secret="${elasticsearch_password_secret}" --project="${gcp_project}" 2>/dev/null || true)"
+fi
+
+elastic_password_value="${elastic_password}"
+if [[ -n "$${elasticsearch_password}" ]]; then
+  elastic_password_value="$${elasticsearch_password}"
+fi
+
+cat > "$${infra_dir}/.env" <<EOF
+CADDY_DOMAIN=${caddy_domain}
+GCP_PROJECT=${gcp_project}
+GOOGLE_APPLICATION_CREDENTIALS=${google_application_credentials}
+POSTGRES_DB=${postgres_db}
+POSTGRES_USER=${postgres_user}
+POSTGRES_PASSWORD=$${postgres_password}
+ELASTIC_PASSWORD=$${elastic_password_value}
+ELASTICSEARCH_USERNAME=${elasticsearch_username}
+ELASTICSEARCH_PASSWORD=$${elasticsearch_password}
+ELASTICSEARCH_PATH_PREFIX=${elasticsearch_path_prefix}
+EOF
+
+log "Logging into GHCR"
+
+if [[ -n "${ghcr_username:-}" && -n "${ghcr_token:-}" ]]; then
+  echo "${ghcr_token}" | docker login ghcr.io -u "${ghcr_username}" --password-stdin
+else
+  log "WARNING: GHCR credentials not set, pulls may fail"
+fi
+
+log "Starting Docker Compose"
+cd "$${infra_dir}"
+$${compose_cmd} pull
+
+$${compose_cmd} up -d
+
+log "Startup completed"

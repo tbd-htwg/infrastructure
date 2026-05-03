@@ -1,0 +1,13 @@
+# Optional overrides (defaults already match the old VM)
+# project_id               = "project-9118634e-c9f1-4f29-804"
+# gcp_project              = "project-9118634e-c9f1-4f29-804"
+# instance_name            = "tripplanning-iaas-tf"
+# zone                     = "europe-west3-c"
+# machine_type             = "e2-medium"
+# create_static_ip         = true
+# static_ip_name           = "tripplanning-iaas-tf-ip"
+# create_firewall_rules    = false
+# manage_dns               = true
+# dns_zone                 = "tbd-example-zone"
+# dns_record_name          = "iaas-tf.tbd-htwg.de."
+# data_disk_size_gb        = 50
