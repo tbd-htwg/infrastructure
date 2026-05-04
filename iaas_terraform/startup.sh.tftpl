@@ -7,6 +7,17 @@ log() {
 
 export DEBIAN_FRONTEND=noninteractive
 
+log "Repairing dpkg state (if needed)"
+if [[ ! -s /etc/mailname ]]; then
+  echo "$(hostname -f 2>/dev/null || hostname)" > /etc/mailname
+fi
+
+if ! dpkg --configure -a; then
+  apt-get update -y
+  apt-get -f install -y
+  dpkg --configure -a
+fi
+
 log "Installing base packages"
 apt-get update -y
 apt-get install -y ca-certificates curl git gnupg lsb-release
@@ -141,16 +152,16 @@ EOF
 
 log "Logging into GHCR"
 
-if [[ -n "${ghcr_username:-}" && -n "${ghcr_token:-}" ]]; then
-  echo "${ghcr_token}" | docker login ghcr.io -u "${ghcr_username}" --password-stdin
+if [[ -n "$${ghcr_username:-}" && -n "$${ghcr_token:-}" ]]; then
+  echo "$${ghcr_token}" | docker login ghcr.io -u "$${ghcr_username}" --password-stdin
 else
   log "WARNING: GHCR credentials not set, pulls may fail"
 fi
 
 log "Starting Docker Compose"
 cd "$${infra_dir}"
-$${compose_cmd} pull
+$${compose_cmd} --env-file "$${infra_dir}/.env" pull
 
-$${compose_cmd} up -d
+$${compose_cmd} --env-file "$${infra_dir}/.env" up -d
 
 log "Startup completed"

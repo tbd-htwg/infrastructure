@@ -100,6 +100,13 @@ resource "google_project_iam_member" "vm_dns_admin" {
   project = var.project_id
 }
 
+resource "google_project_iam_member" "vm_log_writer" {
+  count   = var.grant_log_writer && var.service_account_email != null ? 1 : 0
+  role    = "roles/logging.logWriter"
+  member  = "serviceAccount:${var.service_account_email}"
+  project = var.project_id
+}
+
 resource "google_dns_record_set" "vm_a" {
   count        = var.manage_dns ? 1 : 0
   name         = var.dns_record_name

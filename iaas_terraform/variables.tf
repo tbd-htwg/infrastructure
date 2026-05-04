@@ -243,6 +243,12 @@ variable "grant_secretmanager_access" {
   default     = true
 }
 
+variable "grant_log_writer" {
+  description = "Grant Cloud Logging write access to the VM service account"
+  type        = bool
+  default     = true
+}
+
 variable "metadata_ssh_keys" {
   description = "SSH keys metadata entry to mirror the old VM"
   type        = string
