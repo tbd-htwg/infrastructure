@@ -8,15 +8,13 @@ services:
     environment:
       - CADDY_DOMAIN=${CADDY_DOMAIN}
       - GCP_PROJECT=${GCP_PROJECT}
-      - GOOGLE_APPLICATION_CREDENTIALS=${GOOGLE_APPLICATION_CREDENTIALS}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:Z
       - ./data:/data:rw,Z
       - ./config:/config:rw,Z
       - ./static:/srv/static:ro,Z
       - ./logs:/var/log/caddy:rw,Z
-      # Uncomment after placing a service account JSON and setting GOOGLE_APPLICATION_CREDENTIALS in .env:
-      # - ./gcp-sa.json:/secrets/gcp-sa.json:ro,Z
+      # GOOGLE_APPLICATION_CREDENTIALS is not required when using VM service account metadata.
     networks:
       - caddy-network
 

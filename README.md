@@ -98,3 +98,7 @@ The frontend uses relative API paths (`/api/v2/...`) and Vite proxy forwards the
 - `Caddyfile`: production reverse-proxy + TLS (Google Cloud DNS challenge)
 - `docker-compose.local.yml`: local all-in-one stack (builds frontend/backend locally + runs Postgres)
 - `Caddyfile.local`: local reverse-proxy routing (HTTP only)
+
+## Terraform IaaS
+
+The Terraform IaaS setup lives in `infrastructure/iaas_terraform` and provisions a Compute Engine VM for the full Docker Compose stack. It attaches a persistent data disk for Docker state, sets up DNS for `iaas-tf.tbd-htwg.de`, pulls secrets from Secret Manager, and runs the production compose file from the `main` branch at boot.
