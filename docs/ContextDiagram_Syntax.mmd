@@ -1,0 +1,33 @@
+C4Context
+    title System Context Diagram for Trip Planner
+
+    %% Ebene 1: Ganz oben
+    Person(user, "Traveller", "Plans and manages trips")
+
+    %% Ebene 2: Mitte
+    System(tripPlanner, "Trip Planner System", "Central orchestrator for trips")
+
+    %% Ebene 3: Unten (Wir gruppieren sie, um eine Reihe zu erzwingen)
+    Boundary(ext, "External Services") {
+        System_Ext(email, "E-Mail Provider", "Personalized marketing")
+        System_Ext(google, "Google Identity", "User authorization")
+        System_Ext(aa, "Auswärtiges Amt", "Travel warnings")
+        System_Ext(weather, "Weather API", "Weather forecast")
+        
+    }
+
+    %% Beziehungen mit Richtungserzwingung
+    Rel(user, tripPlanner, "Uses")
+
+    %% Wir nutzen Rel_D (Rel Down), um die Richtung nach unten zu forcieren
+    Rel(tripPlanner, email, "Triggers")
+    Rel(tripPlanner, google, "Authenticates", "OAuth2")
+    Rel(tripPlanner, aa, "Requests")
+    Rel(tripPlanner, weather, "Requests")
+    
+
+    Rel_Back(user, email, "Receives emails", "SMTP")
+
+    %% Styling
+    UpdateElementStyle(user, $bgColor="#818cf8", $borderColor="#4f46e5", $fontColor="#ffffff")
+    UpdateElementStyle(tripPlanner, $bgColor="#2dd4bf", $borderColor="#0d9488", $fontColor="#ffffff")
