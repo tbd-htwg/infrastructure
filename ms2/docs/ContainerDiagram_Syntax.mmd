@@ -1,0 +1,53 @@
+C4Container
+    title Container Diagram - Trip Planner Layered Architecture (Hierarchical View, Centered)
+
+    %% Centered layout configuration
+
+    Person(user, "Traveller", "Plans trips & engages socially.")
+
+    %% ------------------ LAYER 1 (Apps & Orchestrator) ------------------
+    System_Boundary(l1, "Trip Planner - Application Layer") {
+        Container(spa, "Web Application", "React, Vite", "User Interface")
+        Container(gateway, "API Orchestrator", "Spring Boot / Security", "Central Entry Point & JWT Validation")
+
+        %% ------------------ LAYER 2 (Functional Services) ------------------
+        System_Boundary(l2, "Service Layer") {
+            Container(auth_srv, "Auth Service", "Spring Security", "Google OAuth2 & JWT Logic")
+            Container(trip_srv, "Trip Service", "Spring Data REST", "Core Trip & Location Logic")
+            Container(social_srv, "Social Service", "Firestore API", "Likes & Comments")
+            Container(search_srv, "Search Service", "Hibernate Search", "Elasticsearch Sync")
+            Container(image_srv, "Image Service", "GCS API", "Asset & Signed URL Logic")
+            
+            %% ------------------ LAYER 3 (Persistence) ------------------
+            System_Boundary(l3, "Persistence Layer") {
+                ContainerDb(storage, "Object Storage", "GCS", "Image Blobs")
+                ContainerDb(db_sql, "Relational DB", "Cloud SQL", "PostgreSQL (Master Data)")
+                ContainerDb(db_nosql, "Social Store", "Firestore", "NoSQL (Interactions)")
+                Container(db_search, "Search Index", "Elasticsearch", "Fuzzy Search Docs")
+            }
+        }
+    }
+
+    %% --- RELATIONSHIPS ---
+    Rel_D(user, spa, "Uses", "HTTPS")
+    Rel_D(spa, gateway, "API Requests", "JSON/HTTPS (JWT)")
+
+    Rel_D(gateway, auth_srv, "Routes", "Internal")
+    Rel_D(gateway, trip_srv, "Routes", "Internal")
+    Rel_D(gateway, social_srv, "Routes", "Internal")
+    Rel_D(gateway, search_srv, "Routes", "Internal")
+    Rel_D(gateway, image_srv, "Routes", "Internal")
+
+    Rel_D(auth_srv, db_sql, "Checks", "JPA")
+    Rel_D(trip_srv, db_sql, "CRUD", "JPA/JDBC")
+    Rel_D(social_srv, db_nosql, "Reads/Writes", "Firestore API")
+    Rel_D(search_srv, db_search, "Queries/Syncs", "REST/JSON")
+    Rel_D(image_srv, storage, "Signed URLs", "GCS API")
+
+    %% --- Styling ---
+    UpdateElementStyle(gateway, $bgColor="#0f172a", $fontColor="#ffffff", $borderColor="#2dd4bf")
+    UpdateElementStyle(auth_srv, $bgColor="#2dd4bf", $fontColor="#ffffff")
+    UpdateElementStyle(trip_srv, $bgColor="#2dd4bf", $fontColor="#ffffff")
+    UpdateElementStyle(social_srv, $bgColor="#2dd4bf", $fontColor="#ffffff")
+    UpdateElementStyle(search_srv, $bgColor="#2dd4bf", $fontColor="#ffffff")
+    UpdateElementStyle(image_srv, $bgColor="#2dd4bf", $fontColor="#ffffff")
