@@ -15,6 +15,7 @@ variable "api_services" {
     "iam.googleapis.com",
     "logging.googleapis.com",
     "monitoring.googleapis.com",
+    "servicenetworking.googleapis.com",
     "secretmanager.googleapis.com",
     "serviceusage.googleapis.com",
     "sqladmin.googleapis.com",

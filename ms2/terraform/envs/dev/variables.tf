@@ -47,3 +47,45 @@ variable "gke" {
   })
   description = "GKE Autopilot cluster settings."
 }
+
+variable "cloudsql" {
+  type = object({
+    instance_name        = string
+    database_version     = string
+    tier                 = string
+    disk_size_gb         = number
+    disk_autoresize      = bool
+    availability_type    = string
+    shared_database_name = string
+    tenant_databases     = list(string)
+    app_user             = string
+    private_ip_range     = string
+  })
+  description = "Cloud SQL configuration."
+}
+
+variable "storage" {
+  type = object({
+    location = string
+  })
+  description = "Storage bucket defaults."
+  default = {
+    location = "EU"
+  }
+}
+
+variable "kms" {
+  type = object({
+    enabled         = bool
+    location        = string
+    key_ring_name   = string
+    crypto_key_name = string
+  })
+  description = "Optional KMS configuration."
+  default = {
+    enabled         = false
+    location        = "europe-west1"
+    key_ring_name   = "tripplanning-keyring"
+    crypto_key_name = "tripplanning-key"
+  }
+}

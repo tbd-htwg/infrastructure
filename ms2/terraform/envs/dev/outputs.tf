@@ -37,3 +37,23 @@ output "gke_cluster_location" {
   description = "GKE Autopilot cluster location."
   value       = module.gke_autopilot.cluster_location
 }
+
+output "cloudsql_connection_name" {
+  description = "Cloud SQL instance connection name."
+  value       = module.cloudsql.instance_connection_name
+}
+
+output "cloudsql_shared_db" {
+  description = "Shared database name for free tier."
+  value       = module.cloudsql.shared_database_name
+}
+
+output "cloudsql_tenant_dbs" {
+  description = "Tenant database names."
+  value       = module.cloudsql.tenant_database_names
+}
+
+output "storage_buckets" {
+  description = "Storage bucket names."
+  value       = module.storage.bucket_names
+}
