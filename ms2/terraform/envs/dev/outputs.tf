@@ -17,3 +17,23 @@ output "log_sink_bucket" {
   description = "Log sink bucket name."
   value       = module.project_bootstrap.log_sink_bucket
 }
+
+output "network_self_link" {
+  description = "VPC network self link."
+  value       = module.network.network_self_link
+}
+
+output "subnet_self_link" {
+  description = "Subnet self link."
+  value       = module.network.subnet_self_link
+}
+
+output "gke_cluster_name" {
+  description = "GKE Autopilot cluster name."
+  value       = module.gke_autopilot.cluster_name
+}
+
+output "gke_cluster_location" {
+  description = "GKE Autopilot cluster location."
+  value       = module.gke_autopilot.cluster_location
+}

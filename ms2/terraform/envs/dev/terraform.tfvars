@@ -1,4 +1,4 @@
-project_id = "project-1234567890"
+project_id = "milestone2-tbd-cad"
 region     = "europe-west1"
 
 dns_zone = {
