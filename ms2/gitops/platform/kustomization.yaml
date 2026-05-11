@@ -4,5 +4,5 @@ resources:
   - sources/helm-repositories.yaml
   - cert-manager
   - external-secrets
-  - observability
+  # - observability
   - network-policies
