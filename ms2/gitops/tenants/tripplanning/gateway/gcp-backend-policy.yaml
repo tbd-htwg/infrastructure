@@ -1,0 +1,27 @@
+# GKE Gateway / HTTPS LB default backend timeout is 30s. First / cold requests to
+# /v3/api-docs can exceed that → 504 Gateway Timeout in Swagger UI while pods are healthy.
+# Only one GCPBackendPolicy per Service (merge settings here if adding more later).
+# https://cloud.google.com/kubernetes-engine/docs/how-to/configure-gateway-resources#configure_bes_policy
+apiVersion: networking.gke.io/v1
+kind: GCPBackendPolicy
+metadata:
+  name: trip-service-backend-config
+spec:
+  default:
+    timeoutSec: 120
+  targetRef:
+    group: ""
+    kind: Service
+    name: trip-service
+---
+apiVersion: networking.gke.io/v1
+kind: GCPBackendPolicy
+metadata:
+  name: social-service-backend-config
+spec:
+  default:
+    timeoutSec: 120
+  targetRef:
+    group: ""
+    kind: Service
+    name: social-service

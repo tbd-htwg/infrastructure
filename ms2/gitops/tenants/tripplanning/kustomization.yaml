@@ -1,0 +1,22 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: tripplanning
+resources:
+  - namespace.yaml
+  - trip-service/serviceaccount.yaml
+  - trip-service/configmap.yaml
+  - trip-service/deployment.yaml
+  - trip-service/service.yaml
+  - social-service/serviceaccount.yaml
+  - social-service/configmap.yaml
+  - social-service/deployment.yaml
+  - social-service/service.yaml
+  # elasticsearch/ — optional; adds another Autopilot node (see docs/gettingstarted SSD section)
+  # Dev: secrets via scripts/bootstrap-k8s-secrets.sh (no External Secrets)
+  # HTTPS: add gateway/cluster-issuer.yaml + certificate.yaml + cert-manager (see gettingstarted)
+  - gateway/gateway.yaml
+  - gateway/httproute-api.yaml
+  - gateway/httproute-social-api.yaml
+  - gateway/healthcheck-policy.yaml
+  - gateway/gcp-backend-policy.yaml
+  - network-policies/allow-egress.yaml

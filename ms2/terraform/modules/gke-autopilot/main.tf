@@ -30,4 +30,6 @@ resource "google_container_cluster" "autopilot" {
     enable_private_endpoint = false
     master_ipv4_cidr_block  = var.master_ipv4_cidr_block
   }
+
+  # Note: Managed Prometheus cannot be disabled on GKE Autopilot ≥1.25 (API returns 400).
 }

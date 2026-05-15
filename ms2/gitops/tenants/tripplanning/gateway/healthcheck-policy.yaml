@@ -1,0 +1,43 @@
+# GKE Gateway default health checks use GET "/"; Spring Boot has no handler there, and GET
+# /actuator/health can return 503 when the aggregate status is DOWN even if readiness is UP.
+# Probes hit Pod IP + container port (not only Service port). See:
+# https://cloud.google.com/kubernetes-engine/docs/how-to/configure-gateway-resources#configure_hc
+apiVersion: networking.gke.io/v1
+kind: HealthCheckPolicy
+metadata:
+  name: trip-service-lb-health
+spec:
+  default:
+    checkIntervalSec: 10
+    timeoutSec: 5
+    healthyThreshold: 1
+    unhealthyThreshold: 3
+    config:
+      type: HTTP
+      httpHealthCheck:
+        port: 8080
+        requestPath: /actuator/health/readiness
+  targetRef:
+    group: ""
+    kind: Service
+    name: trip-service
+---
+apiVersion: networking.gke.io/v1
+kind: HealthCheckPolicy
+metadata:
+  name: social-service-lb-health
+spec:
+  default:
+    checkIntervalSec: 10
+    timeoutSec: 5
+    healthyThreshold: 1
+    unhealthyThreshold: 3
+    config:
+      type: HTTP
+      httpHealthCheck:
+        port: 8081
+        requestPath: /actuator/health/readiness
+  targetRef:
+    group: ""
+    kind: Service
+    name: social-service

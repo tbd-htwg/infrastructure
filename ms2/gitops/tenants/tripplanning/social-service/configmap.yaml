@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: social-service-config
+data:
+  SERVER_PORT: "8081"
+  GCP_FIRESTORE_DATABASE_ID: "tbd-firestore"
+  TRIPPLANNING_AUTH_FIREBASE_PROJECT_ID: "milestone2-tbd-cad"
+  TRIPPLANNING_TRIP_SERVICE_URL: "http://trip-service.tripplanning.svc.cluster.local:8080"
+  TRIPPLANNING_SOCIAL_SERVICE_URL: "http://social-service.tripplanning.svc.cluster.local:8080"
+  CORS_ALLOWED_ORIGINS: "https://k8s.tbd-htwg.de,https://api.k8s.tbd-htwg.de"

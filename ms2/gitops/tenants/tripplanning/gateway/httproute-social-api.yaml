@@ -1,0 +1,21 @@
+# Optional second hostname: all traffic → social-service (no regex paths required).
+# DNS: social.api.k8s.tbd-htwg.de → same Gateway IP as api.k8s.tbd-htwg.de
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: tripplanning-social-api
+spec:
+  parentRefs:
+    - name: tripplanning-api
+      namespace: tripplanning
+      sectionName: http-social
+  hostnames:
+    - social.api.k8s.tbd-htwg.de
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: social-service
+          port: 8080

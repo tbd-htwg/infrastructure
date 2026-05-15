@@ -57,3 +57,13 @@ output "storage_buckets" {
   description = "Storage bucket names."
   value       = module.storage.bucket_names
 }
+
+output "parent_dns_zone_name_servers" {
+  description = "Registrar nameservers when enable_parent_dns_zone is true (public DNS for tbd-htwg.de)."
+  value       = var.enable_parent_dns_zone ? google_dns_managed_zone.parent[0].name_servers : null
+}
+
+output "k8s_subdomain_dns_zone_name_servers" {
+  description = "Nameservers for k8s.tbd-htwg.de child zone (delegated from parent when parent zone is enabled)."
+  value       = module.project_bootstrap.dns_zone_name_servers
+}

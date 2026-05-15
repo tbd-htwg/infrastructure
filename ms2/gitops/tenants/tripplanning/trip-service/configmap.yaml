@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: trip-service-config
+data:
+  # In-pod Lucene search (no Elasticsearch pod — saves Autopilot node disks). Remove for external ES.
+  SPRING_PROFILES_ACTIVE: "gke-dev"
+  SPRING_DATASOURCE_URL: "jdbc:postgresql://127.0.0.1:5432/tripplanning"
+  SPRING_DATASOURCE_USERNAME: "tripplanning_app"
+  SPRING_DATASOURCE_DRIVER_CLASS_NAME: "org.postgresql.Driver"
+  SPRING_CLOUD_GCP_STORAGE_BUCKET_NAME: "milestone2-tbd-cad-images-bucket"
+  TRIPPLANNING_AUTH_FIREBASE_PROJECT_ID: "milestone2-tbd-cad"
+  TRIPPLANNING_SOCIAL_SERVICE_URL: "http://social-service.tripplanning.svc.cluster.local:8080"
+  TRIPPLANNING_TRIP_SERVICE_URL: "http://trip-service.tripplanning.svc.cluster.local:8080"
+  # Include localhost for Vite dev against this API (see frontend README / gettingstarted).
+  CORS_ALLOWED_ORIGINS: "http://localhost:5173,http://127.0.0.1:5173,https://k8s.tbd-htwg.de,https://api.k8s.tbd-htwg.de"
+  TRIPPLANNING_SEARCH_ELASTICSEARCH_INDEX_NAME: "tripentity"

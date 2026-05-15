@@ -1,0 +1,17 @@
+# Minimal dev: HTTP only. For HTTPS, install cert-manager and add cluster-issuer + certificate
+# manifests; restore HTTPS listener and networking.gke.io/cert-manager-certs annotation.
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: tripplanning-api
+spec:
+  gatewayClassName: gke-l7-global-external-managed
+  listeners:
+    - name: http-api
+      protocol: HTTP
+      port: 80
+      hostname: api.k8s.tbd-htwg.de
+    - name: http-social
+      protocol: HTTP
+      port: 80
+      hostname: social.api.k8s.tbd-htwg.de

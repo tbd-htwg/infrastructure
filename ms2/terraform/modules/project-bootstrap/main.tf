@@ -59,6 +59,7 @@ resource "google_storage_bucket" "log_sink" {
   name                        = "${var.project_id}-${var.log_sink.name}"
   location                    = var.log_sink.bucket_location
   uniform_bucket_level_access = true
+  force_destroy               = var.log_sink.bucket_force_destroy
 }
 
 resource "google_logging_project_sink" "log_sink" {

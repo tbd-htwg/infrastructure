@@ -1,6 +1,11 @@
 project_id = "project-1234567890"
 region     = "europe-west1"
 
+# Optional: root zone tbd-htwg.de + NS delegation for k8s.tbd-htwg.de (see gettingstarted README §9).
+# enable_parent_dns_zone = true
+# parent_dns_zone = { name = "tbd-htwg-de-root", description = "tbd-htwg.de root" }
+# gke_gateway_ip = "" # set after Gateway has ADDRESS, then terraform apply
+
 dns_zone = {
   name        = "k8s-tbd-zone"
   domain      = "k8s.tbd-htwg.de."
@@ -28,12 +33,12 @@ gke = {
 cloudsql = {
   instance_name        = "tripplanning-dev-pg"
   database_version     = "POSTGRES_15"
-  tier                 = "db-custom-1-3840"
-  disk_size_gb          = 10
+  tier                 = "db-g1-small"
+  disk_size_gb         = 10
   disk_autoresize      = false
   availability_type    = "ZONAL"
   shared_database_name = "tripplanning"
-  tenant_databases     = ["tenant_acme", "tenant_globex"]
+  tenant_databases     = []
   app_user             = "tripplanning_app"
   private_ip_range     = "10.40.0.0"
 }
@@ -44,3 +49,7 @@ kms = {
   key_ring_name   = "tripplanning-keyring"
   crypto_key_name = "tripplanning-key"
 }
+
+# Adoption / partial apply: import existing resources first (see docs/gettingstarted README + terraform/envs/dev/README.md).
+# manage_firestore_database = false   # if DB exists or you get Firestore 403
+# artifact_registry_enabled = false # if repo exists; import via scripts/terraform-import-existing-dev.sh

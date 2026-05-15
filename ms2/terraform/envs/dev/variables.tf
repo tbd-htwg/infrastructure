@@ -74,6 +74,42 @@ variable "storage" {
   }
 }
 
+variable "manage_firestore_database" {
+  type        = bool
+  description = "Create/manage Firestore database tbd-firestore. Set false if it already exists or you lack datastore admin permissions (import separately)."
+  default     = false
+}
+
+variable "artifact_registry_enabled" {
+  type        = bool
+  description = "Create Artifact Registry repo tripplanning. Set false and import if the repo already exists."
+  default     = true
+}
+
+variable "enable_parent_dns_zone" {
+  type        = bool
+  description = "Create managed zone tbd-htwg.de and NS-delegate k8s.tbd-htwg.de to the child zone in this project."
+  default     = false
+}
+
+variable "parent_dns_zone" {
+  type = object({
+    name        = string
+    description = string
+  })
+  description = "Terraform resource name + description for the parent zone (dns_name is always tbd-htwg.de.)."
+  default = {
+    name        = "tbd-htwg-de-root"
+    description = "Root tbd-htwg.de — registrar NS here; child zone holds api.k8s A records."
+  }
+}
+
+variable "gke_gateway_ip" {
+  type        = string
+  description = "If non-empty, create A records for api.k8s / social.api.k8s in the k8s child zone. Set after Gateway has ADDRESS (PROGRAMMED=True)."
+  default     = ""
+}
+
 variable "kms" {
   type = object({
     enabled         = bool

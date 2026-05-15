@@ -13,6 +13,11 @@ output "dns_zone_name" {
   value       = var.enable_dns ? google_dns_managed_zone.zone[0].name : null
 }
 
+output "dns_zone_name_servers" {
+  description = "Cloud DNS name servers for the managed zone (registrar NS or parent delegation)."
+  value       = var.enable_dns ? google_dns_managed_zone.zone[0].name_servers : []
+}
+
 output "log_sink_bucket" {
   description = "Log sink bucket name."
   value       = var.log_sink.enabled ? google_storage_bucket.log_sink[0].name : null

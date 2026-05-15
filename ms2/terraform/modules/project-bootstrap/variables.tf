@@ -104,16 +104,18 @@ variable "dns_zone" {
 
 variable "log_sink" {
   type = object({
-    enabled         = bool
-    name            = string
-    filter          = string
-    bucket_location = string
+    enabled              = bool
+    name                 = string
+    filter               = string
+    bucket_location      = string
+    bucket_force_destroy = optional(bool, true)
   })
   description = "Optional log sink to Cloud Storage."
   default = {
-    enabled         = false
-    name            = "project-logs"
-    filter          = ""
-    bucket_location = "EU"
+    enabled              = false
+    name                 = "project-logs"
+    filter               = ""
+    bucket_location      = "EU"
+    bucket_force_destroy = true
   }
 }

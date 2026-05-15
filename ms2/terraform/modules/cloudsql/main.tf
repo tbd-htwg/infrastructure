@@ -46,12 +46,20 @@ resource "google_sql_database_instance" "instance" {
 
   deletion_protection = false
   depends_on          = [google_service_networking_connection.private_service_connection]
+
+  timeouts {
+    create = "30m"
+    update = "30m"
+    delete = "30m"
+  }
 }
 
 resource "google_sql_database" "shared" {
   project  = var.project_id
   name     = var.shared_database_name
   instance = google_sql_database_instance.instance.name
+  # Destroy database before app user (user cannot be dropped while it owns objects in the DB).
+  depends_on = [google_sql_user.app_user]
 }
 
 resource "google_sql_database" "tenants" {
@@ -59,6 +67,7 @@ resource "google_sql_database" "tenants" {
   project  = var.project_id
   name     = each.key
   instance = google_sql_database_instance.instance.name
+  depends_on = [google_sql_user.app_user]
 }
 
 resource "random_password" "app_user" {

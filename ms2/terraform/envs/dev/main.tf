@@ -7,8 +7,9 @@ module "project_bootstrap" {
   source     = "../../modules/project-bootstrap"
   project_id = var.project_id
 
-  enable_dns = var.enable_dns
-  dns_zone   = var.dns_zone
+  artifact_registry_enabled = var.artifact_registry_enabled
+  enable_dns                = var.enable_dns
+  dns_zone                  = var.dns_zone
 
   secrets = [
     {
@@ -29,12 +30,15 @@ module "project_bootstrap" {
   }
 
   log_sink = {
-    enabled         = true
-    name            = "project-logs"
-    filter          = "resource.type=\"k8s_container\" OR resource.type=\"k8s_pod\""
-    bucket_location = "EU"
+    enabled              = false
+    name                 = "project-logs"
+    filter               = "resource.type=\"k8s_container\" OR resource.type=\"k8s_pod\""
+    bucket_location      = "EU"
+    bucket_force_destroy = true
   }
 }
+
+# Destroy order: Cloud SQL (and its VPC peering) before VPC/NAT.
 
 module "network" {
   source     = "../../modules/network"
@@ -60,6 +64,8 @@ module "gke_autopilot" {
   source     = "../../modules/gke-autopilot"
   project_id = var.project_id
   region     = var.region
+
+  depends_on = [module.network]
 
   cluster_name           = var.gke.cluster_name
   release_channel        = var.gke.release_channel
@@ -90,6 +96,10 @@ module "cloudsql" {
   private_ip_range     = var.cloudsql.private_ip_range
 
   private_network = module.network.network_self_link
+
+  # Bootstrap creates the empty GSM secret `tripplanning-db-password`; Cloud SQL must not add a
+  # SecretVersion until that secret exists (parallel apply causes 404).
+  depends_on = [module.project_bootstrap]
 }
 
 module "storage" {
@@ -103,7 +113,7 @@ module "storage" {
       storage_class  = "STANDARD"
       versioning     = false
       uniform_access = true
-      force_destroy  = false
+      force_destroy  = true
       cors = [
         {
           origin          = ["https://k8s.tbd-htwg.de", "https://api.k8s.tbd-htwg.de"]
@@ -118,7 +128,7 @@ module "storage" {
       storage_class  = "STANDARD"
       versioning     = true
       uniform_access = true
-      force_destroy  = false
+      force_destroy  = true
       cors           = []
     }
     terraform_state = {
@@ -126,7 +136,7 @@ module "storage" {
       storage_class  = "STANDARD"
       versioning     = true
       uniform_access = true
-      force_destroy  = false
+      force_destroy  = true
       cors           = []
     }
   }
