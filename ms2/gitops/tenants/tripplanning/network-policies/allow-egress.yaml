@@ -21,13 +21,24 @@ spec:
       ports:
         - protocol: TCP
           port: 8080
+        - protocol: TCP
+          port: 8081
+        - protocol: TCP
+          port: 8082
     - to:
         - podSelector:
             matchLabels:
-              app: elasticsearch
+              app.kubernetes.io/name: elasticsearch
       ports:
         - protocol: TCP
           port: 9200
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: redis
+      ports:
+        - protocol: TCP
+          port: 6379
     # Cloud SQL private IP (PSA range from terraform envs/dev cloudsql.private_ip_range)
     - to:
         - ipBlock:

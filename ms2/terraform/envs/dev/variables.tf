@@ -106,7 +106,7 @@ variable "parent_dns_zone" {
 
 variable "gke_gateway_ip" {
   type        = string
-  description = "If non-empty, create A records for api.k8s / social.api.k8s in the k8s child zone. Set after Gateway has ADDRESS (PROGRAMMED=True)."
+  description = "If non-empty, create A records for api.k8s, social.api.k8s, and k8s.tbd-htwg.de in the k8s child zone. Set after Gateway has ADDRESS (PROGRAMMED=True)."
   default     = ""
 }
 

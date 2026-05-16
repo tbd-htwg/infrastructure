@@ -51,3 +51,15 @@ resource "google_dns_record_set" "gke_gateway_social_api" {
 
   depends_on = [module.project_bootstrap]
 }
+
+resource "google_dns_record_set" "gke_gateway_frontend" {
+  count        = var.enable_dns && var.gke_gateway_ip != "" ? 1 : 0
+  project      = var.project_id
+  managed_zone = module.project_bootstrap.dns_zone_name
+  name         = "k8s.tbd-htwg.de."
+  type         = "A"
+  ttl          = 300
+  rrdatas      = [var.gke_gateway_ip]
+
+  depends_on = [module.project_bootstrap]
+}

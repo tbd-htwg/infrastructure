@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: external-info-service
+  labels:
+    app: external-info-service
+spec:
+  selector:
+    app: external-info-service
+  ports:
+    - port: 8082
+      targetPort: 8082
+      name: http

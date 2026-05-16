@@ -1,5 +1,5 @@
-# Minimal dev: HTTP only. For HTTPS, install cert-manager and add cluster-issuer + certificate
-# manifests; restore HTTPS listener and networking.gke.io/cert-manager-certs annotation.
+# HTTP listeners only at first deploy (Gateway programs before TLS secret exists).
+# After cert-manager issues tripplanning-api-tls, dev-lifecycle.sh setup-tls applies gateway-https.yaml.
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
@@ -15,3 +15,7 @@ spec:
       protocol: HTTP
       port: 80
       hostname: social.api.k8s.tbd-htwg.de
+    - name: http-frontend
+      protocol: HTTP
+      port: 80
+      hostname: k8s.tbd-htwg.de

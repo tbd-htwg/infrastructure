@@ -1,0 +1,43 @@
+# Applied by dev-lifecycle.sh setup-tls after Certificate is Ready (do not add to kustomization.yaml).
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: tripplanning-api
+spec:
+  gatewayClassName: gke-l7-global-external-managed
+  listeners:
+    - name: http-api
+      protocol: HTTP
+      port: 80
+      hostname: api.k8s.tbd-htwg.de
+    - name: http-social
+      protocol: HTTP
+      port: 80
+      hostname: social.api.k8s.tbd-htwg.de
+    - name: https-api
+      protocol: HTTPS
+      port: 443
+      hostname: api.k8s.tbd-htwg.de
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: tripplanning-api-tls
+            kind: Secret
+    - name: https-social
+      protocol: HTTPS
+      port: 443
+      hostname: social.api.k8s.tbd-htwg.de
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: tripplanning-api-tls
+            kind: Secret
+    - name: https-frontend
+      protocol: HTTPS
+      port: 443
+      hostname: k8s.tbd-htwg.de
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: tripplanning-api-tls
+            kind: Secret

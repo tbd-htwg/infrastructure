@@ -1,9 +1,9 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: social-service
+  name: external-info-service
   labels:
-    app: social-service
+    app: external-info-service
 spec:
   replicas: 1
   revisionHistoryLimit: 1
@@ -11,11 +11,11 @@ spec:
     type: Recreate
   selector:
     matchLabels:
-      app: social-service
+      app: external-info-service
   template:
     metadata:
       labels:
-        app: social-service
+        app: external-info-service
         tripplanning.io/colocate: "true"
     spec:
       affinity:
@@ -28,33 +28,32 @@ spec:
                     - key: tripplanning.io/colocate
                       operator: Exists
                 topologyKey: kubernetes.io/hostname
-      serviceAccountName: social-service
       containers:
-        - name: social-service
-          image: europe-west1-docker.pkg.dev/milestone2-tbd-cad/tripplanning/tripplanning-social-service:dev
+        - name: external-info-service
+          image: europe-west1-docker.pkg.dev/milestone2-tbd-cad/tripplanning/tripplanning-external-info-service:dev
           imagePullPolicy: Always
           ports:
-            - containerPort: 8081
+            - containerPort: 8082
           envFrom:
             - secretRef:
-                name: social-service-secrets
+                name: external-info-service-secrets
             - configMapRef:
-                name: social-service-config
+                name: external-info-service-config
           readinessProbe:
             httpGet:
               path: /actuator/health/readiness
-              port: 8081
-            initialDelaySeconds: 20
+              port: 8082
+            initialDelaySeconds: 15
             periodSeconds: 10
           livenessProbe:
             httpGet:
               path: /actuator/health/liveness
-              port: 8081
-            initialDelaySeconds: 40
+              port: 8082
+            initialDelaySeconds: 30
             periodSeconds: 20
           resources:
             requests:
-              cpu: 500m
+              cpu: 250m
               memory: 256Mi
             limits:
               memory: 512Mi

@@ -2,6 +2,7 @@ apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
   name: tripplanning-api-tls
+  namespace: tripplanning
 spec:
   secretName: tripplanning-api-tls
   issuerRef:
@@ -9,3 +10,5 @@ spec:
     kind: ClusterIssuer
   dnsNames:
     - api.k8s.tbd-htwg.de
+    - social.api.k8s.tbd-htwg.de
+    - k8s.tbd-htwg.de

@@ -3,11 +3,12 @@ kind: Service
 metadata:
   name: elasticsearch
   labels:
-    app: elasticsearch
+    app.kubernetes.io/name: elasticsearch
 spec:
+  type: ClusterIP
   selector:
-    app: elasticsearch
+    app.kubernetes.io/name: elasticsearch
   ports:
     - name: http
       port: 9200
-      targetPort: 9200
+      targetPort: http

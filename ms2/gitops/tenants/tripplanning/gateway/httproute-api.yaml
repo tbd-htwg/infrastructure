@@ -9,6 +9,9 @@ spec:
     - name: tripplanning-api
       namespace: tripplanning
       sectionName: http-api
+    - name: tripplanning-api
+      namespace: tripplanning
+      sectionName: https-api
   hostnames:
     - api.k8s.tbd-htwg.de
   rules:

@@ -39,4 +39,11 @@ kubectl create secret generic social-service-secrets \
   --from-literal=TRIPPLANNING_INTERNAL_SECRET="${INTERNAL}" \
   --dry-run=client -o yaml | kubectl apply -f -
 
+VIATOR="$(fetch_secret tripplanning-viator-api-key)"
+
+kubectl create secret generic external-info-service-secrets \
+  --namespace="${NS}" \
+  --from-literal=VIATOR_API_KEY="${VIATOR}" \
+  --dry-run=client -o yaml | kubectl apply -f -
+
 echo "Secrets applied in ${NS}."

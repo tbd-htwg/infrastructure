@@ -59,6 +59,10 @@ if [[ "${SKIP_K8S}" != "true" ]]; then
     echo "== kubectl: cluster ${CLUSTER} =="
     gcloud container clusters get-credentials "${CLUSTER}" --region="${REGION}" --project="${PROJECT}"
 
+    echo "== Remove Redis + Elasticsearch (k8s dependencies) =="
+    helm uninstall redis elasticsearch -n tripplanning 2>/dev/null || true
+    kubectl delete -k "${ROOT}/k8s/dependencies" --ignore-not-found --wait=true || true
+
     kubectl delete -k "${ROOT}/gitops/tenants/tripplanning" --ignore-not-found --wait=true || true
 
     while read -r ns; do
@@ -114,6 +118,16 @@ if [[ "${SKIP_TF}" != "true" ]]; then
     done < <(terraform -chdir="${TF_DIR}" state list 2>/dev/null | grep '^module\.cloudsql\.' || true)
   fi
 
+  # Identity / Firebase were removed from Terraform (manual setup). Old state still
+  # references hashicorp/google-beta and blocks destroy unless removed.
+  if terraform -chdir="${TF_DIR}" state list 2>/dev/null | grep -qE '^module\.identity_platform'; then
+    echo "== Terraform: remove legacy module.identity_platform from state (not in config; Identity is manual) =="
+    while read -r addr; do
+      [[ -z "${addr}" ]] && continue
+      terraform -chdir="${TF_DIR}" state rm "${addr}" 2>/dev/null || true
+    done < <(terraform -chdir="${TF_DIR}" state list 2>/dev/null | grep -E '^module\.identity_platform' || true)
+  fi
+
   echo "== terraform destroy: remaining resources =="
   if ! tf_destroy; then
     echo "== Fallback: release private service access and retry destroy =="
@@ -122,6 +136,10 @@ if [[ "${SKIP_TF}" != "true" ]]; then
       [[ -z "${addr}" ]] && continue
       terraform -chdir="${TF_DIR}" state rm "${addr}" 2>/dev/null || true
     done < <(terraform -chdir="${TF_DIR}" state list 2>/dev/null | grep '^module\.cloudsql\.' || true)
+    while read -r addr; do
+      [[ -z "${addr}" ]] && continue
+      terraform -chdir="${TF_DIR}" state rm "${addr}" 2>/dev/null || true
+    done < <(terraform -chdir="${TF_DIR}" state list 2>/dev/null | grep -E '^module\.identity_platform' || true)
     tf_destroy
   fi
 fi

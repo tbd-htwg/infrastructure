@@ -11,12 +11,20 @@ resources:
   - social-service/configmap.yaml
   - social-service/deployment.yaml
   - social-service/service.yaml
-  # elasticsearch/ — optional; adds another Autopilot node (see docs/gettingstarted SSD section)
+  - external-info-service/deployment.yaml
+  - external-info-service/service.yaml
+  - external-info-service/configmap.yaml
+  - frontend-service/serviceaccount.yaml
+  - frontend-service/configmap.yaml
+  - frontend-service/deployment.yaml
+  - frontend-service/service.yaml
+  # Redis + Elasticsearch: k8s/dependencies via install-k8s-dependencies.sh (before tenant apply)
   # Dev: secrets via scripts/bootstrap-k8s-secrets.sh (no External Secrets)
-  # HTTPS: add gateway/cluster-issuer.yaml + certificate.yaml + cert-manager (see gettingstarted)
+  # TLS: cluster-issuer + certificate applied by dev-lifecycle.sh setup-tls (after cert-manager CRDs)
   - gateway/gateway.yaml
   - gateway/httproute-api.yaml
   - gateway/httproute-social-api.yaml
+  - gateway/httproute-frontend.yaml
   - gateway/healthcheck-policy.yaml
   - gateway/gcp-backend-policy.yaml
   - network-policies/allow-egress.yaml

@@ -66,7 +66,7 @@ fi
 
 if [[ -n "${SOCIAL_READY}" ]]; then
   echo "== Social health (port-forward) =="
-  kubectl port-forward -n "$NS" "pod/${SOCIAL_READY}" 18081:8080 &
+  kubectl port-forward -n "$NS" "svc/social-service" 18081:8080 &
   PF=$!
   sleep 2
   curl -sf "http://127.0.0.1:18081/actuator/health" | head -c 200 || note_fail "social health curl failed"
