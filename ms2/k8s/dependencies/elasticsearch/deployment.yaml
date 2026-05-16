@@ -38,8 +38,9 @@ spec:
               value: "false"
             - name: node.store.allow_mmap
               value: "false"
+            # 512m heap + ~512m off-heap; 768Mi limit caused OOM (exit 137) on Minikube.
             - name: ES_JAVA_OPTS
-              value: "-Xms256m -Xmx256m"
+              value: "-Xms512m -Xmx512m"
             - name: cluster.routing.allocation.disk.threshold_enabled
               value: "false"
           readinessProbe:
@@ -58,10 +59,11 @@ spec:
             timeoutSeconds: 10
           resources:
             requests:
-              cpu: 1000m
-              memory: 384Mi
-            limits:
+              cpu: 500m
               memory: 768Mi
+            limits:
+              cpu: 1000m
+              memory: 1536Mi
           volumeMounts:
             - name: data
               mountPath: /usr/share/elasticsearch/data

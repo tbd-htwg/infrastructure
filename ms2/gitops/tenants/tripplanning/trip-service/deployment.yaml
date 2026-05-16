@@ -42,10 +42,11 @@ spec:
             runAsNonRoot: true
           resources:
             requests:
-              cpu: 100m
+              cpu: 50m
               memory: 64Mi
             limits:
-              memory: 256Mi
+              cpu: 100m
+              memory: 128Mi
         - name: trip-service
           image: europe-west1-docker.pkg.dev/milestone2-tbd-cad/tripplanning/tripplanning-trip-service:dev
           imagePullPolicy: Always
@@ -71,6 +72,7 @@ spec:
           resources:
             requests:
               cpu: 1000m
-              memory: 512Mi
+              memory: 768Mi
             limits:
-              memory: 1Gi
+              cpu: 2000m
+              memory: 1536Mi

@@ -44,10 +44,11 @@ spec:
               mountPath: /usr/share/nginx/html
           resources:
             requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
               cpu: 250m
               memory: 256Mi
-            limits:
-              memory: 512Mi
       containers:
         - name: nginx
           image: nginx:1.27-alpine
@@ -76,10 +77,11 @@ spec:
             periodSeconds: 30
           resources:
             requests:
-              cpu: 50m
-              memory: 64Mi
-            limits:
+              cpu: 100m
               memory: 128Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
       volumes:
         - name: html
           emptyDir: {}

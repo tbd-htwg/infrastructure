@@ -101,6 +101,22 @@ resource "google_project_iam_member" "gke_node_artifact_registry_reader" {
   depends_on = [module.project_bootstrap]
 }
 
+resource "google_project_iam_member" "workload_secret_accessor" {
+  project = var.project_id
+  role    = "roles/secretmanager.secretAccessor"
+  member  = "serviceAccount:${local.workload_sa}"
+
+  depends_on = [module.project_bootstrap]
+}
+
+resource "google_project_iam_member" "workload_artifact_registry_reader" {
+  project = var.project_id
+  role    = "roles/artifactregistry.reader"
+  member  = "serviceAccount:${local.workload_sa}"
+
+  depends_on = [module.project_bootstrap]
+}
+
 resource "google_project_iam_member" "workload_cloudsql_client" {
   project = var.project_id
   role    = "roles/cloudsql.client"

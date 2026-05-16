@@ -22,6 +22,10 @@ resource "google_project_iam_binding" "bindings" {
   project  = var.project_id
   role     = each.key
   members  = each.value
+
+  # Members are often SA emails passed as strings; without a resource reference Terraform
+  # may apply bindings before google_service_account resources exist.
+  depends_on = [google_service_account.service_accounts]
 }
 
 resource "google_artifact_registry_repository" "repo" {

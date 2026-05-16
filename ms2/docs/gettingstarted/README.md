@@ -52,7 +52,7 @@ Lower-level scripts (called by `dev-lifecycle.sh`): [`../../scripts/teardown-dev
 
 ## Minimal dev profile
 
-Designed for a single dev cluster with **~8 vCPUs** of Autopilot capacity (pod **CPU requests** drive node size; see deployments under `gitops/tenants/tripplanning` and `k8s/dependencies`), minimal persistent disk growth.
+Designed for a single dev cluster with **~8–12 vCPUs** of Autopilot capacity (pod **CPU requests** drive node size; see [resource profile](../resource-profile-dev.md) and manifests under `gitops/tenants/tripplanning` + `k8s/dependencies`), minimal persistent disk growth.
 
 | Included | Excluded (saves CPU / storage) |
 |----------|--------------------------------|
@@ -144,7 +144,7 @@ Operational detail (Gateway `PROGRAMMED`, curls, troubleshooting): [§9](#9-gate
 | [gcloud CLI](https://cloud.google.com/sdk/docs/install) | GCP auth, cluster credentials |
 | `google-cloud-cli-gke-gcloud-auth-plugin` | **Required** for `kubectl` on GKE |
 | [kubectl](https://kubernetes.io/docs/tasks/tools/) | Cluster access |
-| [Minikube](https://minikube.sigs.k8s.io/docs/start/) | **Local only** — `backend/scripts/local-dev.sh` ([§11](#11-local-development-without-gke)) |
+| [Minikube](https://minikube.sigs.k8s.io/docs/start/) | **Local only** — [backend/docs/gettingstarted](../../../backend/docs/gettingstarted/README.md) ([§11](#11-local-development-without-gke)) |
 | [Terraform](https://developer.hashicorp.com/terraform/install) ≥ 1.5 | Infrastructure |
 | Java 21 + Maven 3.9+ | Backend build |
 | Docker | Container images |
@@ -562,35 +562,26 @@ SKIP_FRONTEND=true SKIP_FIRESTORE_INDEXES=true ./dev-lifecycle.sh setup
 
 ## 11. Local development (without GKE)
 
-### Minikube (backend script)
+**Canonical guide:** [backend/docs/gettingstarted/README.md](../../../backend/docs/gettingstarted/README.md) — Minikube setup, architecture ([STATE.md](../../../backend/docs/gettingstarted/STATE.md)), verify, port-forward, frontend, auth, and troubleshooting.
 
-Fast iteration with Kubernetes manifests under `backend/k8s/local` (H2 + in-cluster **Redis/Elasticsearch** via `install-k8s-dependencies.sh` + **gcloud** Firestore emulator + **GCP Identity Platform** for auth, no Cloud SQL). Requires **Minikube** ([§0](#0-prerequisites)); default `MINIKUBE_MEMORY=24576` (24 GiB).
+**TL;DR** (from `backend/`):
 
 ```bash
 cd ../../../backend
-cp .env.local.example .env.local   # JWT_SECRET ≥ 32 characters
+cp docs/gettingstarted/.env.example docs/gettingstarted/.env   # JWT_SECRET ≥ 32 characters
 ./scripts/local-dev.sh setup
 ./scripts/local-dev.sh port-forward
 ```
 
-**GKE deploy:** `dev-lifecycle.sh` switches kubectl to GKE automatically (and calls `local-dev.sh use-gke` if you were on minikube). No manual context step required:
+In-cluster: Redis, Elasticsearch, H2, Firestore emulator. **Kept from GCP:** Identity Platform (optional Google sign-in) and GCS image bucket. No Terraform or Cloud SQL.
+
+**GKE deploy:** `dev-lifecycle.sh` switches kubectl to GKE automatically (and calls `local-dev.sh use-gke` if you were on minikube):
 
 ```bash
 cd infrastructure/ms2/docs/gettingstarted && ./dev-lifecycle.sh deploy
 ```
 
-`local-dev.sh` switches to minikube for all its commands except `use-gke`.
-
-### JVM only (no Kubernetes)
-
-| Terminal | Command |
-|----------|---------|
-| Firestore emulator | `gcloud emulators firestore start --host-port=0.0.0.0:9090` (or use `backend/scripts/local-dev.sh setup`) |
-| External-info (:8082) | `mvn -pl tripplanning-external-info-service spring-boot:run` |
-| Trip (:8080) | `SPRING_PROFILES_ACTIVE=local TRIPPLANNING_SOCIAL_SERVICE_URL=http://localhost:8081 TRIPPLANNING_EXTERNAL_INFO_SERVICE_URL=http://localhost:8082 mvn -pl tripplanning-trip-service spring-boot:run` |
-| Social (:8081) | `SPRING_PROFILES_ACTIVE=local TRIPPLANNING_TRIP_SERVICE_URL=http://localhost:8080 mvn -pl tripplanning-social-service spring-boot:run` |
-
-See [backend/README-GKE.md](../../../backend/README-GKE.md).
+**JVM only (no Kubernetes):** see [backend/README-GKE.md](../../../backend/README-GKE.md) Option B.
 
 ---
 

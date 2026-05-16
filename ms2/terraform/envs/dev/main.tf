@@ -20,15 +20,6 @@ module "project_bootstrap" {
     },
   ]
 
-  iam_bindings = {
-    "roles/secretmanager.secretAccessor" = [
-      "serviceAccount:${local.service_account_emails["workload"]}",
-    ]
-    "roles/artifactregistry.reader" = [
-      "serviceAccount:${local.service_account_emails["workload"]}",
-    ]
-  }
-
   log_sink = {
     enabled              = false
     name                 = "project-logs"
