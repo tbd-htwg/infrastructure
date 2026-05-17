@@ -4,5 +4,6 @@ metadata:
   name: external-info-service-config
 data:
   SERVER_PORT: "8082"
+  CORS_ALLOWED_ORIGINS: "https://tbd-htwg.de,https://www.tbd-htwg.de,https://k8s.tbd-htwg.de,https://api.k8s.tbd-htwg.de"
   SPRING_DATA_REDIS_HOST: "redis.tripplanning.svc.cluster.local"
   SPRING_DATA_REDIS_PORT: "6379"

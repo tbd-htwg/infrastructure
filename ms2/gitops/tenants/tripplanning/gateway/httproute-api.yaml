@@ -1,5 +1,5 @@
-# GKE Gateway (gke-l7-global-external-managed) supports PathPrefix and Exact only — not RegularExpression.
-# Rule order: first match wins. Social-specific paths before trip catch-all.
+# GKE Gateway: PathPrefix, Exact, and RegularExpression (when supported by the controller).
+# Rule order: first match wins. Social/external paths before trip catch-all.
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
@@ -29,8 +29,48 @@ spec:
       backendRefs:
         - name: social-service
           port: 8080
-    # /api/v2/users/* likedTrips mutations are proxied by trip-service (GKE Gateway: no method match).
-    # Trip sub-resource social APIs are proxied by trip-service (SocialPublicApiProxyController).
+    - matches:
+        - path:
+            type: RegularExpression
+            value: /api/v2/trips/[^/]+/community
+      backendRefs:
+        - name: social-service
+          port: 8080
+    - matches:
+        - path:
+            type: RegularExpression
+            value: /api/v2/trips/[^/]+/comments
+      backendRefs:
+        - name: social-service
+          port: 8080
+    - matches:
+        - path:
+            type: RegularExpression
+            value: /api/v2/trips/[^/]+/liked-by-current-user
+      backendRefs:
+        - name: social-service
+          port: 8080
+    - matches:
+        - path:
+            type: RegularExpression
+            value: /api/v2/trips/[^/]+/like
+      backendRefs:
+        - name: social-service
+          port: 8080
+    - matches:
+        - path:
+            type: RegularExpression
+            value: /api/v2/users/[^/]+/likedTrips/[^/]+
+      backendRefs:
+        - name: social-service
+          port: 8080
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api/v2/external
+      backendRefs:
+        - name: external-info-service
+          port: 8082
     - matches:
         - path:
             type: PathPrefix

@@ -43,6 +43,7 @@ VIATOR="$(fetch_secret tripplanning-viator-api-key)"
 
 kubectl create secret generic external-info-service-secrets \
   --namespace="${NS}" \
+  --from-literal=TRIPPLANNING_AUTH_JWT_SECRET="${JWT}" \
   --from-literal=VIATOR_API_KEY="${VIATOR}" \
   --dry-run=client -o yaml | kubectl apply -f -
 

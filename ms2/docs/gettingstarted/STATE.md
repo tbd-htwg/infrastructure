@@ -106,11 +106,14 @@ flowchart TB
 |-------------|-----------------|
 | `/api/v2/comments` | social-service |
 | `/api/v2/trips/search/countLikes` | social-service |
+| `/api/v2/trips/{id}/community`, `.../comments`, `.../liked-by-current-user`, `.../like` | social-service (regex) |
+| `/api/v2/users/{id}/likedTrips/{tripId}` | social-service (regex; DELETE/HEAD) |
+| `/api/v2/external` | external-info-service |
 | `/api/search` | trip-service |
-| `/api/v2` | trip-service (catch-all: trips, auth, HAL, social proxies, external gateway) |
+| `/api/v2` | trip-service (catch-all: trips, auth, HAL, liked-trips feed) |
 | `/actuator`, `/swagger-ui`, `/v3` | trip-service |
 
-**external-info-service** is **not** on the public Gateway — cluster-internal only (`:8082`). Trip-service proxies `/api/v2/external/*` and trip-location details to it.
+**external-info-service** is public on `/api/v2/external/*` (JWT required). Trip-service still calls it in-cluster for trip-location enrichment via `ExternalInfoClient`.
 
 ---
 
@@ -141,10 +144,11 @@ flowchart LR
   FE -.->|init sync| GCS_FE
   FB -->|Google sign-in| SPA
   SPA -->|JWT Bearer JSON| APIHost --> GW
-  GW -->|comments, countLikes| Social
+  GW -->|social paths| Social
+  GW -->|external paths| Ext[external-info :8082]
   GW -->|/api/v2, /api/search| Trip
-  Trip -->|proxy community, likes, external| Social
-  Trip -->|proxy external details| Ext[external-info :8082]
+  Trip -->|internal| Social
+  Trip -->|internal| Ext
   SPA -->|PUT signed URL| GCS_IMG[(GCS images bucket)]
 ```
 
@@ -163,9 +167,9 @@ Three Spring Boot services (see [`backend/README-GKE.md`](../../../../backend/RE
 
 | Service | Container port | K8s Service port | Role |
 |---------|----------------|------------------|------|
-| trip-service | 8080 | 8080 | Trips, users, locations, auth, search, proxies |
+| trip-service | 8080 | 8080 | Trips, users, locations, auth, search, liked-trips feed |
 | social-service | 8081 | **8080** → 8081 | Likes & comments (Firestore) |
-| external-info-service | 8082 | 8082 | Weather, warnings, geocoding, tours (internal) |
+| external-info-service | 8082 | 8082 | Weather, warnings, geocoding, tours (`/api/v2/external`) |
 
 ```mermaid
 flowchart TB
@@ -175,7 +179,6 @@ flowchart TB
 
   subgraph TripNS["trip-service"]
     Trip[trip-service]
-    Proxy[Social + External proxies]
   end
 
   subgraph SocialNS["social-service"]
@@ -203,9 +206,7 @@ flowchart TB
 
   GW --> Trip
   GW --> Social
-  Trip --> Proxy
-  Proxy --> Social
-  Proxy --> Ext
+  GW --> Ext
 
   Trip --> PG
   Trip --> ES
