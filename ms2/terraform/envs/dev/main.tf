@@ -15,7 +15,13 @@ module "project_bootstrap" {
       name = "tripplanning-db-password"
     },
     {
-      name = "tbd-es-gateway-elastic-password"
+      name = "tripplanning-jwt-secret"
+    },
+    {
+      name = "tripplanning-internal-secret"
+    },
+    {
+      name = "tripplanning-viator-api-key"
     },
   ]
 
@@ -73,25 +79,6 @@ module "gke_autopilot" {
   services_secondary_range_name = module.network.services_secondary_range_name
 }
 
-module "cloudsql" {
-  source     = "../../modules/cloudsql"
-  project_id = var.project_id
-  region     = var.region
-
-  instance_name        = var.cloudsql.instance_name
-  database_version     = var.cloudsql.database_version
-  tier                 = var.cloudsql.tier
-  disk_size_gb         = var.cloudsql.disk_size_gb
-  disk_autoresize      = var.cloudsql.disk_autoresize
-  availability_type    = var.cloudsql.availability_type
-  shared_database_name = var.cloudsql.shared_database_name
-  tenant_databases     = var.cloudsql.tenant_databases
-  app_user             = var.cloudsql.app_user
-  private_ip_range     = var.cloudsql.private_ip_range
-
-  private_network = module.network.network_self_link
-}
-
 module "storage" {
   source     = "../../modules/storage"
   project_id = var.project_id
@@ -140,4 +127,19 @@ module "kms" {
   location        = var.kms.location
   key_ring_name   = var.kms.key_ring_name
   crypto_key_name = var.kms.crypto_key_name
+}
+
+module "frontend_lb" {
+  source          = "../../modules/frontend-lb"
+  project_id      = var.project_id
+  frontend_domain = var.frontend.domain
+  dns_zone_name   = module.project_bootstrap.dns_zone_name
+  bucket_name     = module.storage.bucket_names["frontend_assets"]
+  enable_cdn      = var.frontend.enable_cdn
+}
+
+resource "google_service_account_iam_member" "external_secrets_wi" {
+  service_account_id = "projects/${var.project_id}/serviceAccounts/${local.service_account_emails["workload"]}"
+  role               = "roles/iam.workloadIdentityUser"
+  member             = "serviceAccount:${var.project_id}.svc.id.goog[external-secrets/external-secrets]"
 }

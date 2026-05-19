@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: social-service
+  labels:
+    {{- include "tripplanning.labels" . | nindent 4 }}
+    app.kubernetes.io/component: social-service
+spec:
+  selector:
+    app.kubernetes.io/component: social-service
+    {{- include "tripplanning.selectorLabels" . | nindent 4 }}
+  ports:
+    - port: {{ .Values.services.social.port }}
+      targetPort: {{ .Values.services.social.port }}

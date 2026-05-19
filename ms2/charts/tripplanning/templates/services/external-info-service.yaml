@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: external-info-service
+  labels:
+    {{- include "tripplanning.labels" . | nindent 4 }}
+    app.kubernetes.io/component: external-info-service
+spec:
+  selector:
+    app.kubernetes.io/component: external-info-service
+    {{- include "tripplanning.selectorLabels" . | nindent 4 }}
+  ports:
+    - port: {{ .Values.services.externalInfo.port }}
+      targetPort: {{ .Values.services.externalInfo.port }}

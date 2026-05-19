@@ -1,0 +1,12 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: api-tls
+  namespace: gateway-system
+spec:
+  secretName: api-tls
+  dnsNames:
+    - api.k8s.tbd-htwg.de
+  issuerRef:
+    name: selfsigned
+    kind: Issuer

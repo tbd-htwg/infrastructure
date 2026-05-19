@@ -1,0 +1,33 @@
+{{- if .Values.backingServices.redis.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  labels:
+    {{- include "tripplanning.labels" . | nindent 4 }}
+    app.kubernetes.io/component: redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: redis
+      {{- include "tripplanning.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: redis
+        {{- include "tripplanning.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: redis
+          image: {{ .Values.backingServices.redis.image }}
+          ports:
+            - containerPort: 6379
+          resources:
+            requests:
+              cpu: {{ .Values.backingServices.redis.resources.requests.cpu }}
+              memory: {{ .Values.backingServices.redis.resources.requests.memory }}
+            limits:
+              cpu: {{ .Values.backingServices.redis.resources.limits.cpu }}
+              memory: {{ .Values.backingServices.redis.resources.limits.memory }}
+{{- end }}

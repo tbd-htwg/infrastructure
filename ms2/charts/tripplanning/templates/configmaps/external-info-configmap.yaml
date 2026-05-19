@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: external-info-service-config
+  labels:
+    {{- include "tripplanning.labels" . | nindent 4 }}
+    app.kubernetes.io/component: external-info-service
+    {{- include "tripplanning.selectorLabels" . | nindent 4 }}
+data:
+{{- range $key, $value := .Values.services.externalInfo.env }}
+  {{ $key }}: {{ $value | quote }}
+{{- end }}

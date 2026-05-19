@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: social-service-config
+  labels:
+    {{- include "tripplanning.labels" . | nindent 4 }}
+    app.kubernetes.io/component: social-service
+    {{- include "tripplanning.selectorLabels" . | nindent 4 }}
+data:
+{{- range $key, $value := .Values.services.social.env }}
+  {{ $key }}: {{ $value | quote }}
+{{- end }}

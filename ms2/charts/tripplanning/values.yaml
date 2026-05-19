@@ -1,0 +1,196 @@
+global:
+  nameOverride: ""
+  fullnameOverride: ""
+  namespace: ""
+  gateway:
+    name: "tripplanning-gateway"
+    namespace: "gateway-system"
+  hosts:
+    api: "api.k8s.tbd-htwg.de"
+  corsAllowedOrigins: "https://k8s.tbd-htwg.de"
+
+services:
+  trip:
+    name: trip-service
+    image:
+      repository: ghcr.io/tbd-htwg/backend/tripplanning-trip-service
+      tag: latest
+    port: 8080
+    replicas: 1
+    resources:
+      requests:
+        cpu: "200m"
+        memory: "256Mi"
+      limits:
+        cpu: "500m"
+        memory: "512Mi"
+    env:
+      SPRING_PROFILES_ACTIVE: "k8s"
+      SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/tripplanning"
+      SPRING_DATASOURCE_USERNAME: "tripplanning_app"
+      SPRING_DATASOURCE_DRIVER_CLASS_NAME: "org.postgresql.Driver"
+      ELASTICSEARCH_PROTOCOL: "http"
+      ELASTICSEARCH_HOSTS: "elasticsearch:9200"
+      TRIPPLANNING_SEARCH_ELASTICSEARCH_INDEX_NAME: "tripentity"
+      SPRING_DATA_REDIS_HOST: "redis"
+      SPRING_DATA_REDIS_PORT: "6379"
+      TRIPPLANNING_SOCIAL_SERVICE_URL: "http://social-service:8081"
+      TRIPPLANNING_EXTERNAL_INFO_SERVICE_URL: "http://external-info-service:8082"
+      TRIPPLANNING_AUTH_FIREBASE_PROJECT_ID: "milestone2-tbd-cad"
+      CORS_ALLOWED_ORIGINS: "https://k8s.tbd-htwg.de"
+      GCP_STORAGE_BUCKET_NAME: "milestone2-tbd-cad-images-bucket"
+      GCP_IMPERSONATE_SERVICE_ACCOUNT: "tripplanning-image-url-sig@milestone2-tbd-cad.iam.gserviceaccount.com"
+    secretRefs:
+      - trip-service-secrets
+    livenessPath: /actuator/health/liveness
+    readinessPath: /actuator/health/readiness
+
+  social:
+    name: social-service
+    image:
+      repository: ghcr.io/tbd-htwg/backend/tripplanning-social-service
+      tag: latest
+    port: 8081
+    replicas: 1
+    resources:
+      requests:
+        cpu: "200m"
+        memory: "256Mi"
+      limits:
+        cpu: "500m"
+        memory: "512Mi"
+    env:
+      SPRING_PROFILES_ACTIVE: "cloud"
+      SERVER_PORT: "8081"
+      CORS_ALLOWED_ORIGINS: "https://k8s.tbd-htwg.de"
+      TRIPPLANNING_AUTH_FIREBASE_PROJECT_ID: "milestone2-tbd-cad"
+      TRIPPLANNING_TRIP_SERVICE_URL: "http://trip-service:8080"
+      GCP_FIRESTORE_DATABASE_ID: "(default)"
+      SPRING_DATA_REDIS_HOST: "redis"
+      SPRING_DATA_REDIS_PORT: "6379"
+    secretRefs:
+      - social-service-secrets
+    livenessPath: /actuator/health/liveness
+    readinessPath: /actuator/health/readiness
+
+  externalInfo:
+    name: external-info-service
+    image:
+      repository: ghcr.io/tbd-htwg/backend/tripplanning-external-info-service
+      tag: latest
+    port: 8082
+    replicas: 1
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "128Mi"
+      limits:
+        cpu: "300m"
+        memory: "256Mi"
+    env:
+      SERVER_PORT: "8082"
+      CORS_ALLOWED_ORIGINS: "https://k8s.tbd-htwg.de"
+      SPRING_DATA_REDIS_HOST: "redis"
+      SPRING_DATA_REDIS_PORT: "6379"
+    secretRefs:
+      - external-info-service-secrets
+    readinessPath: /actuator/health
+
+routes:
+  - path: /api/v2/comments
+    service: social-service
+    port: 8081
+    pathType: PathPrefix
+  - path: /api/v2/trips/[^/]+/community
+    service: social-service
+    port: 8081
+    pathType: RegularExpression
+  - path: /api/v2/trips/[^/]+/comments
+    service: social-service
+    port: 8081
+    pathType: RegularExpression
+  - path: /api/v2/trips/[^/]+/liked-by-current-user
+    service: social-service
+    port: 8081
+    pathType: RegularExpression
+  - path: /api/v2/trips/[^/]+/like
+    service: social-service
+    port: 8081
+    pathType: RegularExpression
+  - path: /api/v2/users/[^/]+/likedTrips/[^/]+
+    service: social-service
+    port: 8081
+    pathType: RegularExpression
+  - path: /api/v2/external
+    service: external-info-service
+    port: 8082
+    pathType: PathPrefix
+  - path: /api/search
+    service: trip-service
+    port: 8080
+    pathType: PathPrefix
+  - path: /api/v2
+    service: trip-service
+    port: 8080
+    pathType: PathPrefix
+  - path: /actuator
+    service: trip-service
+    port: 8080
+    pathType: PathPrefix
+  - path: /swagger-ui
+    service: trip-service
+    port: 8080
+    pathType: PathPrefix
+  - path: /v3
+    service: trip-service
+    port: 8080
+    pathType: PathPrefix
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 80
+
+backingServices:
+  postgres:
+    enabled: true
+    serviceName: postgres
+    image: postgres:15-alpine
+    database: tripplanning
+    storageSize: 5Gi
+    resources:
+      requests:
+        cpu: "250m"
+        memory: "512Mi"
+      limits:
+        cpu: "500m"
+        memory: "1Gi"
+    auth:
+      username: tripplanning_app
+      password: ""
+      existingSecret: ""
+      passwordKey: password
+  redis:
+    enabled: true
+    serviceName: redis
+    image: redis:7-alpine
+    resources:
+      requests:
+        cpu: "50m"
+        memory: "128Mi"
+      limits:
+        cpu: "150m"
+        memory: "256Mi"
+  elasticsearch:
+    enabled: true
+    serviceName: elasticsearch
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.18
+    storageSize: 5Gi
+    resources:
+      requests:
+        cpu: "250m"
+        memory: "768Mi"
+      limits:
+        cpu: "500m"
+        memory: "1Gi"

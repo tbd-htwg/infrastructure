@@ -1,0 +1,16 @@
+{{- if .Values.backingServices.elasticsearch.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.backingServices.elasticsearch.serviceName }}
+  labels:
+    {{- include "tripplanning.labels" . | nindent 4 }}
+    app.kubernetes.io/component: elasticsearch
+spec:
+  selector:
+    app.kubernetes.io/component: elasticsearch
+    {{- include "tripplanning.selectorLabels" . | nindent 4 }}
+  ports:
+    - port: 9200
+      targetPort: 9200
+{{- end }}

@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tripplanning-free-values
+  namespace: tripplanning-free
+data:
+  values.yaml: |
+    services:
+      trip:
+        image:
+          repository: ghcr.io/tbd-htwg/backend/tripplanning-trip-service
+          tag: latest
+      social:
+        image:
+          repository: ghcr.io/tbd-htwg/backend/tripplanning-social-service
+          tag: latest
+      externalInfo:
+        image:
+          repository: ghcr.io/tbd-htwg/backend/tripplanning-external-info-service
+          tag: latest
+    backingServices:
+      postgres:
+        auth:
+          existingSecret: trip-service-secrets
+          passwordKey: password
+    autoscaling:
+      enabled: false

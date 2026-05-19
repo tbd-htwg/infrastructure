@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: trip-service
+  labels:
+    {{- include "tripplanning.labels" . | nindent 4 }}
+    app.kubernetes.io/component: trip-service
+spec:
+  replicas: {{ .Values.services.trip.replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: trip-service
+      {{- include "tripplanning.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: trip-service
+        {{- include "tripplanning.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: trip-service
+          image: "{{ .Values.services.trip.image.repository }}:{{ .Values.services.trip.image.tag }}"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: {{ .Values.services.trip.port }}
+          envFrom:
+            - configMapRef:
+                name: trip-service-config
+{{- range .Values.services.trip.secretRefs }}
+            - secretRef:
+                name: {{ . }}
+{{- end }}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.services.trip.readinessPath }}
+              port: {{ .Values.services.trip.port }}
+            initialDelaySeconds: 25
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.services.trip.livenessPath }}
+              port: {{ .Values.services.trip.port }}
+            initialDelaySeconds: 45
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: {{ .Values.services.trip.resources.requests.cpu }}
+              memory: {{ .Values.services.trip.resources.requests.memory }}
+            limits:
+              cpu: {{ .Values.services.trip.resources.limits.cpu }}
+              memory: {{ .Values.services.trip.resources.limits.memory }}

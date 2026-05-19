@@ -48,21 +48,6 @@ variable "gke" {
   description = "GKE Autopilot cluster settings."
 }
 
-variable "cloudsql" {
-  type = object({
-    instance_name        = string
-    database_version     = string
-    tier                 = string
-    disk_size_gb         = number
-    disk_autoresize      = bool
-    availability_type    = string
-    shared_database_name = string
-    tenant_databases     = list(string)
-    app_user             = string
-    private_ip_range     = string
-  })
-  description = "Cloud SQL configuration."
-}
 
 variable "storage" {
   type = object({
@@ -88,4 +73,12 @@ variable "kms" {
     key_ring_name   = "tripplanning-keyring"
     crypto_key_name = "tripplanning-key"
   }
+}
+
+variable "frontend" {
+  type = object({
+    domain     = string
+    enable_cdn = bool
+  })
+  description = "Frontend bucket + HTTPS load balancer settings."
 }

@@ -17,3 +17,8 @@ spec:
     createNamespace: true
   values:
     installCRDs: true
+    serviceAccount:
+      create: true
+      name: external-secrets
+      annotations:
+        iam.gke.io/gcp-service-account: workload@milestone2-tbd-cad.iam.gserviceaccount.com

@@ -1,6 +1,6 @@
 # Terraform Bootstrap (dev)
 
-This environment bootstraps a new GCP project with core APIs, service accounts, IAM bindings, Artifact Registry, Secret Manager, Cloud DNS, a log sink, networking, a GKE Autopilot cluster, Cloud SQL, and storage buckets.
+This environment bootstraps a new GCP project with core APIs, service accounts, IAM bindings, Artifact Registry, Secret Manager, Cloud DNS, a log sink, networking, a GKE Autopilot cluster, and storage buckets.
 
 Usage:
 
