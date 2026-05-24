@@ -7,6 +7,7 @@ spec:
   secretName: api-tls
   dnsNames:
     - api.k8s.tbd-htwg.de
+    - "*.k8s.tbd-htwg.de"
   issuerRef:
-    name: selfsigned
-    kind: Issuer
+    name: letsencrypt-dns
+    kind: ClusterIssuer

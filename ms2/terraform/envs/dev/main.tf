@@ -143,3 +143,15 @@ resource "google_service_account_iam_member" "external_secrets_wi" {
   role               = "roles/iam.workloadIdentityUser"
   member             = "serviceAccount:${var.project_id}.svc.id.goog[external-secrets/external-secrets]"
 }
+
+resource "google_service_account_iam_member" "cert_manager_wi" {
+  service_account_id = "projects/${var.project_id}/serviceAccounts/${local.service_account_emails["workload"]}"
+  role               = "roles/iam.workloadIdentityUser"
+  member             = "serviceAccount:${var.project_id}.svc.id.goog[cert-manager/cert-manager]"
+}
+
+resource "google_project_iam_member" "cert_manager_dns_admin" {
+  project = var.project_id
+  role    = "roles/dns.admin"
+  member  = "serviceAccount:${local.service_account_emails["workload"]}"
+}

@@ -5,7 +5,6 @@
 Step 7 is implemented in code: the Helm chart defines Deployments, Services, HTTPRoutes, ConfigMaps, optional HPAs, and secret references. It follows 12-factor (env-based config, stateless services, logs to stdout). It is usable once secrets are populated and the Gateway TLS setup is completed.
 
 Known gaps to finish before a production rollout:
-- Gateway TLS uses a self-signed certificate and should be replaced with a trusted issuer.
 - Secret values in GCP Secret Manager must be populated (placeholders only).
 
 ## What exists right now
@@ -139,6 +138,11 @@ echo "ADD_YOUR_VIATOR_KEY_HERE" | gcloud secrets versions add tripplanning-viato
   --project "$PROJECT_ID" \
   --data-file -
 ```
+
+### 4b) Let's Encrypt TLS (now wired)
+- cert-manager uses a ClusterIssuer named `letsencrypt-dns` with DNS-01 via Cloud DNS.
+- The Gateway TLS secret `api-tls` is issued for `api.k8s.tbd-htwg.de` and `*.k8s.tbd-htwg.de`.
+- IAM bindings are configured in Terraform for cert-manager to manage DNS records.
 
 ### 5) Deploy the application
 - Push changes to this repo.

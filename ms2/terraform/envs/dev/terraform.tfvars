@@ -1,4 +1,4 @@
-project_id = "milestone2-tbd-cad"
+project_id = "tbd-cloudappdev"
 region     = "europe-west1"
 
 dns_zone = {
