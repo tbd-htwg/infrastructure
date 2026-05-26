@@ -120,7 +120,7 @@ Example script:
 #!/usr/bin/env bash
 set -euo pipefail
 
-PROJECT_ID="milestone2-tbd-cad"
+PROJECT_ID="tbd-cloudappdev"
 
 gcloud secrets versions add tripplanning-db-password \
   --project "$PROJECT_ID" \

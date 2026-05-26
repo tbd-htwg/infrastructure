@@ -6,9 +6,9 @@ set -euo pipefail
 # #Delete the cluster
 # gcloud container clusters delete tripplanning-gke \
 #   --region europe-west1 \
-#   --project milestone2-tbd-cad
+#   --project tbd-cloudappdev
 
-PROJECT="milestone2-tbd-cad"
+PROJECT="tbd-cloudappdev"
 REGION="europe-west1"
 CLUSTER="tripplanning-gke"
 REPO_OWNER="tbd-htwg"
