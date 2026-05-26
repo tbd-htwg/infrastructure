@@ -17,8 +17,17 @@ spec:
     createNamespace: true
   values:
     installCRDs: true
+    global:
+      leaderElection:
+        namespace: cert-manager
     leaderElection:
       namespace: cert-manager
+    cainjector:
+      leaderElection:
+        namespace: cert-manager
+    webhook:
+      leaderElection:
+        namespace: cert-manager
     serviceAccount:
       create: true
       name: cert-manager
