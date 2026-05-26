@@ -130,12 +130,14 @@ module "kms" {
 }
 
 module "frontend_lb" {
-  source          = "../../modules/frontend-lb"
-  project_id      = var.project_id
-  frontend_domain = var.frontend.domain
-  dns_zone_name   = module.project_bootstrap.dns_zone_name
-  bucket_name     = module.storage.bucket_names["frontend_assets"]
-  enable_cdn      = var.frontend.enable_cdn
+  source                    = "../../modules/frontend-lb"
+  project_id                = var.project_id
+  frontend_domain           = var.frontend.domain
+  dns_zone_name             = module.project_bootstrap.dns_zone_name
+  bucket_name               = module.storage.bucket_names["frontend_assets"]
+  enable_cdn                = var.frontend.enable_cdn
+  api_backend_neg_self_link = try(var.frontend.api_backend_neg_self_link, null)
+  api_paths                 = try(var.frontend.api_paths, ["/api/*"])
 }
 
 resource "google_service_account_iam_member" "external_secrets_wi" {

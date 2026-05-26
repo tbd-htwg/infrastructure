@@ -10,10 +10,55 @@ resource "google_compute_backend_bucket" "frontend" {
   enable_cdn  = var.enable_cdn
 }
 
+resource "google_compute_health_check" "api" {
+  count   = var.api_backend_neg_self_link == null ? 0 : 1
+  project = var.project_id
+  name    = "api-backend-hc"
+
+  http_health_check {
+    port         = var.api_health_check_port
+    request_path = var.api_health_check_path
+  }
+}
+
+resource "google_compute_backend_service" "api" {
+  count       = var.api_backend_neg_self_link == null ? 0 : 1
+  project     = var.project_id
+  name        = "api-backend-service"
+  protocol    = "HTTP"
+  timeout_sec = 30
+
+  backend {
+    group = var.api_backend_neg_self_link
+  }
+
+  health_checks = [google_compute_health_check.api[0].self_link]
+}
+
 resource "google_compute_url_map" "frontend" {
   project         = var.project_id
   name            = "frontend-url-map"
   default_service = google_compute_backend_bucket.frontend.id
+
+  dynamic "host_rule" {
+    for_each = var.api_backend_neg_self_link == null ? [] : [1]
+    content {
+      hosts        = [var.frontend_domain]
+      path_matcher = "api"
+    }
+  }
+
+  dynamic "path_matcher" {
+    for_each = var.api_backend_neg_self_link == null ? [] : [1]
+    content {
+      name            = "api"
+      default_service = google_compute_backend_bucket.frontend.id
+      path_rule {
+        paths   = var.api_paths
+        service = google_compute_backend_service.api[0].id
+      }
+    }
+  }
 }
 
 resource "google_compute_managed_ssl_certificate" "frontend" {

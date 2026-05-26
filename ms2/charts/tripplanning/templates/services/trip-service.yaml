@@ -5,6 +5,10 @@ metadata:
   labels:
     {{- include "tripplanning.labels" . | nindent 4 }}
     app.kubernetes.io/component: trip-service
+  {{- if .Values.services.trip.neg.enabled }}
+  annotations:
+    cloud.google.com/neg: '{"exposed_ports":{"{{ .Values.services.trip.port }}":{}}}'
+  {{- end }}
 spec:
   selector:
     app.kubernetes.io/component: trip-service

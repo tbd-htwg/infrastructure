@@ -34,6 +34,8 @@ kms = {
 }
 
 frontend = {
-  domain     = "k8s.tbd-htwg.de"
-  enable_cdn = false
+  domain                    = "k8s.tbd-htwg.de"
+  enable_cdn                = false
+  api_backend_neg_self_link = null
+  api_paths                 = ["/api/*"]
 }

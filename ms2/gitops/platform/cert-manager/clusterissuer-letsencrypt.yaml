@@ -11,4 +11,4 @@ spec:
     solvers:
       - dns01:
           cloudDNS:
-            project: milestone2-tbd-cad
+            project: tbd-cloudappdev
