@@ -29,5 +29,21 @@ data:
         auth:
           existingSecret: trip-service-secrets
           passwordKey: password
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "256Mi"
+          limits:
+            cpu: "250m"
+            memory: "512Mi"
+      elasticsearch:
+        javaOpts: "-Xms256m -Xmx256m"
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "256Mi"
+          limits:
+            cpu: "250m"
+            memory: "512Mi"
     autoscaling:
       enabled: false

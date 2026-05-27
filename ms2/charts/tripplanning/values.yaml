@@ -192,6 +192,7 @@ backingServices:
     enabled: true
     serviceName: elasticsearch
     image: docker.elastic.co/elasticsearch/elasticsearch:7.17.18
+    javaOpts: "-Xms256m -Xmx256m"
     storageSize: 2Gi
     resources:
       requests:

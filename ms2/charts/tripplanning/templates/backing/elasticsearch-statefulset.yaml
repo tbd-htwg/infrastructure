@@ -30,7 +30,7 @@ spec:
             - name: xpack.security.enabled
               value: "false"
             - name: ES_JAVA_OPTS
-              value: "-Xms512m -Xmx512m"
+              value: {{ .Values.backingServices.elasticsearch.javaOpts | quote }}
           resources:
             requests:
               cpu: {{ .Values.backingServices.elasticsearch.resources.requests.cpu }}
