@@ -45,6 +45,12 @@ resource "google_storage_bucket_iam_member" "bucket_writer" {
   member = "serviceAccount:${google_service_account.deployer.email}"
 }
 
+resource "google_storage_bucket_iam_member" "bucket_reader" {
+  bucket = var.bucket_name
+  role   = "roles/storage.legacyBucketReader"
+  member = "serviceAccount:${google_service_account.deployer.email}"
+}
+
 resource "google_project_iam_member" "url_map_invalidator" {
   project = var.project_id
   role    = "roles/compute.loadBalancerAdmin"

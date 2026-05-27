@@ -5,7 +5,6 @@ metadata:
   labels:
     {{- include "tripplanning.labels" . | nindent 4 }}
     app.kubernetes.io/component: trip-service
-    {{- include "tripplanning.selectorLabels" . | nindent 4 }}
 data:
 {{- range $key, $value := .Values.services.trip.env }}
   {{ $key }}: {{ $value | quote }}
