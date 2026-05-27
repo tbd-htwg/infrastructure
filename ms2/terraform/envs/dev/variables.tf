@@ -84,3 +84,14 @@ variable "frontend" {
   })
   description = "Frontend bucket + HTTPS load balancer settings."
 }
+
+variable "github_wif" {
+  type = object({
+    owner                = string
+    repo                 = string
+    pool_id              = string
+    provider_id          = string
+    service_account_name = string
+  })
+  description = "GitHub Workload Identity Federation settings for frontend deploy."
+}

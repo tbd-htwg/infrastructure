@@ -20,7 +20,7 @@ spec:
       containers:
         - name: external-info-service
           image: "{{ .Values.services.externalInfo.image.repository }}:{{ .Values.services.externalInfo.image.tag }}"
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: {{ .Values.services.externalInfo.image.pullPolicy }}
           ports:
             - containerPort: {{ .Values.services.externalInfo.port }}
           envFrom:

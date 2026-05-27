@@ -140,6 +140,18 @@ module "frontend_lb" {
   api_paths                 = try(var.frontend.api_paths, ["/api/*"])
 }
 
+module "github_wif" {
+  source               = "../../modules/github-wif"
+  project_id           = var.project_id
+  github_owner         = var.github_wif.owner
+  github_repo          = var.github_wif.repo
+  pool_id              = var.github_wif.pool_id
+  provider_id          = var.github_wif.provider_id
+  service_account_name = var.github_wif.service_account_name
+  bucket_name          = module.storage.bucket_names["frontend_assets"]
+  url_map_name         = "frontend-url-map"
+}
+
 resource "google_service_account_iam_member" "external_secrets_wi" {
   service_account_id = "projects/${var.project_id}/serviceAccounts/${local.service_account_emails["workload"]}"
   role               = "roles/iam.workloadIdentityUser"

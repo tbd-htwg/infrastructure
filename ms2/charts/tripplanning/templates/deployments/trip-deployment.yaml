@@ -20,7 +20,7 @@ spec:
       containers:
         - name: trip-service
           image: "{{ .Values.services.trip.image.repository }}:{{ .Values.services.trip.image.tag }}"
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: {{ .Values.services.trip.image.pullPolicy }}
           ports:
             - containerPort: {{ .Values.services.trip.port }}
           envFrom:

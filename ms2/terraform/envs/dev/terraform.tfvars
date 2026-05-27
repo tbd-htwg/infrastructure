@@ -39,3 +39,11 @@ frontend = {
   api_backend_neg_self_link = null
   api_paths                 = ["/api/*"]
 }
+
+github_wif = {
+  owner                = "tbd-htwg"
+  repo                 = "frontend"
+  pool_id              = "github-actions"
+  provider_id          = "github-oidc"
+  service_account_name = "frontend-deployer"
+}

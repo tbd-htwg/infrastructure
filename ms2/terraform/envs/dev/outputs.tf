@@ -49,6 +49,16 @@ output "frontend_domain" {
   value       = module.frontend_lb.frontend_domain
 }
 
+output "github_wif_provider" {
+  description = "WIF provider name for GitHub Actions."
+  value       = module.github_wif.workload_identity_provider
+}
+
+output "frontend_deployer_sa" {
+  description = "Frontend deployer service account email."
+  value       = module.github_wif.deployer_service_account
+}
+
 output "frontend_ip" {
   description = "Frontend global IP address."
   value       = module.frontend_lb.frontend_ip

@@ -10,14 +10,17 @@ data:
         image:
           repository: ghcr.io/tbd-htwg/backend/tripplanning-trip-service
           tag: latest
+          pullPolicy: Always
       social:
         image:
           repository: ghcr.io/tbd-htwg/backend/tripplanning-social-service
           tag: latest
+          pullPolicy: Always
       externalInfo:
         image:
           repository: ghcr.io/tbd-htwg/backend/tripplanning-external-info-service
           tag: latest
+          pullPolicy: Always
     backingServices:
       postgres:
         auth:

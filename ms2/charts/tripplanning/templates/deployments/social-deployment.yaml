@@ -20,7 +20,7 @@ spec:
       containers:
         - name: social-service
           image: "{{ .Values.services.social.image.repository }}:{{ .Values.services.social.image.tag }}"
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: {{ .Values.services.social.image.pullPolicy }}
           ports:
             - containerPort: {{ .Values.services.social.port }}
           envFrom:

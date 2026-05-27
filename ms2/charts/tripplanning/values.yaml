@@ -15,6 +15,7 @@ services:
     image:
       repository: ghcr.io/tbd-htwg/backend/tripplanning-trip-service
       tag: latest
+      pullPolicy: Always
     port: 8080
     replicas: 1
     resources:
@@ -52,6 +53,7 @@ services:
     image:
       repository: ghcr.io/tbd-htwg/backend/tripplanning-social-service
       tag: latest
+      pullPolicy: Always
     port: 8081
     replicas: 1
     resources:
@@ -80,6 +82,7 @@ services:
     image:
       repository: ghcr.io/tbd-htwg/backend/tripplanning-external-info-service
       tag: latest
+      pullPolicy: Always
     port: 8082
     replicas: 1
     resources:
