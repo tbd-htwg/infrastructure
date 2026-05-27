@@ -7,7 +7,7 @@ spec:
   interval: 10m
   chart:
     spec:
-      chart: infrastructure/ms2/charts/tripplanning
+      chart: ms2/charts/tripplanning
       sourceRef:
         kind: GitRepository
         name: flux-system
