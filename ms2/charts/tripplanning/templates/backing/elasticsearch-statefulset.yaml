@@ -46,6 +46,9 @@ spec:
         name: data
       spec:
         accessModes: ["ReadWriteOnce"]
+        {{- if .Values.backingServices.elasticsearch.storageClassName }}
+        storageClassName: {{ .Values.backingServices.elasticsearch.storageClassName }}
+        {{- end }}
         resources:
           requests:
             storage: {{ .Values.backingServices.elasticsearch.storageSize }}

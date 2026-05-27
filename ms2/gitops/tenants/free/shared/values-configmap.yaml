@@ -29,6 +29,8 @@ data:
         auth:
           existingSecret: trip-service-secrets
           passwordKey: password
+        storageClassName: "standard"
+        storageSize: 1Gi
         resources:
           requests:
             cpu: "100m"
@@ -38,6 +40,8 @@ data:
             memory: "512Mi"
       elasticsearch:
         javaOpts: "-Xms256m -Xmx256m"
+        storageClassName: "standard"
+        storageSize: 1Gi
         resources:
           requests:
             cpu: "100m"

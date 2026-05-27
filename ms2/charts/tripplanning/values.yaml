@@ -164,6 +164,7 @@ backingServices:
     serviceName: postgres
     image: postgres:15-alpine
     database: tripplanning
+    storageClassName: "standard"
     storageSize: 2Gi
     resources:
       requests:
@@ -193,6 +194,7 @@ backingServices:
     serviceName: elasticsearch
     image: docker.elastic.co/elasticsearch/elasticsearch:7.17.18
     javaOpts: "-Xms256m -Xmx256m"
+    storageClassName: "standard"
     storageSize: 2Gi
     resources:
       requests:

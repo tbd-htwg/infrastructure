@@ -49,6 +49,9 @@ spec:
         name: data
       spec:
         accessModes: ["ReadWriteOnce"]
+        {{- if .Values.backingServices.postgres.storageClassName }}
+        storageClassName: {{ .Values.backingServices.postgres.storageClassName }}
+        {{- end }}
         resources:
           requests:
             storage: {{ .Values.backingServices.postgres.storageSize }}
