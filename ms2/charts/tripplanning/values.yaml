@@ -165,6 +165,7 @@ backingServices:
     image: postgres:15-alpine
     database: tripplanning
     storageClassName: "standard"
+    dataDir: "/var/lib/postgresql/data/pgdata"
     storageSize: 2Gi
     resources:
       requests:

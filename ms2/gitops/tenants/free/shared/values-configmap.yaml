@@ -30,6 +30,7 @@ data:
           existingSecret: trip-service-secrets
           passwordKey: password
         storageClassName: "standard-hdd-wffc"
+        dataDir: "/var/lib/postgresql/data/pgdata"
         storageSize: 1Gi
         resources:
           requests:
