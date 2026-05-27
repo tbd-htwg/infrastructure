@@ -18,6 +18,11 @@ variable "bucket_name" {
   description = "Frontend bucket name."
 }
 
+variable "network_self_link" {
+  type        = string
+  description = "VPC network self link for API backend health-check firewall rules."
+}
+
 variable "enable_cdn" {
   type        = bool
   description = "Enable Cloud CDN on the backend bucket."

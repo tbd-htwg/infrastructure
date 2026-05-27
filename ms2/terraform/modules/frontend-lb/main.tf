@@ -21,6 +21,21 @@ resource "google_compute_health_check" "api" {
   }
 }
 
+resource "google_compute_firewall" "api_health_checks" {
+  count   = var.api_backend_neg_self_link == null ? 0 : 1
+  project = var.project_id
+  name    = "allow-api-backend-health-checks"
+  network = var.network_self_link
+
+  direction     = "INGRESS"
+  source_ranges = ["35.191.0.0/16", "130.211.0.0/22"]
+
+  allow {
+    protocol = "tcp"
+    ports    = [tostring(var.api_health_check_port)]
+  }
+}
+
 resource "google_compute_backend_service" "api" {
   count       = var.api_backend_neg_self_link == null ? 0 : 1
   project     = var.project_id
