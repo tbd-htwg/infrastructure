@@ -9,6 +9,7 @@ spec:
   replicas: {{ .Values.services.trip.replicas }}
   strategy:
     type: Recreate
+    rollingUpdate: null
   selector:
     matchLabels:
       app.kubernetes.io/component: trip-service
