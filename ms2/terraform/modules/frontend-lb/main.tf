@@ -30,6 +30,8 @@ resource "google_compute_backend_service" "api" {
 
   backend {
     group = var.api_backend_neg_self_link
+    balancing_mode = "RATE"
+    max_rate_per_endpoint = 100
   }
 
   health_checks = [google_compute_health_check.api[0].self_link]

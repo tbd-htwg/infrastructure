@@ -36,7 +36,7 @@ kms = {
 frontend = {
   domain                    = "k8s.tbd-htwg.de"
   enable_cdn                = false
-  api_backend_neg_self_link = null
+  api_backend_neg_self_link = "https://www.googleapis.com/compute/v1/projects/tbd-cloudappdev/zones/europe-west1-b/networkEndpointGroups/k8s1-5a871136-tripplanning-free-trip-service-8080-76300b73"
   api_paths                 = ["/api/*"]
 }
 

@@ -35,6 +35,7 @@ services:
       ELASTICSEARCH_HOSTS: "elasticsearch:9200"
       HIBERNATE_SEARCH_BACKEND_VERSION: "opensearch:2.19"
       TRIPPLANNING_SEARCH_ELASTICSEARCH_INDEX_NAME: "tripentity"
+      SPRING_AUTOCONFIGURE_EXCLUDE: "org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchRestClientAutoConfiguration"
       SPRING_DATA_REDIS_HOST: "redis"
       SPRING_DATA_REDIS_PORT: "6379"
       TRIPPLANNING_SOCIAL_SERVICE_URL: "http://social-service:8081"

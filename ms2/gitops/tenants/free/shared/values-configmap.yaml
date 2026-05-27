@@ -21,6 +21,8 @@ data:
           limits:
             cpu: "1000m"
             memory: "1Gi"
+        env:
+          SPRING_AUTOCONFIGURE_EXCLUDE: "org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchRestClientAutoConfiguration"
       social:
         image:
           repository: ghcr.io/tbd-htwg/backend/tripplanning-social-service
