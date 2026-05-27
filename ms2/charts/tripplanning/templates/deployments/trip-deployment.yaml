@@ -41,11 +41,19 @@ spec:
             - secretRef:
                 name: {{ . }}
 {{- end }}
+          startupProbe:
+            httpGet:
+              path: {{ .Values.services.trip.livenessPath }}
+              port: {{ .Values.services.trip.port }}
+            initialDelaySeconds: 20
+            timeoutSeconds: 5
+            periodSeconds: 10
+            failureThreshold: 18
           readinessProbe:
             httpGet:
               path: {{ .Values.services.trip.readinessPath }}
               port: {{ .Values.services.trip.port }}
-            initialDelaySeconds: 25
+            initialDelaySeconds: 5
             timeoutSeconds: 5
             periodSeconds: 10
             failureThreshold: 60
@@ -53,7 +61,7 @@ spec:
             httpGet:
               path: {{ .Values.services.trip.livenessPath }}
               port: {{ .Values.services.trip.port }}
-            initialDelaySeconds: 45
+            initialDelaySeconds: 5
             timeoutSeconds: 5
             periodSeconds: 20
             failureThreshold: 6
