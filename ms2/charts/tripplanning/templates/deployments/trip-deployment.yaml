@@ -7,6 +7,8 @@ metadata:
     app.kubernetes.io/component: trip-service
 spec:
   replicas: {{ .Values.services.trip.replicas }}
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app.kubernetes.io/component: trip-service
@@ -41,13 +43,17 @@ spec:
               path: {{ .Values.services.trip.readinessPath }}
               port: {{ .Values.services.trip.port }}
             initialDelaySeconds: 25
+            timeoutSeconds: 5
             periodSeconds: 10
+            failureThreshold: 60
           livenessProbe:
             httpGet:
               path: {{ .Values.services.trip.livenessPath }}
               port: {{ .Values.services.trip.port }}
             initialDelaySeconds: 45
+            timeoutSeconds: 5
             periodSeconds: 20
+            failureThreshold: 6
           resources:
             requests:
               cpu: {{ .Values.services.trip.resources.requests.cpu }}
