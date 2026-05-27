@@ -19,6 +19,11 @@ spec:
         app.kubernetes.io/component: elasticsearch
         {{- include "tripplanning.selectorLabels" . | nindent 8 }}
     spec:
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
       containers:
         - name: elasticsearch
           image: {{ .Values.backingServices.elasticsearch.image }}
