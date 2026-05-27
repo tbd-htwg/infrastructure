@@ -164,14 +164,14 @@ backingServices:
     serviceName: postgres
     image: postgres:15-alpine
     database: tripplanning
-    storageSize: 5Gi
+    storageSize: 2Gi
     resources:
       requests:
+        cpu: "100m"
+        memory: "256Mi"
+      limits:
         cpu: "250m"
         memory: "512Mi"
-      limits:
-        cpu: "500m"
-        memory: "1Gi"
     auth:
       username: tripplanning_app
       password: ""
@@ -192,11 +192,11 @@ backingServices:
     enabled: true
     serviceName: elasticsearch
     image: docker.elastic.co/elasticsearch/elasticsearch:7.17.18
-    storageSize: 5Gi
+    storageSize: 2Gi
     resources:
       requests:
-        cpu: "250m"
-        memory: "768Mi"
+        cpu: "100m"
+        memory: "256Mi"
       limits:
-        cpu: "500m"
-        memory: "1Gi"
+        cpu: "250m"
+        memory: "512Mi"
