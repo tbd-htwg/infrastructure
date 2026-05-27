@@ -39,7 +39,7 @@ variable "api_paths" {
 variable "api_health_check_path" {
   type        = string
   description = "HTTP health check path for the API backend."
-  default     = "/healthz"
+  default     = "/actuator/health/readiness"
 }
 
 variable "api_health_check_port" {
