@@ -5,6 +5,9 @@ metadata:
   namespace: tripplanning-free
 data:
   values.yaml: |
+    global:
+      imagePullSecrets:
+        - ghcr-pull
     services:
       trip:
         image:

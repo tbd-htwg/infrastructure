@@ -17,6 +17,12 @@ spec:
         app.kubernetes.io/component: social-service
         {{- include "tripplanning.selectorLabels" . | nindent 8 }}
     spec:
+      {{- if .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+      {{- range .Values.global.imagePullSecrets }}
+        - name: {{ . }}
+      {{- end }}
+      {{- end }}
       containers:
         - name: social-service
           image: "{{ .Values.services.social.image.repository }}:{{ .Values.services.social.image.tag }}"

@@ -17,6 +17,12 @@ spec:
         app.kubernetes.io/component: external-info-service
         {{- include "tripplanning.selectorLabels" . | nindent 8 }}
     spec:
+      {{- if .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+      {{- range .Values.global.imagePullSecrets }}
+        - name: {{ . }}
+      {{- end }}
+      {{- end }}
       containers:
         - name: external-info-service
           image: "{{ .Values.services.externalInfo.image.repository }}:{{ .Values.services.externalInfo.image.tag }}"
