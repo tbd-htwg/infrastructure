@@ -8,11 +8,12 @@ spec:
   chart:
     spec:
       chart: ms2/charts/tripplanning
+      reconcileStrategy: Revision
       sourceRef:
         kind: GitRepository
         name: flux-system
         namespace: flux-system
-      interval: 1h
+      interval: 1m
   valuesFrom:
     - kind: ConfigMap
       name: tripplanning-free-values

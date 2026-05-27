@@ -14,16 +14,37 @@ data:
           repository: ghcr.io/tbd-htwg/backend/tripplanning-trip-service
           tag: latest
           pullPolicy: Always
+        resources:
+          requests:
+            cpu: "300m"
+            memory: "512Mi"
+          limits:
+            cpu: "1000m"
+            memory: "1Gi"
       social:
         image:
           repository: ghcr.io/tbd-htwg/backend/tripplanning-social-service
           tag: latest
           pullPolicy: Always
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "384Mi"
+          limits:
+            cpu: "750m"
+            memory: "768Mi"
       externalInfo:
         image:
           repository: ghcr.io/tbd-htwg/backend/tripplanning-external-info-service
           tag: latest
           pullPolicy: Always
+        resources:
+          requests:
+            cpu: "150m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
     backingServices:
       postgres:
         auth:
@@ -34,21 +55,21 @@ data:
         storageSize: 1Gi
         resources:
           requests:
-            cpu: "100m"
-            memory: "256Mi"
-          limits:
             cpu: "250m"
             memory: "512Mi"
+          limits:
+            cpu: "1000m"
+            memory: "1Gi"
       elasticsearch:
-        javaOpts: "-Xms256m -Xmx256m"
+        javaOpts: "-Xms512m -Xmx512m"
         storageClassName: "standard-hdd-wffc"
         storageSize: 1Gi
         resources:
           requests:
-            cpu: "100m"
-            memory: "256Mi"
+            cpu: "500m"
+            memory: "1Gi"
           limits:
-            cpu: "250m"
-            memory: "512Mi"
+            cpu: "1000m"
+            memory: "2Gi"
     autoscaling:
       enabled: false

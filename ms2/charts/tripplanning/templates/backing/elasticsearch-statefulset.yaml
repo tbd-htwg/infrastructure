@@ -34,6 +34,10 @@ spec:
               value: single-node
             - name: xpack.security.enabled
               value: "false"
+            - name: xpack.monitoring.collection.enabled
+              value: "false"
+            - name: ingest.geoip.downloader.enabled
+              value: "false"
             - name: ES_JAVA_OPTS
               value: {{ .Values.backingServices.elasticsearch.javaOpts | quote }}
           resources:
