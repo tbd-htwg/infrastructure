@@ -33,6 +33,7 @@ services:
       SPRING_DATASOURCE_DRIVER_CLASS_NAME: "org.postgresql.Driver"
       ELASTICSEARCH_PROTOCOL: "http"
       ELASTICSEARCH_HOSTS: "elasticsearch:9200"
+      HIBERNATE_SEARCH_BACKEND_VERSION: "opensearch:2.19"
       TRIPPLANNING_SEARCH_ELASTICSEARCH_INDEX_NAME: "tripentity"
       SPRING_DATA_REDIS_HOST: "redis"
       SPRING_DATA_REDIS_PORT: "6379"
@@ -193,7 +194,7 @@ backingServices:
   elasticsearch:
     enabled: true
     serviceName: elasticsearch
-    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.18
+    image: opensearchproject/opensearch:2.19.0
     javaOpts: "-Xms512m -Xmx512m"
     storageClassName: "standard"
     storageSize: 2Gi

@@ -32,13 +32,11 @@ spec:
           env:
             - name: discovery.type
               value: single-node
-            - name: xpack.security.enabled
-              value: "false"
-            - name: xpack.monitoring.collection.enabled
-              value: "false"
-            - name: ingest.geoip.downloader.enabled
-              value: "false"
-            - name: ES_JAVA_OPTS
+            - name: DISABLE_SECURITY_PLUGIN
+              value: "true"
+            - name: DISABLE_INSTALL_DEMO_CONFIG
+              value: "true"
+            - name: OPENSEARCH_JAVA_OPTS
               value: {{ .Values.backingServices.elasticsearch.javaOpts | quote }}
           resources:
             requests:
@@ -49,7 +47,7 @@ spec:
               memory: {{ .Values.backingServices.elasticsearch.resources.limits.memory }}
           volumeMounts:
             - name: data
-              mountPath: /usr/share/elasticsearch/data
+              mountPath: /usr/share/opensearch/data
   volumeClaimTemplates:
     - metadata:
         name: data

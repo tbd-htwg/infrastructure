@@ -61,6 +61,7 @@ data:
             cpu: "1000m"
             memory: "1Gi"
       elasticsearch:
+        image: opensearchproject/opensearch:2.19.0
         javaOpts: "-Xms512m -Xmx512m"
         storageClassName: "standard-hdd-wffc"
         storageSize: 1Gi
