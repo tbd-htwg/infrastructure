@@ -29,7 +29,7 @@ data:
         auth:
           existingSecret: trip-service-secrets
           passwordKey: password
-        storageClassName: "standard"
+        storageClassName: "standard-hdd-wffc"
         storageSize: 1Gi
         resources:
           requests:
@@ -40,7 +40,7 @@ data:
             memory: "512Mi"
       elasticsearch:
         javaOpts: "-Xms256m -Xmx256m"
-        storageClassName: "standard"
+        storageClassName: "standard-hdd-wffc"
         storageSize: 1Gi
         resources:
           requests:
