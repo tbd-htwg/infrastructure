@@ -107,7 +107,7 @@ module "storage" {
       force_destroy  = false
       cors = [
         {
-          origin          = ["https://k8s.tbd-htwg.de", "https://api.k8s.tbd-htwg.de"]
+          origin          = ["https://k8s.tbd-htwg.de"]
           method          = ["GET", "HEAD", "OPTIONS", "PUT"]
           response_header = ["Content-Type", "Authorization"]
           max_age_seconds = 3600

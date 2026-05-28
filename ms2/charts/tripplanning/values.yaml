@@ -7,7 +7,7 @@ global:
     name: "tripplanning-gateway"
     namespace: "gateway-system"
   hosts:
-    api: "api.k8s.tbd-htwg.de"
+    api: "k8s.tbd-htwg.de"
   corsAllowedOrigins: "https://k8s.tbd-htwg.de"
 
 services:
