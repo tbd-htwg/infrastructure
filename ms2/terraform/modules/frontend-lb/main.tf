@@ -87,11 +87,24 @@ resource "google_compute_managed_ssl_certificate" "frontend" {
   }
 }
 
+resource "google_compute_managed_ssl_certificate" "frontend_secondary" {
+  count   = var.secondary_managed_ssl_certificate_name == null ? 0 : 1
+  project = var.project_id
+  name    = var.secondary_managed_ssl_certificate_name
+
+  managed {
+    domains = [var.frontend_domain]
+  }
+}
+
 resource "google_compute_target_https_proxy" "frontend" {
   project          = var.project_id
   name             = "frontend-https-proxy"
   url_map          = google_compute_url_map.frontend.id
-  ssl_certificates = [google_compute_managed_ssl_certificate.frontend.id]
+  ssl_certificates = concat(
+    [google_compute_managed_ssl_certificate.frontend.id],
+    var.secondary_managed_ssl_certificate_name == null ? [] : [google_compute_managed_ssl_certificate.frontend_secondary[0].id],
+  )
 }
 
 resource "google_compute_global_forwarding_rule" "frontend_https" {

@@ -2,8 +2,8 @@ project_id = "tbd-cloudappdev"
 region     = "europe-west1"
 
 dns_zone = {
-  name        = "k8s-tbd-zone"
-  domain      = "k8s.tbd-htwg.de."
+  name        = "tbd-dns-zone"
+  domain      = "tbd-htwg.de."
   description = "Tenant domains for GKE."
 }
 
@@ -38,6 +38,7 @@ frontend = {
   enable_cdn                = false
   api_backend_neg_self_link = "https://www.googleapis.com/compute/v1/projects/tbd-cloudappdev/zones/europe-west1-b/networkEndpointGroups/k8s1-5a871136-tripplanning-free-trip-service-8080-76300b73"
   api_paths                 = ["/api/*"]
+  secondary_managed_ssl_certificate_name = "frontend-cert-v2"
 }
 
 github_wif = {

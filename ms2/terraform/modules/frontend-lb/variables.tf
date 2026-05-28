@@ -52,3 +52,9 @@ variable "api_health_check_port" {
   description = "HTTP health check port for the API backend."
   default     = 8080
 }
+
+variable "secondary_managed_ssl_certificate_name" {
+  type        = string
+  description = "Optional second managed SSL certificate name for zero-downtime rotation."
+  default     = null
+}

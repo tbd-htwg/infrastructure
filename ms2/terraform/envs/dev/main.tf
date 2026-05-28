@@ -139,6 +139,7 @@ module "frontend_lb" {
   enable_cdn                = var.frontend.enable_cdn
   api_backend_neg_self_link = try(var.frontend.api_backend_neg_self_link, null)
   api_paths                 = try(var.frontend.api_paths, ["/api/*"])
+  secondary_managed_ssl_certificate_name = try(var.frontend.secondary_managed_ssl_certificate_name, null)
 }
 
 module "github_wif" {

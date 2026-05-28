@@ -2,8 +2,8 @@ project_id = "project-1234567890"
 region     = "europe-west1"
 
 dns_zone = {
-  name        = "k8s-tbd-zone"
-  domain      = "k8s.tbd-htwg.de."
+  name        = "tbd-dns-zone"
+  domain      = "tbd-htwg.de."
   description = "Tenant domains for GKE."
 }
 
@@ -36,4 +36,5 @@ kms = {
 frontend = {
   domain     = "k8s.tbd-htwg.de"
   enable_cdn = false
+  secondary_managed_ssl_certificate_name = "frontend-cert-v2"
 }
