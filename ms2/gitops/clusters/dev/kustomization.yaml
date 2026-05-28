@@ -3,4 +3,5 @@ kind: Kustomization
 resources:
   - platform-kustomization.yaml
   - platform-config-kustomization.yaml
+  - platform-gateway-kustomization.yaml
   - tenants-kustomization.yaml
