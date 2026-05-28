@@ -16,6 +16,9 @@ spec:
   install:
     createNamespace: true
   values:
+    global:
+      leaderElection:
+        namespace: cert-manager
     installCRDs: true
     serviceAccount:
       create: true
