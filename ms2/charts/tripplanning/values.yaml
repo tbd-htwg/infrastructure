@@ -11,6 +11,22 @@ global:
   corsAllowedOrigins: "https://k8s.tbd-htwg.de"
 
 services:
+  apiRouter:
+    name: api-router
+    image:
+      repository: nginx
+      tag: 1.27-alpine
+      pullPolicy: IfNotPresent
+    port: 8088
+    replicas: 1
+    resources:
+      requests:
+        cpu: "50m"
+        memory: "64Mi"
+      limits:
+        cpu: "200m"
+        memory: "128Mi"
+
   trip:
     name: trip-service
     image:
@@ -109,26 +125,6 @@ routes:
     service: social-service
     port: 8081
     pathType: PathPrefix
-  - path: /api/v2/trips/[^/]+/community
-    service: social-service
-    port: 8081
-    pathType: RegularExpression
-  - path: /api/v2/trips/[^/]+/comments
-    service: social-service
-    port: 8081
-    pathType: RegularExpression
-  - path: /api/v2/trips/[^/]+/liked-by-current-user
-    service: social-service
-    port: 8081
-    pathType: RegularExpression
-  - path: /api/v2/trips/[^/]+/like
-    service: social-service
-    port: 8081
-    pathType: RegularExpression
-  - path: /api/v2/users/[^/]+/likedTrips/[^/]+
-    service: social-service
-    port: 8081
-    pathType: RegularExpression
   - path: /api/v2/external
     service: external-info-service
     port: 8082
@@ -136,6 +132,14 @@ routes:
   - path: /api/search
     service: trip-service
     port: 8080
+    pathType: PathPrefix
+  - path: /api/v2/trips
+    service: api-router
+    port: 8088
+    pathType: PathPrefix
+  - path: /api/v2/users
+    service: api-router
+    port: 8088
     pathType: PathPrefix
   - path: /api/v2
     service: trip-service

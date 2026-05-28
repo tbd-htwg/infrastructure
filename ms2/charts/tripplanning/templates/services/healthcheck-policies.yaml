@@ -1,0 +1,67 @@
+apiVersion: networking.gke.io/v1
+kind: HealthCheckPolicy
+metadata:
+  name: api-router
+  labels:
+    {{- include "tripplanning.labels" . | nindent 4 }}
+spec:
+  default:
+    config:
+      type: HTTP
+      httpHealthCheck:
+        requestPath: /healthz
+  targetRef:
+    group: ""
+    kind: Service
+    name: api-router
+---
+apiVersion: networking.gke.io/v1
+kind: HealthCheckPolicy
+metadata:
+  name: trip-service
+  labels:
+    {{- include "tripplanning.labels" . | nindent 4 }}
+spec:
+  default:
+    config:
+      type: HTTP
+      httpHealthCheck:
+        requestPath: {{ .Values.services.trip.readinessPath | quote }}
+  targetRef:
+    group: ""
+    kind: Service
+    name: trip-service
+---
+apiVersion: networking.gke.io/v1
+kind: HealthCheckPolicy
+metadata:
+  name: social-service
+  labels:
+    {{- include "tripplanning.labels" . | nindent 4 }}
+spec:
+  default:
+    config:
+      type: HTTP
+      httpHealthCheck:
+        requestPath: {{ .Values.services.social.readinessPath | quote }}
+  targetRef:
+    group: ""
+    kind: Service
+    name: social-service
+---
+apiVersion: networking.gke.io/v1
+kind: HealthCheckPolicy
+metadata:
+  name: external-info-service
+  labels:
+    {{- include "tripplanning.labels" . | nindent 4 }}
+spec:
+  default:
+    config:
+      type: HTTP
+      httpHealthCheck:
+        requestPath: {{ .Values.services.externalInfo.readinessPath | quote }}
+  targetRef:
+    group: ""
+    kind: Service
+    name: external-info-service

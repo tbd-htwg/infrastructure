@@ -32,7 +32,7 @@ resource "google_compute_firewall" "api_health_checks" {
 
   allow {
     protocol = "tcp"
-    ports    = [tostring(var.api_health_check_port)]
+    ports    = ["8080", "8081", "8082"]
   }
 }
 
