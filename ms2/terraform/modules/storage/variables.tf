@@ -16,6 +16,11 @@ variable "buckets" {
     versioning     = bool
     uniform_access = bool
     force_destroy  = bool
+    public_read    = optional(bool, false)
+    website = optional(object({
+      main_page_suffix = string
+      not_found_page   = optional(string)
+    }), null)
     cors = optional(list(object({
       origin          = list(string)
       method          = list(string)

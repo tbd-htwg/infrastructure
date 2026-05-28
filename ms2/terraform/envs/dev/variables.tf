@@ -77,10 +77,10 @@ variable "kms" {
 
 variable "frontend" {
   type = object({
-    domain                    = string
-    enable_cdn                = bool
-    api_backend_neg_self_link = optional(string)
-    api_paths                 = optional(list(string))
+    domain                                 = string
+    enable_cdn                             = bool
+    api_backend_neg_self_link              = optional(string)
+    api_paths                              = optional(list(string))
     secondary_managed_ssl_certificate_name = optional(string)
   })
   description = "Frontend bucket + HTTPS load balancer settings."

@@ -12,6 +12,14 @@ resource "google_storage_bucket" "buckets" {
     enabled = each.value.versioning
   }
 
+  dynamic "website" {
+    for_each = each.value.website == null ? [] : [each.value.website]
+    content {
+      main_page_suffix = website.value.main_page_suffix
+      not_found_page   = try(website.value.not_found_page, null)
+    }
+  }
+
   dynamic "cors" {
     for_each = each.value.cors
     content {
@@ -21,4 +29,12 @@ resource "google_storage_bucket" "buckets" {
       max_age_seconds = cors.value.max_age_seconds
     }
   }
+}
+
+resource "google_storage_bucket_iam_member" "public_read" {
+  for_each = { for key, bucket in var.buckets : key => bucket if try(bucket.public_read, false) }
+
+  bucket = google_storage_bucket.buckets[each.key].name
+  role   = "roles/storage.objectViewer"
+  member = "allUsers"
 }

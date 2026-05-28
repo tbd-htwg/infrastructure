@@ -106,7 +106,12 @@ module "storage" {
       versioning     = true
       uniform_access = true
       force_destroy  = false
-      cors           = []
+      public_read    = true
+      website = {
+        main_page_suffix = "index.html"
+        not_found_page   = "index.html"
+      }
+      cors = []
     }
     terraform_state = {
       name_suffix    = "tfstate"
@@ -130,15 +135,15 @@ module "kms" {
 }
 
 module "frontend_lb" {
-  source                    = "../../modules/frontend-lb"
-  project_id                = var.project_id
-  frontend_domain           = var.frontend.domain
-  dns_zone_name             = module.project_bootstrap.dns_zone_name
-  bucket_name               = module.storage.bucket_names["frontend_assets"]
-  network_self_link         = module.network.network_self_link
-  enable_cdn                = var.frontend.enable_cdn
-  api_backend_neg_self_link = try(var.frontend.api_backend_neg_self_link, null)
-  api_paths                 = try(var.frontend.api_paths, ["/api/*"])
+  source                                 = "../../modules/frontend-lb"
+  project_id                             = var.project_id
+  frontend_domain                        = var.frontend.domain
+  dns_zone_name                          = module.project_bootstrap.dns_zone_name
+  bucket_name                            = module.storage.bucket_names["frontend_assets"]
+  network_self_link                      = module.network.network_self_link
+  enable_cdn                             = var.frontend.enable_cdn
+  api_backend_neg_self_link              = try(var.frontend.api_backend_neg_self_link, null)
+  api_paths                              = try(var.frontend.api_paths, ["/api/*"])
   secondary_managed_ssl_certificate_name = try(var.frontend.secondary_managed_ssl_certificate_name, null)
 }
 

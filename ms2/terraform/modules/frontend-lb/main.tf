@@ -44,8 +44,8 @@ resource "google_compute_backend_service" "api" {
   timeout_sec = 30
 
   backend {
-    group = var.api_backend_neg_self_link
-    balancing_mode = "RATE"
+    group                 = var.api_backend_neg_self_link
+    balancing_mode        = "RATE"
     max_rate_per_endpoint = 100
   }
 
@@ -57,24 +57,39 @@ resource "google_compute_url_map" "frontend" {
   name            = "frontend-url-map"
   default_service = google_compute_backend_bucket.frontend.id
 
-  dynamic "host_rule" {
-    for_each = var.api_backend_neg_self_link == null ? [] : [1]
-    content {
-      hosts        = [var.frontend_domain]
-      path_matcher = "api"
-    }
-  }
+  path_matcher {
+    name = "frontend"
 
-  dynamic "path_matcher" {
-    for_each = var.api_backend_neg_self_link == null ? [] : [1]
-    content {
-      name            = "api"
-      default_service = google_compute_backend_bucket.frontend.id
-      path_rule {
+    default_service = google_compute_backend_bucket.frontend.id
+
+    path_rule {
+      paths = ["/"]
+
+      url_redirect {
+        path_redirect          = "/index.html"
+        redirect_response_code = "MOVED_PERMANENTLY_DEFAULT"
+        strip_query            = false
+      }
+    }
+
+    path_rule {
+      paths   = ["/assets/*", "/favicon.svg", "/cloud-regular-full.svg", "/index.html"]
+      service = google_compute_backend_bucket.frontend.id
+    }
+
+    dynamic "path_rule" {
+      for_each = var.api_backend_neg_self_link == null ? [] : [1]
+      content {
         paths   = var.api_paths
         service = google_compute_backend_service.api[0].id
       }
     }
+
+  }
+
+  host_rule {
+    hosts        = [var.frontend_domain]
+    path_matcher = "frontend"
   }
 }
 
@@ -97,14 +112,36 @@ resource "google_compute_managed_ssl_certificate" "frontend_secondary" {
   }
 }
 
+resource "google_compute_url_map" "frontend_http_redirect" {
+  project = var.project_id
+  name    = "frontend-http-redirect-url-map"
+
+  default_url_redirect {
+    https_redirect         = true
+    redirect_response_code = "MOVED_PERMANENTLY_DEFAULT"
+    strip_query            = false
+  }
+}
+
+resource "google_compute_target_http_proxy" "frontend_http_redirect" {
+  project = var.project_id
+  name    = "frontend-http-redirect-proxy"
+  url_map = google_compute_url_map.frontend_http_redirect.id
+}
+
+resource "google_compute_global_forwarding_rule" "frontend_http" {
+  project    = var.project_id
+  name       = "frontend-http-rule"
+  target     = google_compute_target_http_proxy.frontend_http_redirect.id
+  port_range = "80"
+  ip_address = google_compute_global_address.frontend_ip.address
+}
+
 resource "google_compute_target_https_proxy" "frontend" {
-  project          = var.project_id
-  name             = "frontend-https-proxy"
-  url_map          = google_compute_url_map.frontend.id
-  ssl_certificates = concat(
-    [google_compute_managed_ssl_certificate.frontend.id],
-    var.secondary_managed_ssl_certificate_name == null ? [] : [google_compute_managed_ssl_certificate.frontend_secondary[0].id],
-  )
+  project = var.project_id
+  name    = "frontend-https-proxy"
+  url_map = google_compute_url_map.frontend.id
+  ssl_certificates = var.secondary_managed_ssl_certificate_name == null ? [google_compute_managed_ssl_certificate.frontend.id] : [google_compute_managed_ssl_certificate.frontend_secondary[0].id]
 }
 
 resource "google_compute_global_forwarding_rule" "frontend_https" {
