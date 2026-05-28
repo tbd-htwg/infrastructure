@@ -3,6 +3,11 @@ output "service_account_emails" {
   value       = module.project_bootstrap.service_account_emails
 }
 
+output "secrets_deployer_sa_email" {
+  description = "GitHub Actions service account email for Secret Manager syncs."
+  value       = module.project_bootstrap.service_account_emails["secrets_deployer"]
+}
+
 output "artifact_registry_repo" {
   description = "Artifact Registry repository name."
   value       = module.project_bootstrap.artifact_registry_repo
@@ -52,6 +57,11 @@ output "frontend_domain" {
 output "github_wif_provider" {
   description = "WIF provider name for GitHub Actions."
   value       = module.github_wif.workload_identity_provider
+}
+
+output "backend_wif_provider" {
+  description = "WIF provider name for backend GitHub Actions."
+  value       = google_iam_workload_identity_pool_provider.backend.name
 }
 
 output "frontend_deployer_sa" {

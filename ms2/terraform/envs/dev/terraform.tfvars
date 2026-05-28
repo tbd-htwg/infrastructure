@@ -48,3 +48,9 @@ github_wif = {
   provider_id          = "github-oidc"
   service_account_name = "frontend-deployer"
 }
+
+backend_wif = {
+  owner       = "tbd-htwg"
+  repo        = "backend"
+  provider_id = "github-oidc-backend"
+}

@@ -3,6 +3,10 @@ provider "google" {
   region  = var.region
 }
 
+data "google_project" "current" {
+  project_id = var.project_id
+}
+
 module "project_bootstrap" {
   source     = "../../modules/project-bootstrap"
   project_id = var.project_id
@@ -34,6 +38,10 @@ module "project_bootstrap" {
   iam_bindings = {
     "roles/secretmanager.secretAccessor" = [
       "serviceAccount:${local.service_account_emails["workload"]}",
+      "serviceAccount:${local.service_account_emails["secrets_deployer"]}",
+    ]
+    "roles/secretmanager.admin" = [
+      "serviceAccount:${local.service_account_emails["secrets_deployer"]}",
     ]
     "roles/artifactregistry.reader" = [
       "serviceAccount:${local.service_account_emails["workload"]}",
@@ -183,6 +191,31 @@ module "github_wif" {
   url_map_name         = "frontend-url-map"
 }
 
+resource "google_iam_workload_identity_pool_provider" "backend" {
+  project                            = var.project_id
+  workload_identity_pool_id          = var.github_wif.pool_id
+  workload_identity_pool_provider_id = var.backend_wif.provider_id
+  display_name                       = "GitHub OIDC Backend"
+
+  oidc {
+    issuer_uri = "https://token.actions.githubusercontent.com"
+  }
+
+  attribute_mapping = {
+    "google.subject"       = "assertion.sub"
+    "attribute.repository" = "assertion.repository"
+    "attribute.actor"      = "assertion.actor"
+  }
+
+  attribute_condition = "assertion.repository == '${var.backend_wif.owner}/${var.backend_wif.repo}'"
+}
+
+resource "google_service_account_iam_member" "backend_wif_binding" {
+  service_account_id = "projects/${var.project_id}/serviceAccounts/${local.service_account_emails["secrets_deployer"]}"
+  role               = "roles/iam.workloadIdentityUser"
+  member             = "principalSet://iam.googleapis.com/projects/${data.google_project.current.number}/locations/global/workloadIdentityPools/${var.github_wif.pool_id}/attribute.repository/${var.backend_wif.owner}/${var.backend_wif.repo}"
+}
+
 resource "google_service_account_iam_member" "external_secrets_wi" {
   service_account_id = "projects/${var.project_id}/serviceAccounts/${local.service_account_emails["workload"]}"
   role               = "roles/iam.workloadIdentityUser"
@@ -193,6 +226,20 @@ resource "google_service_account_iam_member" "cert_manager_wi" {
   service_account_id = "projects/${var.project_id}/serviceAccounts/${local.service_account_emails["workload"]}"
   role               = "roles/iam.workloadIdentityUser"
   member             = "serviceAccount:${var.project_id}.svc.id.goog[cert-manager/cert-manager]"
+}
+
+# Allow the trip-service Kubernetes service account to act as the GCP workload service account
+resource "google_service_account_iam_member" "trip_service_wi" {
+  service_account_id = "projects/${var.project_id}/serviceAccounts/${local.service_account_emails["workload"]}"
+  role               = "roles/iam.workloadIdentityUser"
+  member             = "serviceAccount:${var.project_id}.svc.id.goog[tripplanning-free/trip-service]"
+}
+
+# Also allow pods running with the namespace default service account to use the workload identity
+resource "google_service_account_iam_member" "trip_namespace_default_wi" {
+  service_account_id = "projects/${var.project_id}/serviceAccounts/${local.service_account_emails["workload"]}"
+  role               = "roles/iam.workloadIdentityUser"
+  member             = "serviceAccount:${var.project_id}.svc.id.goog[tripplanning-free/default]"
 }
 
 resource "google_project_iam_member" "cert_manager_dns_admin" {

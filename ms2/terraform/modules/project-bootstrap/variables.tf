@@ -18,6 +18,7 @@ variable "api_services" {
     "servicenetworking.googleapis.com",
     "secretmanager.googleapis.com",
     "serviceusage.googleapis.com",
+    "places.googleapis.com",
     "sqladmin.googleapis.com",
     "storage.googleapis.com",
   ]
@@ -37,6 +38,10 @@ variable "service_accounts" {
     image_url_sig = {
       display_name = "tripplanning-image-url-sig"
       description  = "Signer service account for GCS upload URLs."
+    }
+    secrets_deployer = {
+      display_name = "secrets-deployer"
+      description  = "GitHub Actions service account for Secret Manager syncs."
     }
     gitops = {
       display_name = "gitops"

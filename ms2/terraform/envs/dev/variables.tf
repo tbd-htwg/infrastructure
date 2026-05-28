@@ -96,3 +96,12 @@ variable "github_wif" {
   })
   description = "GitHub Workload Identity Federation settings for frontend deploy."
 }
+
+variable "backend_wif" {
+  type = object({
+    owner       = string
+    repo        = string
+    provider_id = string
+  })
+  description = "GitHub Workload Identity Federation settings for backend secret sync."
+}
