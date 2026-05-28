@@ -42,7 +42,7 @@ Known gaps to finish before a production rollout:
   - DNS `k8s.tbd-htwg.de` -> GCP HTTPS LB -> GCS bucket `*-frontend-bucket`.
 
 - API:
-  - DNS `k8s.tbd-htwg.de` -> frontend load balancer -> `/api/*` backend routing.
+  - DNS `api.k8s.tbd-htwg.de` -> GKE Gateway -> HTTPRoute -> trip/social/external-info services.
   - HTTPRoute lives in the Helm chart and routes paths to services.
 
 ### Routing diagram
@@ -50,7 +50,7 @@ Known gaps to finish before a production rollout:
 ```mermaid
 graph TD
   U[User] --> FQDN[k8s.tbd-htwg.de]
-  U --> API[k8s.tbd-htwg.de]
+  U --> API[api.k8s.tbd-htwg.de]
 
   FQDN --> LB[HTTPS Load Balancer]
   LB --> BUCKET[GCS Frontend Bucket]
@@ -162,7 +162,7 @@ printf '%s' "${ghcr_config_json}" | gcloud secrets versions add tripplanning-ghc
 
 ### 4b) Let's Encrypt TLS (now wired)
 - cert-manager uses a ClusterIssuer named `letsencrypt-dns` with DNS-01 via Cloud DNS.
-- The Gateway TLS secret `api-tls` is issued for `*.k8s.tbd-htwg.de`.
+- The Gateway TLS secret `api-tls` is issued for `api.k8s.tbd-htwg.de`.
 - IAM bindings are configured in Terraform for cert-manager to manage DNS records.
 - The `tripplanning-image-url-sig` signer account is managed in Terraform and the workload SA is allowed to impersonate it for signed GCS upload URLs.
 
@@ -173,7 +173,7 @@ printf '%s' "${ghcr_config_json}" | gcloud secrets versions add tripplanning-ghc
 
 ### 6) Upload the frontend
 - Build frontend and upload to the GCS frontend bucket.
-- The LB serves it via `k8s.tbd-htwg.de`.
+- The API gateway serves it via `api.k8s.tbd-htwg.de`.
 
 ## Tenant workflow (current)
 

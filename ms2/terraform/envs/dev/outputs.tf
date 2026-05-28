@@ -73,3 +73,8 @@ output "frontend_ip" {
   description = "Frontend global IP address."
   value       = module.frontend_lb.frontend_ip
 }
+
+output "api_gateway_ip" {
+  description = "API Gateway global IP address."
+  value       = google_compute_global_address.api_gateway_ip.address
+}

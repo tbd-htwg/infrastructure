@@ -56,6 +56,7 @@ resource "google_compute_url_map" "frontend" {
   project         = var.project_id
   name            = "frontend-url-map"
   default_service = google_compute_backend_bucket.frontend.id
+  depends_on      = [google_compute_backend_service.api]
 
   path_matcher {
     name = "frontend"

@@ -34,7 +34,8 @@ kms = {
 }
 
 frontend = {
-  domain     = "k8s.tbd-htwg.de"
-  enable_cdn = false
+  domain                    = "k8s.tbd-htwg.de"
+  enable_cdn                = false
+  api_backend_neg_self_link = "https://www.googleapis.com/compute/v1/projects/PROJECT_ID/zones/ZONE/networkEndpointGroups/NEG_NAME"
   secondary_managed_ssl_certificate_name = "frontend-cert-v2"
 }

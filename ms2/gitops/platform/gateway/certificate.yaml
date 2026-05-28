@@ -6,7 +6,7 @@ metadata:
 spec:
   secretName: api-tls
   dnsNames:
-    - "*.k8s.tbd-htwg.de"
+    - "api.k8s.tbd-htwg.de"
   issuerRef:
     name: letsencrypt-dns
     kind: ClusterIssuer

@@ -175,8 +175,22 @@ module "frontend_lb" {
   network_self_link                      = module.network.network_self_link
   enable_cdn                             = var.frontend.enable_cdn
   api_backend_neg_self_link              = try(var.frontend.api_backend_neg_self_link, null)
-  api_paths                              = try(var.frontend.api_paths, ["/api/*"])
+  api_paths                              = coalesce(try(var.frontend.api_paths, null), ["/api/*"])
   secondary_managed_ssl_certificate_name = try(var.frontend.secondary_managed_ssl_certificate_name, null)
+}
+
+resource "google_compute_global_address" "api_gateway_ip" {
+  project = var.project_id
+  name    = "tripplanning-api-gateway-ip"
+}
+
+resource "google_dns_record_set" "api_gateway" {
+  project      = var.project_id
+  name         = "api.${var.frontend.domain}."
+  type         = "A"
+  ttl          = 300
+  managed_zone = module.project_bootstrap.dns_zone_name
+  rrdatas      = [google_compute_global_address.api_gateway_ip.address]
 }
 
 module "github_wif" {
