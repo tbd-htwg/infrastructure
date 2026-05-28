@@ -21,7 +21,13 @@ module "project_bootstrap" {
       name = "tripplanning-internal-secret"
     },
     {
+      name = "tripplanning-google-maps-api-key"
+    },
+    {
       name = "tripplanning-viator-api-key"
+    },
+    {
+      name = "tripplanning-ghcr-pull-dockerconfigjson"
     },
   ]
 
@@ -122,6 +128,24 @@ module "storage" {
       cors           = []
     }
   }
+}
+
+resource "google_storage_bucket_iam_member" "images_bucket_signer_viewer" {
+  bucket = module.storage.bucket_names["images"]
+  role   = "roles/storage.objectViewer"
+  member = "serviceAccount:${local.service_account_emails["image_url_sig"]}"
+}
+
+resource "google_storage_bucket_iam_member" "images_bucket_signer_creator" {
+  bucket = module.storage.bucket_names["images"]
+  role   = "roles/storage.objectCreator"
+  member = "serviceAccount:${local.service_account_emails["image_url_sig"]}"
+}
+
+resource "google_service_account_iam_member" "image_url_sig_token_creator" {
+  service_account_id = "projects/${var.project_id}/serviceAccounts/${local.service_account_emails["image_url_sig"]}"
+  role               = "roles/iam.serviceAccountTokenCreator"
+  member             = "serviceAccount:${local.service_account_emails["workload"]}"
 }
 
 module "kms" {

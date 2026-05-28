@@ -100,19 +100,25 @@ Terraform creates:
   - tenant configs
 
 ### 4) Populate secrets in GCP Secret Manager
+Create values for the project-level secrets below. Flux and External Secrets then copy them into each namespace automatically, so you do not need any per-tenant `kubectl create secret ...` steps.
+
 Create values for:
 - `tripplanning-db-password`
 - `tripplanning-jwt-secret`
 - `tripplanning-internal-secret`
+- `tripplanning-google-maps-api-key`
 - `tripplanning-viator-api-key`
+- `tripplanning-ghcr-pull-dockerconfigjson`
 
 Purpose of each secret:
 - `tripplanning-db-password`: Postgres password for the in-cluster database.
 - `tripplanning-jwt-secret`: JWT signing secret for auth tokens.
 - `tripplanning-internal-secret`: shared internal token for service-to-service trust.
+- `tripplanning-google-maps-api-key`: Places API key used by external-info-service.
 - `tripplanning-viator-api-key`: API key for external info service (Viator).
+- `tripplanning-ghcr-pull-dockerconfigjson`: Docker auth JSON for the private GHCR image pull secret.
 
-These are new secrets that you choose per project. Generate strong values on first setup.
+These are new secrets that you choose per project. Generate strong values on first setup. Terraform also creates the signer service account `tripplanning-image-url-sig@tbd-cloudappdev.iam.gserviceaccount.com`; the trip-service uses it through `GCP_IMPERSONATE_SERVICE_ACCOUNT`.
 
 Example script:
 
@@ -121,20 +127,35 @@ Example script:
 set -euo pipefail
 
 PROJECT_ID="tbd-cloudappdev"
+GHCR_USERNAME="myname"
+GHCR_TOKEN="ghp_mytoken"
+GOOGLE_MAPS_API_KEY="ADD_YOUR_GOOGLE_MAPS_API_KEY_HERE"
+VIATOR_API_KEY="ADD_YOUR_VIATOR_KEY_HERE"
 
-gcloud secrets versions add tripplanning-db-password \
+ghcr_auth="$(printf '%s:%s' "${GHCR_USERNAME}" "${GHCR_TOKEN}" | base64 | tr -d '\n')"
+ghcr_config_json="$(printf '{"auths":{"ghcr.io":{"username":"%s","password":"%s","auth":"%s"}}}' "${GHCR_USERNAME}" "${GHCR_TOKEN}" "${ghcr_auth}")"
+
+printf '%s' "$(openssl rand -base64 24 | tr -d '\n')" | gcloud secrets versions add tripplanning-db-password \
   --project "$PROJECT_ID" \
-  --data-file <(openssl rand -base64 24)
+  --data-file=-
 
-gcloud secrets versions add tripplanning-jwt-secret \
+printf '%s' "$(openssl rand -base64 48 | tr -d '\n')" | gcloud secrets versions add tripplanning-jwt-secret \
   --project "$PROJECT_ID" \
-  --data-file <(openssl rand -base64 48)
+  --data-file=-
 
-gcloud secrets versions add tripplanning-internal-secret \
+printf '%s' "$(openssl rand -base64 32 | tr -d '\n')" | gcloud secrets versions add tripplanning-internal-secret \
   --project "$PROJECT_ID" \
-  --data-file <(openssl rand -base64 32)
+  --data-file=-
 
-echo "ADD_YOUR_VIATOR_KEY_HERE" | gcloud secrets versions add tripplanning-viator-api-key \
+printf '%s' "${GOOGLE_MAPS_API_KEY}" | gcloud secrets versions add tripplanning-google-maps-api-key \
+  --project "$PROJECT_ID" \
+  --data-file=-
+
+printf '%s' "${VIATOR_API_KEY:-}" | gcloud secrets versions add tripplanning-viator-api-key \
+  --project "$PROJECT_ID" \
+  --data-file=-
+
+printf '%s' "${ghcr_config_json}" | gcloud secrets versions add tripplanning-ghcr-pull-dockerconfigjson \
   --project "$PROJECT_ID" \
   --data-file -
 ```
@@ -143,6 +164,7 @@ echo "ADD_YOUR_VIATOR_KEY_HERE" | gcloud secrets versions add tripplanning-viato
 - cert-manager uses a ClusterIssuer named `letsencrypt-dns` with DNS-01 via Cloud DNS.
 - The Gateway TLS secret `api-tls` is issued for `api.k8s.tbd-htwg.de` and `*.k8s.tbd-htwg.de`.
 - IAM bindings are configured in Terraform for cert-manager to manage DNS records.
+- The `tripplanning-image-url-sig` signer account is managed in Terraform and the workload SA is allowed to impersonate it for signed GCS upload URLs.
 
 ### 5) Deploy the application
 - Push changes to this repo.

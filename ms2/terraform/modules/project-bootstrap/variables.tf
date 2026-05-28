@@ -34,6 +34,10 @@ variable "service_accounts" {
       display_name = "platform-admin"
       description  = "Platform automation and cluster bootstrap."
     }
+    image_url_sig = {
+      display_name = "tripplanning-image-url-sig"
+      description  = "Signer service account for GCS upload URLs."
+    }
     gitops = {
       display_name = "gitops"
       description  = "FluxCD and GitOps operations."
