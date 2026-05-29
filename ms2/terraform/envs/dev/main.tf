@@ -33,6 +33,9 @@ module "project_bootstrap" {
     {
       name = "tripplanning-ghcr-pull-dockerconfigjson"
     },
+    {
+      name = "tripplanning-auth-test-bearer-token"
+    },
   ]
 
   iam_bindings = {

@@ -109,6 +109,7 @@ Create values for:
 - `tripplanning-google-maps-api-key`
 - `tripplanning-viator-api-key`
 - `tripplanning-ghcr-pull-dockerconfigjson`
+- `tripplanning-auth-test-bearer-token` (dev/load-test only — enables Locust/seeder `X-Act-As-User` impersonation; **never on production**)
 
 Purpose of each secret:
 - `tripplanning-db-password`: Postgres password for the in-cluster database.
@@ -117,6 +118,7 @@ Purpose of each secret:
 - `tripplanning-google-maps-api-key`: Places API key used by external-info-service.
 - `tripplanning-viator-api-key`: API key for external info service (Viator).
 - `tripplanning-ghcr-pull-dockerconfigjson`: Docker auth JSON for the private GHCR image pull secret.
+- `tripplanning-auth-test-bearer-token`: Shared test bearer for `TRIPPLANNING_AUTH_TEST_BEARER_TOKEN` on trip-service (Locust `PERF_TEST_BEARER` must match).
 
 These are new secrets that you choose per project. Generate strong values on first setup. Terraform also creates the signer service account `tripplanning-image-url-sig@tbd-cloudappdev.iam.gserviceaccount.com`; the trip-service uses it through `GCP_IMPERSONATE_SERVICE_ACCOUNT`.
 
@@ -170,6 +172,62 @@ printf '%s' "${ghcr_config_json}" | gcloud secrets versions add tripplanning-ghc
 - Push changes to this repo.
 - Flux applies HelmRelease + values config.
 - Services and backing stores come up in `tripplanning-free`.
+
+**Step-by-step checklist (HPA, test bearer, Flux reconcile):** [gke-dev-hpa-and-test-bearer-checklist.md](gke-dev-hpa-and-test-bearer-checklist.md)
+
+**After changing GitOps (values, ExternalSecrets, chart):** reconcile Flux manually (requires `flux` CLI and kubectl access to the dev cluster):
+
+```bash
+gcloud container clusters get-credentials tripplanning-gke \
+  --region europe-west1 --project tbd-cloudappdev
+
+flux reconcile source git flux-system -n flux-system
+flux reconcile kustomization tenants -n flux-system
+flux reconcile helmrelease tripplanning-free -n tripplanning-free
+```
+
+Order matters: Git source → tenant kustomization (ConfigMap, ExternalSecrets) → Helm release (Deployments, HPA).
+
+**Scaling:** edit [gitops/tenants/free/shared/values-configmap.yaml](../gitops/tenants/free/shared/values-configmap.yaml), then push and run the commands above.
+
+- **Fixed replicas** (HPA off): set `services.trip.replicas`, `services.social.replicas`, etc.
+- **HPA** (CPU-based): set `autoscaling.enabled: true`, `minReplicas`, `maxReplicas`, `targetCPUUtilizationPercentage`. HPAs exist for trip, social, and external-info in the chart.
+
+Example overlay fragment:
+
+```yaml
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 75
+services:
+  trip:
+    resources:
+      requests:
+        cpu: "500m"
+        memory: "768Mi"
+```
+
+**Test bearer (Locust / seeder):** set a strong random value in Secret Manager, then let External Secrets sync into `trip-service-secrets` as `TRIPPLANNING_AUTH_TEST_BEARER_TOKEN`:
+
+```bash
+PROJECT_ID="tbd-cloudappdev"
+printf '%s' "$(openssl rand -base64 32 | tr -d '\n')" | gcloud secrets versions add tripplanning-auth-test-bearer-token \
+  --project "$PROJECT_ID" --data-file=-
+```
+
+Or add GitHub secret `TRIPPLANNING_AUTH_TEST_BEARER_TOKEN` on backend repo environment **`gke-dev`** and run workflow **Sync GKE Secret Manager secrets**.
+
+Use the same value locally as `PERF_TEST_BEARER` in [performance/.env](../../performance/.env). Requests use `Authorization: Bearer <token>` and `X-Act-As-User: <userId>`.
+
+Force ExternalSecret refresh after updating Secret Manager:
+
+```bash
+kubectl annotate externalsecret trip-service-secrets -n tripplanning-free \
+  force-sync=$(date +%s) --overwrite
+kubectl rollout restart deployment/trip-service -n tripplanning-free
+```
 
 ### 6) Upload the frontend
 - Build frontend and upload to the GCS frontend bucket.
