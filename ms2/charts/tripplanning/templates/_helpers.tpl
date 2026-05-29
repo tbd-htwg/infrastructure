@@ -60,10 +60,26 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end -}}
 {{- end -}}
 
+{{- define "tripplanning.socialAutoscalingMaxReplicas" -}}
+{{- if .Values.autoscaling.social.maxReplicas -}}
+{{ .Values.autoscaling.social.maxReplicas }}
+{{- else -}}
+{{ .Values.autoscaling.maxReplicas }}
+{{- end -}}
+{{- end -}}
+
 {{- define "tripplanning.externalInfoAutoscalingMinReplicas" -}}
 {{- if .Values.autoscaling.externalInfo.minReplicas -}}
 {{ .Values.autoscaling.externalInfo.minReplicas }}
 {{- else -}}
 {{ .Values.autoscaling.minReplicas }}
+{{- end -}}
+{{- end -}}
+
+{{- define "tripplanning.externalInfoAutoscalingMaxReplicas" -}}
+{{- if .Values.autoscaling.externalInfo.maxReplicas -}}
+{{ .Values.autoscaling.externalInfo.maxReplicas }}
+{{- else -}}
+{{ .Values.autoscaling.maxReplicas }}
 {{- end -}}
 {{- end -}}

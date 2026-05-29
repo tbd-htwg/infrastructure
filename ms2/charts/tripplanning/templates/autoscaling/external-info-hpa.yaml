@@ -12,7 +12,7 @@ spec:
     kind: Deployment
     name: external-info-service
   minReplicas: {{ include "tripplanning.externalInfoAutoscalingMinReplicas" . }}
-  maxReplicas: {{ .Values.autoscaling.maxReplicas }}
+  maxReplicas: {{ include "tripplanning.externalInfoAutoscalingMaxReplicas" . }}
   behavior:
     scaleUp:
       stabilizationWindowSeconds: {{ .Values.autoscaling.scaleUpStabilizationSeconds }}

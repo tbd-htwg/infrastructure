@@ -12,6 +12,7 @@ data:
       apiRouter:
         replicas: 2
       trip:
+        replicas: 1
         image:
           repository: ghcr.io/tbd-htwg/backend/tripplanning-trip-service
           tag: latest
@@ -21,11 +22,11 @@ data:
             cpu: "750m"
             memory: "768Mi"
           limits:
-            cpu: "2000m"
+            cpu: "2500m"
             memory: "1536Mi"
         terminationGracePeriodSeconds: 60
         rollingUpdate:
-          maxSurge: 1
+          maxSurge: 0
           maxUnavailable: 1
         bootstrap:
           waitForValkey: true
@@ -33,24 +34,27 @@ data:
         env:
           SPRING_AUTOCONFIGURE_EXCLUDE: "org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchRestClientAutoConfiguration"
           SPRING_DATA_REDIS_HOST: "valkey"
-          JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75.0"
+          JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError"
           TRIPPLANNING_CACHE_REDIS_TTL_SECONDS: "30"
       social:
+        replicas: 1
         image:
           repository: ghcr.io/tbd-htwg/backend/tripplanning-social-service
           tag: latest
           pullPolicy: Always
         resources:
           requests:
-            cpu: "500m"
+            cpu: "250m"
             memory: "384Mi"
           limits:
             cpu: "1000m"
             memory: "768Mi"
         env:
           SPRING_DATA_REDIS_HOST: "valkey"
+          JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError"
           TRIPPLANNING_CACHE_REDIS_TTL_SECONDS: "30"
       externalInfo:
+        replicas: 1
         image:
           repository: ghcr.io/tbd-htwg/backend/tripplanning-external-info-service
           tag: latest
@@ -60,12 +64,13 @@ data:
             cpu: "200m"
             memory: "384Mi"
           limits:
-            cpu: "500m"
+            cpu: "750m"
             memory: "768Mi"
         bootstrap:
           waitForValkey: true
         env:
           SPRING_DATA_REDIS_HOST: "valkey"
+          JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError"
     backingServices:
       postgres:
         auth:
@@ -79,7 +84,7 @@ data:
             cpu: "500m"
             memory: "1Gi"
           limits:
-            cpu: "6000m"
+            cpu: "4000m"
             memory: "2Gi"
         extraConfigArgs:
           - max_connections=150
@@ -102,7 +107,7 @@ data:
         storageSize: 1Gi
         resources:
           requests:
-            cpu: "750m"
+            cpu: "500m"
             memory: "1536Mi"
           limits:
             cpu: "1500m"
@@ -117,9 +122,12 @@ data:
       scaleDownStabilizationSeconds: 300
       trip:
         minReplicas: 3
-        maxReplicas: 5
-        targetMemoryUtilizationPercentage: 75
+        maxReplicas: 8
+        targetCPUUtilizationPercentage: 70
+        targetMemoryUtilizationPercentage: 0
       social:
-        minReplicas: 2
+        minReplicas: 1
+        maxReplicas: 2
       externalInfo:
-        minReplicas: 2
+        minReplicas: 1
+        maxReplicas: 2
