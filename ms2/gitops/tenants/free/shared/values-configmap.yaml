@@ -127,7 +127,7 @@ data:
         targetMemoryUtilizationPercentage: 0
       social:
         minReplicas: 1
-        maxReplicas: 1
+        maxReplicas: 4
       externalInfo:
         minReplicas: 1
-        maxReplicas: 2
+        maxReplicas: 4
