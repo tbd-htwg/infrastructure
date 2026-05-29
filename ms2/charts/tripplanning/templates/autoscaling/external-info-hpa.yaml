@@ -11,7 +11,7 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: external-info-service
-  minReplicas: {{ .Values.autoscaling.minReplicas }}
+  minReplicas: {{ include "tripplanning.externalInfoAutoscalingMinReplicas" . }}
   maxReplicas: {{ .Values.autoscaling.maxReplicas }}
   behavior:
     scaleUp:

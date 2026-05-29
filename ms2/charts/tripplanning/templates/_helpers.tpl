@@ -59,3 +59,11 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{ .Values.autoscaling.minReplicas }}
 {{- end -}}
 {{- end -}}
+
+{{- define "tripplanning.externalInfoAutoscalingMinReplicas" -}}
+{{- if .Values.autoscaling.externalInfo.minReplicas -}}
+{{ .Values.autoscaling.externalInfo.minReplicas }}
+{{- else -}}
+{{ .Values.autoscaling.minReplicas }}
+{{- end -}}
+{{- end -}}

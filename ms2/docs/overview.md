@@ -120,7 +120,7 @@ Purpose of each secret:
 - `tripplanning-google-maps-api-key`: Places API key used by external-info-service.
 - `tripplanning-viator-api-key`: API key for external info service (Viator).
 - `tripplanning-ghcr-pull-dockerconfigjson`: Docker auth JSON for the private GHCR image pull secret.
-- `tripplanning-auth-test-bearer-token`: Shared test bearer for `TRIPPLANNING_AUTH_TEST_BEARER_TOKEN` on trip-service (Locust `PERF_TEST_BEARER` must match).
+- `tripplanning-auth-test-bearer-token`: Shared test bearer for `TRIPPLANNING_AUTH_TEST_BEARER_TOKEN` on trip-, social-, and external-info services (Locust `PERF_TEST_BEARER` must match).
 
 These are new secrets that you choose per project. Generate strong values on first setup. Terraform also creates the signer service account `tripplanning-image-url-sig@tbd-cloudappdev.iam.gserviceaccount.com`; the trip-service uses it through `GCP_IMPERSONATE_SERVICE_ACCOUNT`.
 

@@ -185,6 +185,8 @@ autoscaling:
     targetMemoryUtilizationPercentage: null
   social:
     minReplicas: null
+  externalInfo:
+    minReplicas: null
 
 backingServices:
   postgres:

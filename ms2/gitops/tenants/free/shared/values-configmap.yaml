@@ -57,7 +57,7 @@ data:
           pullPolicy: Always
         resources:
           requests:
-            cpu: "150m"
+            cpu: "200m"
             memory: "384Mi"
           limits:
             cpu: "500m"
@@ -79,7 +79,7 @@ data:
             cpu: "500m"
             memory: "1Gi"
           limits:
-            cpu: "4000m"
+            cpu: "6000m"
             memory: "2Gi"
         extraConfigArgs:
           - max_connections=150
@@ -117,6 +117,9 @@ data:
       scaleDownStabilizationSeconds: 300
       trip:
         minReplicas: 3
+        maxReplicas: 5
         targetMemoryUtilizationPercentage: 75
       social:
+        minReplicas: 2
+      externalInfo:
         minReplicas: 2
