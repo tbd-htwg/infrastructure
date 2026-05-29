@@ -210,3 +210,26 @@ backingServices:
       limits:
         cpu: "1000m"
         memory: "2Gi"
+
+seedJob:
+  enabled: false
+  backoffLimit: 1
+  ttlSecondsAfterFinished: 86400
+  wipeBeforeSeed: "true"
+  manifestPath: /tmp/perf_seed_manifest.json
+  manifestCopyTo: ""
+  waitForFirestoreEmulator: false
+  firestoreHostPort: ""
+  googleCloudProject: "tbd-cloudappdev"
+  firestoreDatabaseId: "tbd-firestore"
+  image:
+    repository: ghcr.io/tbd-htwg/backend/tripplanning-seed-job
+    tag: latest
+    pullPolicy: Always
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "768Mi"
+    limits:
+      cpu: "2000m"
+      memory: "1536Mi"
