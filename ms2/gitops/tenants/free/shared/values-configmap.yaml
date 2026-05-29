@@ -23,6 +23,7 @@ data:
             memory: "1Gi"
         env:
           SPRING_AUTOCONFIGURE_EXCLUDE: "org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchRestClientAutoConfiguration"
+          SPRING_DATA_REDIS_HOST: "valkey"
       social:
         image:
           repository: ghcr.io/tbd-htwg/backend/tripplanning-social-service
@@ -35,6 +36,8 @@ data:
           limits:
             cpu: "750m"
             memory: "768Mi"
+        env:
+          SPRING_DATA_REDIS_HOST: "valkey"
       externalInfo:
         image:
           repository: ghcr.io/tbd-htwg/backend/tripplanning-external-info-service
@@ -47,6 +50,8 @@ data:
           limits:
             cpu: "500m"
             memory: "512Mi"
+        env:
+          SPRING_DATA_REDIS_HOST: "valkey"
     backingServices:
       postgres:
         auth:
@@ -62,6 +67,16 @@ data:
           limits:
             cpu: "1000m"
             memory: "1Gi"
+      valkey:
+        serviceName: valkey
+        image: valkey/valkey:8-alpine
+        resources:
+          requests:
+            cpu: "50m"
+            memory: "128Mi"
+          limits:
+            cpu: "150m"
+            memory: "256Mi"
       elasticsearch:
         image: opensearchproject/opensearch:2.19.0
         javaOpts: "-Xms512m -Xmx512m"

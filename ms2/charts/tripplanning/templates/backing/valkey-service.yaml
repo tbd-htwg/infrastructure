@@ -1,14 +1,14 @@
-{{- if .Values.backingServices.redis.enabled }}
+{{- if .Values.backingServices.valkey.enabled }}
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ .Values.backingServices.redis.serviceName }}
+  name: {{ .Values.backingServices.valkey.serviceName }}
   labels:
     {{- include "tripplanning.labels" . | nindent 4 }}
-    app.kubernetes.io/component: redis
+    app.kubernetes.io/component: valkey
 spec:
   selector:
-    app.kubernetes.io/component: redis
+    app.kubernetes.io/component: valkey
     {{- include "tripplanning.selectorLabels" . | nindent 4 }}
   ports:
     - port: 6379
