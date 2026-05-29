@@ -41,10 +41,10 @@ data:
           pullPolicy: Always
         resources:
           requests:
-            cpu: "200m"
+            cpu: "500m"
             memory: "384Mi"
           limits:
-            cpu: "750m"
+            cpu: "1000m"
             memory: "768Mi"
         env:
           SPRING_DATA_REDIS_HOST: "valkey"
@@ -75,8 +75,12 @@ data:
             cpu: "500m"
             memory: "1Gi"
           limits:
-            cpu: "2000m"
+            cpu: "4000m"
             memory: "2Gi"
+        extraConfigArgs:
+          - max_connections=150
+          - shared_buffers=256MB
+          - effective_cache_size=768MB
       valkey:
         serviceName: valkey
         image: valkey/valkey:8-alpine
@@ -105,7 +109,7 @@ data:
       maxReplicas: 8
       targetCPUUtilizationPercentage: 80
       targetMemoryUtilizationPercentage: 75
-      scaleUpStabilizationSeconds: 60
+      scaleUpStabilizationSeconds: 30
       scaleDownStabilizationSeconds: 300
       trip:
         minReplicas: 2

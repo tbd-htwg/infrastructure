@@ -36,6 +36,14 @@ spec:
                   key: {{ .Values.backingServices.postgres.auth.passwordKey | quote }}
             - name: PGDATA
               value: {{ .Values.backingServices.postgres.dataDir | quote }}
+          {{- with .Values.backingServices.postgres.extraConfigArgs }}
+          args:
+            - postgres
+            {{- range . }}
+            - -c
+            - {{ . | quote }}
+            {{- end }}
+          {{- end }}
           resources:
             requests:
               cpu: {{ .Values.backingServices.postgres.resources.requests.cpu }}
