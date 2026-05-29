@@ -16,6 +16,11 @@ spec:
   behavior:
     scaleUp:
       stabilizationWindowSeconds: {{ .Values.autoscaling.scaleUpStabilizationSeconds }}
+      policies:
+        - type: Pods
+          value: 1
+          periodSeconds: 60
+      selectPolicy: Max
     scaleDown:
       stabilizationWindowSeconds: {{ .Values.autoscaling.scaleDownStabilizationSeconds }}
   metrics:

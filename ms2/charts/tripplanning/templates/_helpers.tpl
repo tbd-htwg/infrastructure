@@ -69,7 +69,7 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end -}}
 
 {{- define "tripplanning.tripAutoscalingTargetMemory" -}}
-{{- if .Values.autoscaling.trip.targetMemoryUtilizationPercentage -}}
+{{- if hasKey .Values.autoscaling.trip "targetMemoryUtilizationPercentage" -}}
 {{ .Values.autoscaling.trip.targetMemoryUtilizationPercentage }}
 {{- else -}}
 {{ .Values.autoscaling.targetMemoryUtilizationPercentage }}
