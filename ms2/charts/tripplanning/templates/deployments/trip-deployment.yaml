@@ -6,7 +6,7 @@ metadata:
     {{- include "tripplanning.labels" . | nindent 4 }}
     app.kubernetes.io/component: trip-service
 spec:
-  replicas: {{ .Values.services.trip.replicas }}
+  replicas: {{ include "tripplanning.tripReplicas" . }}
   strategy:
     type: RollingUpdate
     rollingUpdate:

@@ -12,7 +12,7 @@ data:
       apiRouter:
         replicas: 2
       trip:
-        replicas: 1
+        replicas: 2
         image:
           repository: ghcr.io/tbd-htwg/backend/tripplanning-trip-service
           tag: latest
@@ -44,8 +44,8 @@ data:
           pullPolicy: Always
         resources:
           requests:
-            cpu: "250m"
-            memory: "384Mi"
+            cpu: "500m"
+            memory: "512Mi"
           limits:
             cpu: "1000m"
             memory: "768Mi"
@@ -61,10 +61,10 @@ data:
           pullPolicy: Always
         resources:
           requests:
-            cpu: "200m"
-            memory: "384Mi"
+            cpu: "500m"
+            memory: "512Mi"
           limits:
-            cpu: "750m"
+            cpu: "1000m"
             memory: "768Mi"
         bootstrap:
           waitForValkey: true
@@ -118,16 +118,16 @@ data:
       maxReplicas: 8
       targetCPUUtilizationPercentage: 80
       targetMemoryUtilizationPercentage: 75
-      scaleUpStabilizationSeconds: 30
+      scaleUpStabilizationSeconds: 60
       scaleDownStabilizationSeconds: 300
       trip:
-        minReplicas: 3
+        minReplicas: 2
         maxReplicas: 8
         targetCPUUtilizationPercentage: 70
         targetMemoryUtilizationPercentage: 0
       social:
         minReplicas: 1
-        maxReplicas: 2
+        maxReplicas: 8
       externalInfo:
         minReplicas: 1
-        maxReplicas: 2
+        maxReplicas: 8

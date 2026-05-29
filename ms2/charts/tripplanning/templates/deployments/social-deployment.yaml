@@ -6,7 +6,7 @@ metadata:
     {{- include "tripplanning.labels" . | nindent 4 }}
     app.kubernetes.io/component: social-service
 spec:
-  replicas: {{ .Values.services.social.replicas }}
+  replicas: {{ include "tripplanning.socialReplicas" . }}
   selector:
     matchLabels:
       app.kubernetes.io/component: social-service

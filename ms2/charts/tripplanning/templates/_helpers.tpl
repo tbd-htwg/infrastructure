@@ -20,6 +20,30 @@ app.kubernetes.io/managed-by: Helm
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end -}}
 
+{{- define "tripplanning.tripReplicas" -}}
+{{- if .Values.autoscaling.enabled -}}
+{{ include "tripplanning.tripAutoscalingMinReplicas" . }}
+{{- else -}}
+{{ .Values.services.trip.replicas }}
+{{- end -}}
+{{- end -}}
+
+{{- define "tripplanning.socialReplicas" -}}
+{{- if .Values.autoscaling.enabled -}}
+{{ include "tripplanning.socialAutoscalingMinReplicas" . }}
+{{- else -}}
+{{ .Values.services.social.replicas }}
+{{- end -}}
+{{- end -}}
+
+{{- define "tripplanning.externalInfoReplicas" -}}
+{{- if .Values.autoscaling.enabled -}}
+{{ include "tripplanning.externalInfoAutoscalingMinReplicas" . }}
+{{- else -}}
+{{ .Values.services.externalInfo.replicas }}
+{{- end -}}
+{{- end -}}
+
 {{- define "tripplanning.tripAutoscalingMinReplicas" -}}
 {{- if .Values.autoscaling.trip.minReplicas -}}
 {{ .Values.autoscaling.trip.minReplicas }}
