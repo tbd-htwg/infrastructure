@@ -1,3 +1,9 @@
+locals {
+  api_backend_neg_self_links = length(var.api_backend_neg_self_links) > 0 ? var.api_backend_neg_self_links : (
+    var.api_backend_neg_self_link == null ? [] : [var.api_backend_neg_self_link]
+  )
+}
+
 resource "google_compute_global_address" "frontend_ip" {
   project = var.project_id
   name    = "frontend-lb-ip"
@@ -11,7 +17,7 @@ resource "google_compute_backend_bucket" "frontend" {
 }
 
 resource "google_compute_health_check" "api" {
-  count   = var.api_backend_neg_self_link == null ? 0 : 1
+  count   = length(local.api_backend_neg_self_links) == 0 ? 0 : 1
   project = var.project_id
   name    = "api-backend-hc"
 
@@ -22,7 +28,7 @@ resource "google_compute_health_check" "api" {
 }
 
 resource "google_compute_firewall" "api_health_checks" {
-  count   = var.api_backend_neg_self_link == null ? 0 : 1
+  count   = length(local.api_backend_neg_self_links) == 0 ? 0 : 1
   project = var.project_id
   name    = "allow-api-backend-health-checks"
   network = var.network_self_link
@@ -32,21 +38,24 @@ resource "google_compute_firewall" "api_health_checks" {
 
   allow {
     protocol = "tcp"
-    ports    = ["8080", "8081", "8082"]
+    ports    = ["8080", "8081", "8082", "8088"]
   }
 }
 
 resource "google_compute_backend_service" "api" {
-  count       = var.api_backend_neg_self_link == null ? 0 : 1
+  count       = length(local.api_backend_neg_self_links) == 0 ? 0 : 1
   project     = var.project_id
   name        = "api-backend-service"
   protocol    = "HTTP"
   timeout_sec = 30
 
-  backend {
-    group                 = var.api_backend_neg_self_link
-    balancing_mode        = "RATE"
-    max_rate_per_endpoint = 100
+  dynamic "backend" {
+    for_each = local.api_backend_neg_self_links
+    content {
+      group                 = backend.value
+      balancing_mode        = "RATE"
+      max_rate_per_endpoint = 100
+    }
   }
 
   health_checks = [google_compute_health_check.api[0].self_link]
@@ -79,7 +88,7 @@ resource "google_compute_url_map" "frontend" {
     }
 
     dynamic "path_rule" {
-      for_each = var.api_backend_neg_self_link == null ? [] : [1]
+      for_each = length(local.api_backend_neg_self_links) == 0 ? [] : [1]
       content {
         paths   = var.api_paths
         service = google_compute_backend_service.api[0].id

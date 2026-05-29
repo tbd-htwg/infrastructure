@@ -42,7 +42,13 @@ firestore = {
 frontend = {
   domain                                 = "k8s.tbd-htwg.de"
   enable_cdn                             = false
-  api_backend_neg_self_link              = "https://www.googleapis.com/compute/v1/projects/tbd-cloudappdev/zones/europe-west1-b/networkEndpointGroups/k8s1-5a871136-tripplanning-free-trip-service-8080-76300b73"
+  # api-router NEGs (both zones): routes /api/* to trip, social, and external-info.
+  api_backend_neg_self_links = [
+    "https://www.googleapis.com/compute/v1/projects/tbd-cloudappdev/zones/europe-west1-b/networkEndpointGroups/k8s1-5a871136-tripplanning-free-api-router-8088-dad08f08",
+    "https://www.googleapis.com/compute/v1/projects/tbd-cloudappdev/zones/europe-west1-d/networkEndpointGroups/k8s1-5a871136-tripplanning-free-api-router-8088-dad08f08",
+  ]
+  api_health_check_path                  = "/healthz"
+  api_health_check_port                  = 8088
   secondary_managed_ssl_certificate_name = "frontend-cert-v2"
 }
 

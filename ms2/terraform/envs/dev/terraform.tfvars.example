@@ -42,6 +42,12 @@ firestore = {
 frontend = {
   domain                    = "k8s.tbd-htwg.de"
   enable_cdn                = false
-  api_backend_neg_self_link = "https://www.googleapis.com/compute/v1/projects/PROJECT_ID/zones/ZONE/networkEndpointGroups/NEG_NAME"
+  # List NEGs: gcloud compute network-endpoint-groups list --filter="name~tripplanning-free-api-router"
+  api_backend_neg_self_links = [
+    "https://www.googleapis.com/compute/v1/projects/PROJECT_ID/zones/ZONE_A/networkEndpointGroups/k8s1-...-api-router-8088-...",
+    "https://www.googleapis.com/compute/v1/projects/PROJECT_ID/zones/ZONE_B/networkEndpointGroups/k8s1-...-api-router-8088-...",
+  ]
+  api_health_check_path                  = "/healthz"
+  api_health_check_port                  = 8088
   secondary_managed_ssl_certificate_name = "frontend-cert-v2"
 }

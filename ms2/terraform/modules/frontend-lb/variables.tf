@@ -29,9 +29,15 @@ variable "enable_cdn" {
   default     = false
 }
 
+variable "api_backend_neg_self_links" {
+  type        = list(string)
+  description = "Optional NEG self links for the API backend (one per zone where api-router pods may run)."
+  default     = []
+}
+
 variable "api_backend_neg_self_link" {
   type        = string
-  description = "Optional NEG self link for the API backend."
+  description = "Deprecated: single NEG self link. Use api_backend_neg_self_links instead."
   default     = null
 }
 

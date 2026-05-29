@@ -94,7 +94,10 @@ variable "frontend" {
     domain                                 = string
     enable_cdn                             = bool
     api_backend_neg_self_link              = optional(string)
+    api_backend_neg_self_links             = optional(list(string))
     api_paths                              = optional(list(string))
+    api_health_check_path                  = optional(string)
+    api_health_check_port                  = optional(number)
     secondary_managed_ssl_certificate_name = optional(string)
   })
   description = "Frontend bucket + HTTPS load balancer settings."

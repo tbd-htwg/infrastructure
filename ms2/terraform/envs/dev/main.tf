@@ -207,7 +207,10 @@ module "frontend_lb" {
   network_self_link                      = module.network.network_self_link
   enable_cdn                             = var.frontend.enable_cdn
   api_backend_neg_self_link              = try(var.frontend.api_backend_neg_self_link, null)
+  api_backend_neg_self_links             = coalesce(try(var.frontend.api_backend_neg_self_links, null), [])
   api_paths                              = coalesce(try(var.frontend.api_paths, null), ["/api/*"])
+  api_health_check_path                  = coalesce(try(var.frontend.api_health_check_path, null), "/actuator/health/readiness")
+  api_health_check_port                  = coalesce(try(var.frontend.api_health_check_port, null), 8080)
   secondary_managed_ssl_certificate_name = try(var.frontend.secondary_managed_ssl_certificate_name, null)
 }
 

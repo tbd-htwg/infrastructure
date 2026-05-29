@@ -215,6 +215,7 @@ seedJob:
   enabled: false
   backoffLimit: 1
   ttlSecondsAfterFinished: 86400
+  serviceAccountName: default
   wipeBeforeSeed: "true"
   manifestPath: /tmp/perf_seed_manifest.json
   manifestCopyTo: ""

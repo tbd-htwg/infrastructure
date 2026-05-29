@@ -16,6 +16,7 @@ spec:
         {{- include "tripplanning.selectorLabels" . | nindent 8 }}
     spec:
       restartPolicy: Never
+      serviceAccountName: {{ .Values.seedJob.serviceAccountName | default "default" }}
       {{- if .Values.global.imagePullSecrets }}
       imagePullSecrets:
       {{- range .Values.global.imagePullSecrets }}
@@ -74,6 +75,8 @@ spec:
               value: {{ .Values.seedJob.googleCloudProject | quote }}
             - name: GCP_FIRESTORE_DATABASE_ID
               value: {{ .Values.seedJob.firestoreDatabaseId | quote }}
+            - name: SPRING_CLOUD_GCP_FIRESTORE_EMULATOR_ENABLED
+              value: "false"
             {{- if .Values.seedJob.waitForFirestoreEmulator }}
             - name: SPRING_CLOUD_GCP_FIRESTORE_EMULATOR_ENABLED
               value: "true"

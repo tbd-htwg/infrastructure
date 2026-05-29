@@ -40,10 +40,12 @@ Known gaps to finish before a production rollout:
 
 - Frontend:
   - DNS `k8s.tbd-htwg.de` -> GCP HTTPS LB -> GCS bucket `*-frontend-bucket`.
+  - The same LB routes `/api/*` to the **api-router** NEG (trip, social, external-info paths).
 
-- API:
+- API (direct / tooling):
   - DNS `api.k8s.tbd-htwg.de` -> GKE Gateway -> HTTPRoute -> trip/social/external-info services.
   - HTTPRoute lives in the Helm chart and routes paths to services.
+  - Browser clients should **not** call this host; use same-origin `/api/v2` on `k8s.tbd-htwg.de` instead.
 
 ### Routing diagram
 
@@ -230,8 +232,8 @@ kubectl rollout restart deployment/trip-service -n tripplanning-free
 ```
 
 ### 6) Upload the frontend
-- Build frontend and upload to the GCS frontend bucket.
-- The API gateway serves it via `api.k8s.tbd-htwg.de`.
+- Build frontend with **empty** `VITE_API_BASE_URL` (same-origin `/api/v2`) and upload to the GCS frontend bucket.
+- The frontend HTTPS LB on `k8s.tbd-htwg.de` serves the SPA and proxies `/api/*` to api-router.
 
 ## Tenant workflow (current)
 
