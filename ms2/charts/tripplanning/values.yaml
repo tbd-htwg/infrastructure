@@ -35,6 +35,10 @@ services:
       pullPolicy: Always
     port: 8080
     replicas: 1
+    terminationGracePeriodSeconds: 30
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
     resources:
       requests:
         cpu: "300m"
@@ -64,6 +68,9 @@ services:
       - trip-service-secrets
     livenessPath: /actuator/health/liveness
     readinessPath: /actuator/health/readiness
+    bootstrap:
+      waitForValkey: false
+      waitForSearch: false
     neg:
       enabled: true
 
@@ -95,6 +102,8 @@ services:
       - social-service-secrets
     livenessPath: /actuator/health/liveness
     readinessPath: /actuator/health/readiness
+    bootstrap:
+      waitForValkey: false
 
   externalInfo:
     name: external-info-service
@@ -118,7 +127,10 @@ services:
       SPRING_DATA_REDIS_PORT: "6379"
     secretRefs:
       - external-info-service-secrets
-    readinessPath: /actuator/health
+    livenessPath: /actuator/health/liveness
+    readinessPath: /actuator/health/readiness
+    bootstrap:
+      waitForValkey: false
 
 routes:
   - path: /api/v2/comments
@@ -163,6 +175,14 @@ autoscaling:
   minReplicas: 1
   maxReplicas: 3
   targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 0
+  scaleUpStabilizationSeconds: 60
+  scaleDownStabilizationSeconds: 300
+  trip:
+    minReplicas: null
+    maxReplicas: null
+    targetCPUUtilizationPercentage: null
+    targetMemoryUtilizationPercentage: null
 
 backingServices:
   postgres:

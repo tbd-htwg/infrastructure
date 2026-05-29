@@ -11,13 +11,27 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: trip-service
-  minReplicas: {{ .Values.autoscaling.minReplicas }}
-  maxReplicas: {{ .Values.autoscaling.maxReplicas }}
+  minReplicas: {{ include "tripplanning.tripAutoscalingMinReplicas" . }}
+  maxReplicas: {{ include "tripplanning.tripAutoscalingMaxReplicas" . }}
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: {{ .Values.autoscaling.scaleUpStabilizationSeconds }}
+    scaleDown:
+      stabilizationWindowSeconds: {{ .Values.autoscaling.scaleDownStabilizationSeconds }}
   metrics:
     - type: Resource
       resource:
         name: cpu
         target:
           type: Utilization
-          averageUtilization: {{ .Values.autoscaling.targetCPUUtilizationPercentage }}
+          averageUtilization: {{ include "tripplanning.tripAutoscalingTargetCPU" . }}
+{{- $memTarget := include "tripplanning.tripAutoscalingTargetMemory" . | int }}
+{{- if gt $memTarget 0 }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ $memTarget }}
+{{- end }}
 {{- end }}

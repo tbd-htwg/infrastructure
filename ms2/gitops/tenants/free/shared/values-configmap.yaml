@@ -9,6 +9,8 @@ data:
       imagePullSecrets:
         - ghcr-pull
     services:
+      apiRouter:
+        replicas: 2
       trip:
         image:
           repository: ghcr.io/tbd-htwg/backend/tripplanning-trip-service
@@ -16,14 +18,22 @@ data:
           pullPolicy: Always
         resources:
           requests:
-            cpu: "300m"
-            memory: "512Mi"
+            cpu: "750m"
+            memory: "768Mi"
           limits:
-            cpu: "1000m"
-            memory: "1Gi"
+            cpu: "2000m"
+            memory: "1536Mi"
+        terminationGracePeriodSeconds: 60
+        rollingUpdate:
+          maxSurge: 1
+          maxUnavailable: 1
+        bootstrap:
+          waitForValkey: true
+          waitForSearch: true
         env:
           SPRING_AUTOCONFIGURE_EXCLUDE: "org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchRestClientAutoConfiguration"
           SPRING_DATA_REDIS_HOST: "valkey"
+          JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75.0"
       social:
         image:
           repository: ghcr.io/tbd-htwg/backend/tripplanning-social-service
@@ -46,10 +56,10 @@ data:
         resources:
           requests:
             cpu: "150m"
-            memory: "256Mi"
+            memory: "384Mi"
           limits:
             cpu: "500m"
-            memory: "512Mi"
+            memory: "768Mi"
         env:
           SPRING_DATA_REDIS_HOST: "valkey"
     backingServices:
@@ -62,35 +72,41 @@ data:
         storageSize: 1Gi
         resources:
           requests:
-            cpu: "250m"
-            memory: "512Mi"
-          limits:
-            cpu: "1000m"
+            cpu: "500m"
             memory: "1Gi"
+          limits:
+            cpu: "2000m"
+            memory: "2Gi"
       valkey:
         serviceName: valkey
         image: valkey/valkey:8-alpine
         resources:
           requests:
             cpu: "50m"
-            memory: "128Mi"
-          limits:
-            cpu: "150m"
             memory: "256Mi"
+          limits:
+            cpu: "250m"
+            memory: "512Mi"
       elasticsearch:
         image: opensearchproject/opensearch:2.19.0
-        javaOpts: "-Xms512m -Xmx512m"
+        javaOpts: "-Xms768m -Xmx768m"
         storageClassName: "standard-hdd-wffc"
         storageSize: 1Gi
         resources:
           requests:
-            cpu: "500m"
-            memory: "1Gi"
+            cpu: "750m"
+            memory: "1536Mi"
           limits:
-            cpu: "1000m"
+            cpu: "1500m"
             memory: "2Gi"
     autoscaling:
       enabled: true
       minReplicas: 1
       maxReplicas: 8
       targetCPUUtilizationPercentage: 80
+      targetMemoryUtilizationPercentage: 75
+      scaleUpStabilizationSeconds: 60
+      scaleDownStabilizationSeconds: 300
+      trip:
+        minReplicas: 2
+        targetMemoryUtilizationPercentage: 75

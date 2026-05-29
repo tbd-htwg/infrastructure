@@ -42,6 +42,12 @@ spec:
               port: {{ .Values.services.externalInfo.port }}
             initialDelaySeconds: 15
             periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.services.externalInfo.livenessPath }}
+              port: {{ .Values.services.externalInfo.port }}
+            initialDelaySeconds: 30
+            periodSeconds: 20
           resources:
             requests:
               cpu: {{ .Values.services.externalInfo.resources.requests.cpu }}

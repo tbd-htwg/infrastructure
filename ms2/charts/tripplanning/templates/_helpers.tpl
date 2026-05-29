@@ -19,3 +19,35 @@ app.kubernetes.io/managed-by: Helm
 {{- define "tripplanning.selectorLabels" -}}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end -}}
+
+{{- define "tripplanning.tripAutoscalingMinReplicas" -}}
+{{- if .Values.autoscaling.trip.minReplicas -}}
+{{ .Values.autoscaling.trip.minReplicas }}
+{{- else -}}
+{{ .Values.autoscaling.minReplicas }}
+{{- end -}}
+{{- end -}}
+
+{{- define "tripplanning.tripAutoscalingMaxReplicas" -}}
+{{- if .Values.autoscaling.trip.maxReplicas -}}
+{{ .Values.autoscaling.trip.maxReplicas }}
+{{- else -}}
+{{ .Values.autoscaling.maxReplicas }}
+{{- end -}}
+{{- end -}}
+
+{{- define "tripplanning.tripAutoscalingTargetCPU" -}}
+{{- if .Values.autoscaling.trip.targetCPUUtilizationPercentage -}}
+{{ .Values.autoscaling.trip.targetCPUUtilizationPercentage }}
+{{- else -}}
+{{ .Values.autoscaling.targetCPUUtilizationPercentage }}
+{{- end -}}
+{{- end -}}
+
+{{- define "tripplanning.tripAutoscalingTargetMemory" -}}
+{{- if .Values.autoscaling.trip.targetMemoryUtilizationPercentage -}}
+{{ .Values.autoscaling.trip.targetMemoryUtilizationPercentage }}
+{{- else -}}
+{{ .Values.autoscaling.targetMemoryUtilizationPercentage }}
+{{- end -}}
+{{- end -}}
