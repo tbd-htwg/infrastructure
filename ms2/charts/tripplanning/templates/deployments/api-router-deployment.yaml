@@ -16,6 +16,8 @@ spec:
       labels:
         app.kubernetes.io/component: api-router
         {{- include "tripplanning.selectorLabels" . | nindent 8 }}
+      annotations:
+        checksum/api-router-config: {{ include (print $.Template.BasePath "/configmaps/api-router-configmap.yaml") . | sha256sum }}
     spec:
       containers:
         - name: api-router

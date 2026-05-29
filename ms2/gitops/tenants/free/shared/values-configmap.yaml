@@ -34,6 +34,7 @@ data:
           SPRING_AUTOCONFIGURE_EXCLUDE: "org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchRestClientAutoConfiguration"
           SPRING_DATA_REDIS_HOST: "valkey"
           JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75.0"
+          TRIPPLANNING_CACHE_REDIS_TTL_SECONDS: "30"
       social:
         image:
           repository: ghcr.io/tbd-htwg/backend/tripplanning-social-service
@@ -112,5 +113,5 @@ data:
       scaleUpStabilizationSeconds: 30
       scaleDownStabilizationSeconds: 300
       trip:
-        minReplicas: 2
+        minReplicas: 3
         targetMemoryUtilizationPercentage: 75
