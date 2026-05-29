@@ -49,6 +49,7 @@ data:
             memory: "768Mi"
         env:
           SPRING_DATA_REDIS_HOST: "valkey"
+          TRIPPLANNING_CACHE_REDIS_TTL_SECONDS: "30"
       externalInfo:
         image:
           repository: ghcr.io/tbd-htwg/backend/tripplanning-external-info-service
@@ -115,3 +116,5 @@ data:
       trip:
         minReplicas: 3
         targetMemoryUtilizationPercentage: 75
+      social:
+        minReplicas: 2

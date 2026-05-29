@@ -11,7 +11,7 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: social-service
-  minReplicas: {{ .Values.autoscaling.minReplicas }}
+  minReplicas: {{ include "tripplanning.socialAutoscalingMinReplicas" . }}
   maxReplicas: {{ .Values.autoscaling.maxReplicas }}
   behavior:
     scaleUp:

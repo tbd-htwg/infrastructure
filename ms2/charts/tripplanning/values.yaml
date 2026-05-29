@@ -183,6 +183,8 @@ autoscaling:
     maxReplicas: null
     targetCPUUtilizationPercentage: null
     targetMemoryUtilizationPercentage: null
+  social:
+    minReplicas: null
 
 backingServices:
   postgres:

@@ -51,3 +51,11 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{ .Values.autoscaling.targetMemoryUtilizationPercentage }}
 {{- end -}}
 {{- end -}}
+
+{{- define "tripplanning.socialAutoscalingMinReplicas" -}}
+{{- if .Values.autoscaling.social.minReplicas -}}
+{{ .Values.autoscaling.social.minReplicas }}
+{{- else -}}
+{{ .Values.autoscaling.minReplicas }}
+{{- end -}}
+{{- end -}}
