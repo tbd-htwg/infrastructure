@@ -23,6 +23,10 @@ spec:
         - name: {{ . }}
       {{- end }}
       {{- end }}
+      {{- if .Values.services.externalInfo.bootstrap.waitForValkey }}
+      initContainers:
+        {{- include "tripplanning.waitForValkey" . | nindent 8 }}
+      {{- end }}
       containers:
         - name: external-info-service
           image: "{{ .Values.services.externalInfo.image.repository }}:{{ .Values.services.externalInfo.image.tag }}"

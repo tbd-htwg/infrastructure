@@ -62,6 +62,8 @@ data:
           limits:
             cpu: "500m"
             memory: "768Mi"
+        bootstrap:
+          waitForValkey: true
         env:
           SPRING_DATA_REDIS_HOST: "valkey"
     backingServices:
