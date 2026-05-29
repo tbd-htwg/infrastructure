@@ -75,6 +75,20 @@ variable "kms" {
   }
 }
 
+variable "firestore" {
+  type = object({
+    enabled     = bool
+    database_id = string
+    location_id = string
+  })
+  description = "Firestore database settings for social-service comments and likes."
+  default = {
+    enabled     = true
+    database_id = "tbd-firestore"
+    location_id = "europe-west1"
+  }
+}
+
 variable "frontend" {
   type = object({
     domain                                 = string

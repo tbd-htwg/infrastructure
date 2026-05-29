@@ -78,3 +78,7 @@ output "api_gateway_ip" {
   description = "API Gateway global IP address."
   value       = google_compute_global_address.api_gateway_ip.address
 }
+output "firestore_database_id" {
+  description = "Firestore database id used by social-service."
+  value       = module.project_bootstrap.firestore_database_id
+}

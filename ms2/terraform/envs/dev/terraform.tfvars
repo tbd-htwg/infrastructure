@@ -33,6 +33,12 @@ kms = {
   crypto_key_name = "tripplanning-key"
 }
 
+firestore = {
+  enabled     = true
+  database_id = "tbd-firestore"
+  location_id = "europe-west1"
+}
+
 frontend = {
   domain                                 = "k8s.tbd-htwg.de"
   enable_cdn                             = false

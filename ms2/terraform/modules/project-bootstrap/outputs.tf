@@ -17,3 +17,8 @@ output "log_sink_bucket" {
   description = "Log sink bucket name."
   value       = var.log_sink.enabled ? google_storage_bucket.log_sink[0].name : null
 }
+
+output "firestore_database_id" {
+  description = "Firestore database id."
+  value       = var.firestore.enabled ? google_firestore_database.database[0].name : null
+}

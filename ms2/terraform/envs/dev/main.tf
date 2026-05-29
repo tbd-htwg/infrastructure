@@ -36,6 +36,9 @@ module "project_bootstrap" {
   ]
 
   iam_bindings = {
+    "roles/datastore.user" = [
+      "serviceAccount:${local.service_account_emails["workload"]}",
+    ]
     "roles/secretmanager.secretAccessor" = [
       "serviceAccount:${local.service_account_emails["workload"]}",
       "serviceAccount:${local.service_account_emails["secrets_deployer"]}",
@@ -53,6 +56,32 @@ module "project_bootstrap" {
     name            = "project-logs"
     filter          = "resource.type=\"k8s_container\" OR resource.type=\"k8s_pod\""
     bucket_location = "EU"
+  }
+
+  firestore = {
+    enabled     = var.firestore.enabled
+    database_id = var.firestore.database_id
+    location_id = var.firestore.location_id
+    indexes = {
+      comments_by_trip_created_at = {
+        collection  = "comments"
+        query_scope = "COLLECTION"
+        fields = [
+          {
+            field_path = "tripId"
+            order      = "ASCENDING"
+          },
+          {
+            field_path = "createdAt"
+            order      = "DESCENDING"
+          },
+          {
+            field_path = "__name__"
+            order      = "DESCENDING"
+          },
+        ]
+      }
+    }
   }
 }
 

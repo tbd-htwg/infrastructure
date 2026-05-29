@@ -12,6 +12,7 @@ variable "api_services" {
     "compute.googleapis.com",
     "container.googleapis.com",
     "dns.googleapis.com",
+    "firestore.googleapis.com",
     "iam.googleapis.com",
     "logging.googleapis.com",
     "monitoring.googleapis.com",
@@ -22,6 +23,31 @@ variable "api_services" {
     "sqladmin.googleapis.com",
     "storage.googleapis.com",
   ]
+}
+
+variable "firestore" {
+  type = object({
+    enabled     = bool
+    database_id = string
+    location_id = string
+    type        = optional(string, "FIRESTORE_NATIVE")
+    indexes = optional(map(object({
+      collection  = string
+      query_scope = optional(string, "COLLECTION")
+      fields = list(object({
+        field_path = string
+        order      = string
+      }))
+    })), {})
+  })
+  description = "Optional Firestore Native database and composite indexes."
+  default = {
+    enabled     = false
+    database_id = "(default)"
+    location_id = "europe-west1"
+    type        = "FIRESTORE_NATIVE"
+    indexes     = {}
+  }
 }
 
 variable "service_accounts" {

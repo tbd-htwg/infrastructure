@@ -9,6 +9,38 @@ resource "google_project_service" "apis" {
   disable_on_destroy = false
 }
 
+resource "google_firestore_database" "database" {
+  count       = var.firestore.enabled ? 1 : 0
+  project     = var.project_id
+  name        = var.firestore.database_id
+  location_id = var.firestore.location_id
+  type        = var.firestore.type
+
+  depends_on = [
+    google_project_service.apis["firestore.googleapis.com"],
+  ]
+}
+
+resource "google_firestore_index" "indexes" {
+  for_each    = var.firestore.enabled ? var.firestore.indexes : {}
+  project     = var.project_id
+  database    = var.firestore.database_id
+  collection  = each.value.collection
+  query_scope = each.value.query_scope
+
+  dynamic "fields" {
+    for_each = each.value.fields
+    content {
+      field_path = fields.value.field_path
+      order      = fields.value.order
+    }
+  }
+
+  depends_on = [
+    google_firestore_database.database,
+  ]
+}
+
 resource "google_service_account" "service_accounts" {
   for_each     = var.service_accounts
   project      = var.project_id
