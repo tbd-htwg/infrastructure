@@ -116,6 +116,17 @@ output "standard_cloudsql" {
   } : null
 }
 
+output "platform_cloudsql" {
+  description = "Platform-service Cloud SQL outputs."
+  value = {
+    instance_name       = module.platform_cloudsql.instance_name
+    connection_name     = module.platform_cloudsql.connection_name
+    database_names      = module.platform_cloudsql.database_names
+    user_names          = module.platform_cloudsql.user_names
+    password_secret_ids = module.platform_cloudsql.password_secret_ids
+  }
+}
+
 output "enterprise_cloudsql" {
   description = "Enterprise Cloud SQL outputs by tenant."
   value = {

@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: tripplanning-system
+  labels:
+    app.kubernetes.io/name: tripplanning-platform
+    app.kubernetes.io/part-of: tripplanning
+    tripplanning.htwg.dev/tier: platform

@@ -38,6 +38,11 @@ apiRouter:
   tenantHeader: "X-Tenant-ID"
   identityTenantHeader: "X-Identity-Platform-Tenant-ID"
   tenants: []
+  platform:
+    enabled: true
+    serviceName: platform-service
+    namespace: tripplanning-system
+    port: 8083
   loadBalancer:
     enabled: false
     ip: ""

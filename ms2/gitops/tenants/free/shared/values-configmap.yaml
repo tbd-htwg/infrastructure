@@ -72,6 +72,10 @@ data:
         env:
           SPRING_DATA_REDIS_HOST: "valkey"
           JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError"
+    apiRouter:
+      loadBalancer:
+        annotations:
+          cloud.google.com/neg: '{"exposed_ports":{"8088":{}}}'
     backingServices:
       postgres:
         auth:

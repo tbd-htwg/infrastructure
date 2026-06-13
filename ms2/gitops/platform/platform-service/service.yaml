@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: platform-service
+  namespace: tripplanning-system
+  labels:
+    app.kubernetes.io/name: platform-service
+    app.kubernetes.io/component: platform-service
+    app.kubernetes.io/part-of: tripplanning
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: platform-service
+    app.kubernetes.io/component: platform-service
+  ports:
+    - name: http
+      port: 8083
+      targetPort: http

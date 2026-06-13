@@ -13,6 +13,7 @@ Terraform in `infrastructure/ms2/terraform/envs/dev` creates the cloud foundatio
 - Static IPs and DNS records for tenant API subdomains.
 - Google Identity Platform tenants for Standard and Enterprise customers.
 - Cloud SQL:
+  - one small platform Cloud SQL instance for the platform-service tenant registry;
   - one shared Standard Cloud SQL instance with one database per Standard tenant;
   - one dedicated Cloud SQL instance per Enterprise tenant.
 - Dedicated Enterprise image buckets.
@@ -26,6 +27,7 @@ Helm chart: `infrastructure/ms2/charts/tripplanning`
 
 It deploys:
 
+- platform-service in `tripplanning-system` for auth, tenant registry, and application-triggered provisioning
 - `api-router`
 - `trip-service`
 - `social-service`
@@ -54,6 +56,7 @@ sudo apt-get install kubectl google-cloud-cli-gke-gcloud-auth-plugin
    - `tripplanning-internal-secret`
    - `tripplanning-google-maps-api-key`
    - `tripplanning-viator-api-key`
+   - `tripplanning-platform-github-dispatch-token` if tenants should be created from the application
 8. Verify that `gitops/clusters/dev/flux-system/gotk-sync.yaml` points at the correct GitHub repository, branch, and path.
 9. Run:
 
@@ -78,6 +81,13 @@ User
   -> global HTTPS frontend load balancer
   -> frontend Cloud Storage bucket
 
+Browser API call
+  -> frontend domain /api/*
+  -> global HTTPS frontend load balancer
+  -> free api-router NEG
+  -> platform-service for /api/v2/auth, /api/v2/admin, /api/v2/tenants
+  -> tenant services for trip/social/external-info paths
+
 User
   -> tenant API subdomain
   -> Kubernetes LoadBalancer Service
@@ -93,6 +103,8 @@ Domain pattern:
 
 The `api-router` resolves the tenant from the hostname and forwards API traffic to the correct backend service. Backend services must verify that the Google Identity Platform tenant ID in the user token matches the hostname tenant.
 
+The platform-service is intentionally outside tenant namespaces in `tripplanning-system`. It is control-plane infrastructure and should keep running even if a tenant namespace is recreated.
+
 ## Multitenancy by Tier
 
 | Tier | Isolation model | Main resources |
@@ -102,6 +114,11 @@ The `api-router` resolves the tenant from the hostname and forwards API traffic 
 | Enterprise | Dedicated runtime and stronger isolation. | Namespace per tenant, LoadBalancer per tenant, API router per tenant, Cloud SQL instance per tenant, dedicated image bucket, dedicated OpenSearch, dedicated Valkey. |
 
 ## How Tenants Are Created Right Now
+
+Tenants can be created in two ways:
+
+- manually, by adding tenant YAML and running the render/apply flow below;
+- from the application, through platform-service, once the platform-service image is deployed and `tripplanning-platform-github-dispatch-token` is populated in Secret Manager.
 
 Tenant intent is written as YAML under `infrastructure/ms2/tenants`.
 
@@ -140,6 +157,20 @@ python3 scripts/render-tenants.py --terraform-output-json /tmp/ms2-terraform-out
 
 The repository workflow `.github/workflows/tenant-provision.yml` can perform the same first step from a `repository_dispatch` or manual run. By default it commits tenant YAML plus Terraform inputs only. If `TENANT_PROVISION_APPLY_TERRAFORM=true`, it also applies Terraform, rerenders GitOps with real outputs, and commits the Kubernetes manifests.
 
+Application-driven creation path:
+
+```text
+Admin UI
+  -> platform-service in tripplanning-system
+  -> Google Identity Platform tenant creation
+  -> GitHub repository_dispatch to infrastructure repo
+  -> .github/workflows/tenant-provision.yml
+  -> tenant YAML / Terraform inputs / GitOps render
+  -> Flux reconciles Kubernetes resources
+```
+
+If `tripplanning-platform-github-dispatch-token` is missing, platform-service can still start, but real tenant provisioning cannot dispatch to GitHub.
+
 Required GitHub configuration for workflow-based provisioning:
 
 - Environment: `gke-dev` if environment protection is enabled.
@@ -160,6 +191,15 @@ The values are synced by the backend repository workflow `.github/workflows/sync
 - `GOOGLE_MAPS_API_KEY` -> `tripplanning-google-maps-api-key`
 - `VIATOR_API_KEY` -> `tripplanning-viator-api-key`
 - `GHCR_PULL_USERNAME` and `GHCR_PULL_TOKEN` -> `tripplanning-ghcr-pull-dockerconfigjson`
+
+For application-driven tenant creation, add a GitHub token with permission to dispatch workflows in the infrastructure repository:
+
+```bash
+printf '%s' "github_pat_or_token" | gcloud secrets versions add \
+  tripplanning-platform-github-dispatch-token \
+  --data-file=- \
+  --project tbd-cloudappdev
+```
 
 The backend workflow also needs backend repo variables `GCP_PROJECT_ID`, `GCP_WIF_PROVIDER`, and `GCP_SECRETS_DEPLOYER_SA_EMAIL` or `GCP_BACKEND_DEPLOYER_SA_EMAIL`. Terraform outputs the required values as `backend_wif_provider` and `secrets_deployer_sa_email`.
 

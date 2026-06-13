@@ -70,3 +70,4 @@ flux_bootstrap = {
   manifest_dir = "../../../gitops/clusters/dev/flux-system"
   git_username = "git"
 }
+

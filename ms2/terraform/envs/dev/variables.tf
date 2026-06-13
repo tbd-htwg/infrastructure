@@ -155,6 +155,23 @@ variable "standard_cloudsql" {
   default     = {}
 }
 
+variable "platform_cloudsql" {
+  type = object({
+    instance_name                  = optional(string, "tripplanning-platform")
+    database_name                  = optional(string, "tripplanning_platform")
+    user_name                      = optional(string, "tripplanning_platform")
+    database_version               = optional(string, "POSTGRES_15")
+    tier                           = optional(string, "db-f1-micro")
+    disk_size_gb                   = optional(number, 10)
+    disk_autoresize                = optional(bool, true)
+    availability_type              = optional(string, "ZONAL")
+    backup_enabled                 = optional(bool, true)
+    point_in_time_recovery_enabled = optional(bool, false)
+  })
+  description = "Small Cloud SQL instance for the platform-service tenant registry."
+  default     = {}
+}
+
 variable "standard_load_balancer" {
   type = object({
     name = optional(string, "tripplanning-standard-lb-ip")

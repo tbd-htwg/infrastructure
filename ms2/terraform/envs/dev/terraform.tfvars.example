@@ -60,6 +60,15 @@ standard_cloudsql = {
   private_ip_range  = "10.40.0.0"
 }
 
+platform_cloudsql = {
+  instance_name     = "tripplanning-platform"
+  database_name     = "tripplanning_platform"
+  user_name         = "tripplanning_platform"
+  tier              = "db-f1-micro"
+  disk_size_gb      = 10
+  availability_type = "ZONAL"
+}
+
 standard_load_balancer = {
   name = "tripplanning-standard-lb-ip"
 }

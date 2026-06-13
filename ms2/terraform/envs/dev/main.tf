@@ -36,6 +36,9 @@ module "project_bootstrap" {
     {
       name = "tripplanning-auth-test-bearer-token"
     },
+    {
+      name = "tripplanning-platform-github-dispatch-token"
+    },
   ]
 
   iam_bindings = {
@@ -359,6 +362,39 @@ module "enterprise_cloudsql" {
   ]
 }
 
+module "platform_cloudsql" {
+  source = "../../modules/tenant-cloudsql"
+
+  project_id                        = var.project_id
+  region                            = var.region
+  instance_name                     = var.platform_cloudsql.instance_name
+  database_version                  = var.platform_cloudsql.database_version
+  tier                              = var.platform_cloudsql.tier
+  disk_size_gb                      = var.platform_cloudsql.disk_size_gb
+  disk_autoresize                   = var.platform_cloudsql.disk_autoresize
+  availability_type                 = var.platform_cloudsql.availability_type
+  backup_enabled                    = var.platform_cloudsql.backup_enabled
+  point_in_time_recovery_enabled    = var.platform_cloudsql.point_in_time_recovery_enabled
+  private_network                   = module.network.network_self_link
+  create_private_service_connection = false
+  databases = {
+    platform = {
+      name               = var.platform_cloudsql.database_name
+      user_name          = var.platform_cloudsql.user_name
+      password_secret_id = "tripplanning-platform-db-password"
+    }
+  }
+  labels = {
+    app        = "tripplanning"
+    tier       = "platform"
+    managed_by = "terraform"
+  }
+
+  depends_on = [
+    module.standard_cloudsql,
+  ]
+}
+
 module "github_wif" {
   source               = "../../modules/github-wif"
   project_id           = var.project_id
@@ -420,6 +456,18 @@ resource "google_service_account_iam_member" "trip_namespace_default_wi" {
   service_account_id = "projects/${var.project_id}/serviceAccounts/${local.service_account_emails["workload"]}"
   role               = "roles/iam.workloadIdentityUser"
   member             = "serviceAccount:${var.project_id}.svc.id.goog[tripplanning-free/default]"
+}
+
+resource "google_service_account_iam_member" "platform_service_wi" {
+  service_account_id = "projects/${var.project_id}/serviceAccounts/${local.service_account_emails["platform-admin"]}"
+  role               = "roles/iam.workloadIdentityUser"
+  member             = "serviceAccount:${var.project_id}.svc.id.goog[tripplanning-system/platform-service]"
+}
+
+resource "google_project_iam_member" "platform_cloudsql_client" {
+  project = var.project_id
+  role    = "roles/cloudsql.client"
+  member  = "serviceAccount:${local.service_account_emails["platform-admin"]}"
 }
 
 resource "google_project_iam_member" "cert_manager_dns_admin" {
