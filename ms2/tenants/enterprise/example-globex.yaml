@@ -1,0 +1,55 @@
+tenantId: globex
+tier: enterprise
+namespace: tripplanning-ent-globex
+hostnames:
+  - globex.enterprise.k8s.tbd-htwg.de
+identityPlatform:
+  displayName: globex-enterprise
+  tenantId: globex-enterprise
+  emailPasswordEnabled: true
+  mfaEnabled: true
+frontend:
+  bucketPrefix: enterprise/globex
+  brandName: Globex Travel
+  colorScheme: green
+  brandIcon: assets/brand-icon.png
+database:
+  cloudSqlInstance: tripplanning-ent-globex
+  databaseName: tripplanning
+  userName: tripplanning_app
+storage:
+  imageBucketName: tbd-cloudappdev-globex-images-bucket
+search:
+  releaseName: opensearch-globex
+cache:
+  dedicated: true
+services:
+  trip:
+    image:
+      repository: ghcr.io/tbd-htwg/backend/globex-trip-service
+      tag: 1.0.0
+      pullPolicy: IfNotPresent
+    replicas: 2
+    autoscaling:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 8
+    resources:
+      requests:
+        cpu: "500m"
+        memory: "768Mi"
+      limits:
+        cpu: "2000m"
+        memory: "2Gi"
+  social:
+    image:
+      repository: ghcr.io/tbd-htwg/backend/tripplanning-social-service
+      tag: stable
+      pullPolicy: IfNotPresent
+    replicas: 2
+  externalInfo:
+    image:
+      repository: ghcr.io/tbd-htwg/backend/tripplanning-external-info-service
+      tag: stable
+      pullPolicy: IfNotPresent
+    replicas: 1

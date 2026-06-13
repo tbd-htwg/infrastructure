@@ -4,7 +4,7 @@
 
 The application runs on Google Cloud and is split into a static frontend, a managed Kubernetes backend, and managed cloud services for storage, secrets, DNS, and networking.
 
-The main goal of this setup is to keep the user-facing application easy to access while keeping the backend services isolated, independently scalable, and deployable through GitOps. This also follows several 12-Factor ideas: services are configured from the environment, backing services are attached through URLs/secrets, and application containers can be replaced without moving local state. The browser loads the frontend from `https://k8s.tbd-htwg.de`. Backend API traffic is intended to use the separate API hostname `https://api.k8s.tbd-htwg.de`, where the GKE Gateway routes requests into the cluster.
+The main goal of this setup is to keep the user-facing application easy to access while keeping the backend services isolated, independently scalable, and deployable through GitOps. This also follows several 12-Factor ideas: services are configured from the environment, backing services are attached through URLs/secrets, and application containers can be replaced without moving local state. The browser loads tenant frontend assets from the frontend bucket. Backend API traffic enters through tenant subdomains backed by Kubernetes LoadBalancer Services and in-namespace `api-router` deployments.
 
 ```mermaid
 flowchart LR
@@ -14,7 +14,8 @@ flowchart LR
         DNS[Cloud DNS]
         FLB[Frontend HTTPS Load Balancer]
         Bucket[Cloud Storage\nFrontend SPA]
-        Gateway[GKE Gateway\napi.k8s.tbd-htwg.de]
+        StdLB[Standard LoadBalancer\n*.k8s.tbd-htwg.de]
+        EntLB[Enterprise LoadBalancer\n*.enterprise.k8s.tbd-htwg.de]
 
         subgraph GKE[GKE Autopilot Cluster]
             Router[api-router\nNginx routing layer]
@@ -34,11 +35,10 @@ flowchart LR
     User -. resolves hostnames .-> DNS
     User -->|loads frontend\nk8s.tbd-htwg.de| FLB
     FLB -->|static files| Bucket
-    User -->|API requests\napi.k8s.tbd-htwg.de| Gateway
-    Gateway -->|/api/v2/trips, /api/v2/users| Router
-    Gateway -->|/api/v2, /api/search| Trip
-    Gateway -->|/api/v2/comments| Social
-    Gateway -->|/api/v2/external| External
+    User -->|Standard tenant API| StdLB
+    User -->|Enterprise tenant API| EntLB
+    StdLB --> Router
+    EntLB --> Router
 
     Router -->|compatibility/path routing| Trip
     Router -->|social subpaths| Social
@@ -60,14 +60,13 @@ flowchart LR
     Secrets -. synced by External Secrets .-> GKE
 ```
 
-This routing approach keeps frontend and backend traffic separated by hostname. The `api-router` is used as a lightweight compatibility and routing layer for selected API paths, while the Gateway/HTTPRoute can also route requests directly to the owning service.
-
-#TODO: The current Terraform/frontend pipeline still contains remnants of the older same-origin `/api/*` setup (`api_backend_neg_self_links` and frontend build logic that forces an empty `VITE_API_BASE_URL`). If the final architecture is only `api.k8s.tbd-htwg.de` for backend traffic, those IaC/pipeline parts should be removed or updated.
+This routing approach gives Standard tenants a shared runtime and gives Enterprise tenants isolated runtime entrypoints. The `api-router` is the public API boundary for each namespace. It resolves the tenant from the hostname and forwards requests to the owning service.
 
 Running links:
 
 - Frontend: `https://k8s.tbd-htwg.de`
-- API: `https://api.k8s.tbd-htwg.de`
+- Standard tenant API: `<tenant>.k8s.tbd-htwg.de`
+- Enterprise tenant API: `<tenant>.enterprise.k8s.tbd-htwg.de`
 - GCP project: `tbd-cloudappdev`
 
 ## 2.2 Microservices
@@ -120,7 +119,7 @@ The security setup is based on short-lived cloud identity instead of static clou
 - Secret synchronization uses a dedicated `secrets-deployer` service account with Secret Manager access.
 - In-cluster workloads use GKE Workload Identity through the `workload` service account.
 - Application secrets are stored in GCP Secret Manager and synchronized into Kubernetes by External Secrets Operator.
-- TLS certificates for the API Gateway are handled by cert-manager and Let's Encrypt.
+- Tenant authentication is handled by Google Identity Platform tenants; backend services verify that token tenant IDs match the routed hostname tenant.
 
 This keeps responsibilities separated: frontend deployment, secret management, and runtime workloads each have their own identity and permissions. It also supports the 12-Factor config principle by keeping secrets and environment-specific values outside the application artifact.
 
@@ -131,7 +130,7 @@ The environment is reproducible through Infrastructure as Code:
 - Terraform creates the GCP foundation: APIs, IAM, VPC, GKE Autopilot, DNS, buckets, Firestore, Secret Manager entries, load balancer, and Workload Identity Federation.
 - Flux continuously applies Kubernetes manifests from Git.
 - Kustomize organizes platform and tenant resources.
-- Helm templates the application runtime: deployments, services, routes, health checks, autoscaling, and backing services.
+- Helm templates the application runtime: deployments, services, LoadBalancer entrypoints, health checks, autoscaling, and backing services.
 
 This gives a clear separation between cloud infrastructure and application deployment. Terraform manages the cloud platform, while Flux/Helm manages what runs inside Kubernetes.
 

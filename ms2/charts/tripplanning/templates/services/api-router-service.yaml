@@ -5,9 +5,18 @@ metadata:
   labels:
     {{- include "tripplanning.labels" . | nindent 4 }}
     app.kubernetes.io/component: api-router
+{{- with .Values.apiRouter.loadBalancer.annotations }}
   annotations:
-    cloud.google.com/neg: '{"exposed_ports":{"{{ .Values.services.apiRouter.port }}":{}}}'
+{{ toYaml . | indent 4 }}
+{{- end }}
 spec:
+  type: {{ ternary "LoadBalancer" "ClusterIP" .Values.apiRouter.loadBalancer.enabled }}
+{{- if and .Values.apiRouter.loadBalancer.enabled .Values.apiRouter.loadBalancer.ip }}
+  loadBalancerIP: {{ .Values.apiRouter.loadBalancer.ip | quote }}
+{{- end }}
+{{- if .Values.apiRouter.loadBalancer.enabled }}
+  externalTrafficPolicy: {{ .Values.apiRouter.loadBalancer.externalTrafficPolicy }}
+{{- end }}
   selector:
     app.kubernetes.io/component: api-router
     {{- include "tripplanning.selectorLabels" . | nindent 4 }}

@@ -13,15 +13,16 @@ Build a GKE Autopilot-based SaaS platform with GitOps (FluxCD), multi-tenancy, a
 - GitOps: Flux bootstrap done; platform add-ons managed via Kustomize + Helm.
 
 ## Decisions
-- GKE Autopilot, Gateway API.
-- Cloud SQL private IP, zonal, no backups in dev.
+- GKE Autopilot with Kubernetes LoadBalancer Services for tenant entrypoints.
+- Cloud SQL private IP; Standard uses database-per-tenant on a shared instance, Enterprise uses instance-per-tenant.
 - Free tier: shared namespace + shared DB.
-- Paid tiers: database-per-tenant on same instance (can evolve later).
+- Standard tier: shared namespace/runtime and database-per-tenant on shared Cloud SQL.
+- Enterprise tier: namespace-per-tenant, LoadBalancer-per-tenant, Cloud SQL instance-per-tenant, image bucket-per-tenant, and OpenSearch-per-tenant.
 - FluxCD manages cluster state from repo.
 
 ## Next steps
 1. Wire External Secrets Operator to GCP Secret Manager (ClusterSecretStore).
-2. Add tenant templates (namespace, quotas, network policies, HTTPRoute).
+2. Add tenant templates (namespace, quotas, network policies, LoadBalancer/api-router config).
 3. Add app Helm charts and environments for tenants.
 4. Define tenant provisioning flow (GitOps-driven, optional API later).
 

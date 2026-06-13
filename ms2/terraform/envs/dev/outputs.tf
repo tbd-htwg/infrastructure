@@ -74,11 +74,62 @@ output "frontend_ip" {
   value       = module.frontend_lb.frontend_ip
 }
 
-output "api_gateway_ip" {
-  description = "API Gateway global IP address."
-  value       = google_compute_global_address.api_gateway_ip.address
-}
 output "firestore_database_id" {
   description = "Firestore database id used by social-service."
   value       = module.project_bootstrap.firestore_database_id
+}
+
+output "standard_load_balancer_ip" {
+  description = "Static regional IP address for the shared Standard Kubernetes LoadBalancer."
+  value       = google_compute_address.standard_lb_ip.address
+}
+
+output "enterprise_load_balancer_ips" {
+  description = "Static regional IP addresses for Enterprise Kubernetes LoadBalancers."
+  value       = { for tenant_id, ip in google_compute_address.enterprise_lb_ip : tenant_id => ip.address }
+}
+
+output "tenant_dns_records" {
+  description = "Tenant DNS records managed by Terraform."
+  value = {
+    standard   = { for tenant_id, dns in module.standard_tenant_dns : tenant_id => dns.tenant_record_name }
+    enterprise = { for tenant_id, dns in module.enterprise_tenant_dns : tenant_id => dns.tenant_record_name }
+  }
+}
+
+output "identity_platform_tenant_ids" {
+  description = "Identity Platform tenant IDs by tier and tenant key."
+  value = {
+    standard   = { for tenant_id, tenant in google_identity_platform_tenant.standard : tenant_id => tenant.tenant_id }
+    enterprise = { for tenant_id, tenant in google_identity_platform_tenant.enterprise : tenant_id => tenant.tenant_id }
+  }
+}
+
+output "standard_cloudsql" {
+  description = "Shared Standard Cloud SQL outputs."
+  value = var.standard_cloudsql.enabled ? {
+    instance_name       = module.standard_cloudsql[0].instance_name
+    connection_name     = module.standard_cloudsql[0].connection_name
+    database_names      = module.standard_cloudsql[0].database_names
+    user_names          = module.standard_cloudsql[0].user_names
+    password_secret_ids = module.standard_cloudsql[0].password_secret_ids
+  } : null
+}
+
+output "enterprise_cloudsql" {
+  description = "Enterprise Cloud SQL outputs by tenant."
+  value = {
+    for tenant_id, sql in module.enterprise_cloudsql : tenant_id => {
+      instance_name       = sql.instance_name
+      connection_name     = sql.connection_name
+      database_names      = sql.database_names
+      user_names          = sql.user_names
+      password_secret_ids = sql.password_secret_ids
+    }
+  }
+}
+
+output "flux_bootstrap_enabled" {
+  description = "Whether Terraform is configured to bootstrap Flux into the cluster."
+  value       = true
 }

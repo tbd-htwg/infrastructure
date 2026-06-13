@@ -36,7 +36,6 @@ data:
           SPRING_DATA_REDIS_HOST: "valkey"
           JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError"
           TRIPPLANNING_CACHE_REDIS_TTL_SECONDS: "30"
-          GCP_STORAGE_BUCKET_NAME: "tbd-cloudappdev-images-bucket"
           GCP_IMPERSONATE_SERVICE_ACCOUNT: "tripplanning-image-url-sig@tbd-cloudappdev.iam.gserviceaccount.com"
       social:
         replicas: 1

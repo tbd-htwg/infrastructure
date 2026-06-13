@@ -1,0 +1,24 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: tripplanning-standard
+  namespace: tripplanning-standard
+spec:
+  suspend: true
+  interval: 10m
+  chart:
+    spec:
+      chart: ms2/charts/tripplanning
+      reconcileStrategy: Revision
+      sourceRef:
+        kind: GitRepository
+        name: flux-system
+        namespace: flux-system
+      interval: 1m
+  valuesFrom:
+    - kind: ConfigMap
+      name: tripplanning-standard-values
+      valuesKey: values.yaml
+    - kind: ConfigMap
+      name: tripplanning-standard-generated-tenants
+      valuesKey: values.yaml

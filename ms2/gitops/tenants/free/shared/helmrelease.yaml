@@ -20,8 +20,7 @@ spec:
       valuesKey: values.yaml
   values:
     global:
-      gateway:
-        name: tripplanning-gateway
-        namespace: gateway-system
+      tier: free
+      tenantId: free
       hosts:
         api: api.k8s.tbd-htwg.de

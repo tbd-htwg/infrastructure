@@ -14,6 +14,7 @@ variable "api_services" {
     "dns.googleapis.com",
     "firestore.googleapis.com",
     "iam.googleapis.com",
+    "identitytoolkit.googleapis.com",
     "logging.googleapis.com",
     "monitoring.googleapis.com",
     "servicenetworking.googleapis.com",

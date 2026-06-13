@@ -9,3 +9,7 @@ data:
 {{- range $key, $value := .Values.services.externalInfo.env }}
   {{ $key }}: {{ $value | quote }}
 {{- end }}
+  TRIPPLANNING_TIER: {{ .Values.global.tier | quote }}
+  TRIPPLANNING_TENANT_ID: {{ .Values.global.tenantId | quote }}
+  TRIPPLANNING_AUTH_IDENTITY_PLATFORM_TENANT_ID: {{ .Values.global.identityPlatform.tenantId | quote }}
+  TRIPPLANNING_CACHE_KEY_PREFIX: {{ .Values.global.cache.keyPrefix | quote }}

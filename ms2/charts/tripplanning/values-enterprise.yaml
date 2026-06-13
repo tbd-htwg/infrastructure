@@ -1,0 +1,70 @@
+global:
+  tier: enterprise
+  tenantId: ""
+  hostnames: []
+  identityPlatform:
+    tenantId: ""
+  frontend:
+    bucketName: "tbd-cloudappdev-frontend-bucket"
+    bucketPrefix: ""
+    brandName: "TripPlanning Enterprise"
+    colorScheme: "default"
+    brandIcon: ""
+  storage:
+    imagesBucketName: ""
+    imagesPrefix: ""
+  search:
+    indexName: tripentity
+  cache:
+    keyPrefix: ""
+  cloudSql:
+    enabled: true
+    connectionName: ""
+    databaseName: tripplanning
+    userName: tripplanning_app
+
+apiRouter:
+  mode: enterprise
+  enforceKnownHosts: true
+  tenants: []
+  loadBalancer:
+    enabled: true
+    ip: ""
+    externalTrafficPolicy: Cluster
+
+services:
+  apiRouter:
+    replicas: 2
+  trip:
+    replicas: 2
+    image:
+      repository: ghcr.io/tbd-htwg/backend/tripplanning-trip-service
+      tag: stable
+      pullPolicy: IfNotPresent
+  social:
+    replicas: 2
+    image:
+      repository: ghcr.io/tbd-htwg/backend/tripplanning-social-service
+      tag: stable
+      pullPolicy: IfNotPresent
+  externalInfo:
+    replicas: 1
+    image:
+      repository: ghcr.io/tbd-htwg/backend/tripplanning-external-info-service
+      tag: stable
+      pullPolicy: IfNotPresent
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 8
+  targetCPUUtilizationPercentage: 70
+
+backingServices:
+  postgres:
+    enabled: false
+  elasticsearch:
+    enabled: true
+    serviceName: opensearch
+  valkey:
+    enabled: true

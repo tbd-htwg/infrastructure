@@ -1,0 +1,71 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tripplanning-standard-values
+  namespace: tripplanning-standard
+data:
+  values.yaml: |
+    global:
+      tier: standard
+      tenantId: standard-shared
+      imagePullSecrets:
+        - ghcr-pull
+      hostnames: []
+      frontend:
+        bucketName: tbd-cloudappdev-frontend-bucket
+        bucketPrefix: standard
+        brandName: TripPlanning
+        colorScheme: default
+        brandIcon: ""
+      storage:
+        imagesBucketName: tbd-cloudappdev-images-bucket
+        imagesPrefix: standard
+      search:
+        indexName: tripentity-standard
+      cache:
+        keyPrefix: std
+    apiRouter:
+      mode: standard
+      enforceKnownHosts: true
+      tenants: []
+      loadBalancer:
+        enabled: true
+        # Replace with Terraform output standard_load_balancer_ip.
+        ip: ""
+        externalTrafficPolicy: Cluster
+    services:
+      apiRouter:
+        replicas: 2
+      trip:
+        replicas: 2
+        env:
+          SPRING_DATA_REDIS_HOST: valkey
+          SPRING_AUTOCONFIGURE_EXCLUDE: "org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchRestClientAutoConfiguration"
+          JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError"
+          TRIPPLANNING_TENANT_REGISTRY_MODE: standard
+      social:
+        replicas: 2
+        env:
+          SPRING_DATA_REDIS_HOST: valkey
+          JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError"
+      externalInfo:
+        replicas: 2
+        env:
+          SPRING_DATA_REDIS_HOST: valkey
+          JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError"
+    backingServices:
+      postgres:
+        enabled: false
+      valkey:
+        enabled: true
+        serviceName: valkey
+        image: valkey/valkey:8-alpine
+      elasticsearch:
+        enabled: true
+        image: opensearchproject/opensearch:2.19.0
+        storageClassName: "standard-hdd-wffc"
+    autoscaling:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 8
+      targetCPUUtilizationPercentage: 70

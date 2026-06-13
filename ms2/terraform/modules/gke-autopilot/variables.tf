@@ -40,12 +40,6 @@ variable "release_channel" {
   default     = "REGULAR"
 }
 
-variable "enable_gateway_api" {
-  type        = bool
-  description = "Enable Gateway API support."
-  default     = true
-}
-
 variable "private_cluster" {
   type        = bool
   description = "Whether to enable private nodes."

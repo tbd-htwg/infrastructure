@@ -2,7 +2,7 @@ resource "google_storage_bucket" "buckets" {
   for_each = var.buckets
 
   project                     = var.project_id
-  name                        = "${var.project_id}-${each.value.name_suffix}"
+  name                        = coalesce(try(each.value.name, null), "${var.project_id}-${each.value.name_suffix}")
   location                    = var.location
   storage_class               = each.value.storage_class
   uniform_bucket_level_access = each.value.uniform_access

@@ -5,18 +5,17 @@
 Runtime is on GCP project `tbd-cloudappdev` in `europe-west1`.
 
 - Frontend: React/Vite static build served from Cloud Storage bucket `tbd-cloudappdev-frontend-bucket` through a global HTTPS Load Balancer on `https://k8s.tbd-htwg.de`. HTTP is redirected to HTTPS.
-- Backend: GKE Autopilot cluster `tripplanning-gke`, private nodes, Gateway API enabled, VPC-native networking.
-- API gateway: GKE Gateway `tripplanning-gateway` with class `gke-l7-global-external-managed`, static address `tripplanning-api-gateway-ip`, TLS from cert-manager/Let's Encrypt, host `https://api.k8s.tbd-htwg.de`.
-- Routing: API traffic is intended to use `https://api.k8s.tbd-htwg.de`. `HTTPRoute tripplanning-api` maps API paths to `trip-service`, `social-service`, `external-info-service`, or `api-router`.
+- Backend: GKE Autopilot cluster `tripplanning-gke`, private nodes, VPC-native networking, and tenant entrypoints exposed through Kubernetes LoadBalancer Services.
+- API routing: Standard tenants share one Standard LoadBalancer and in-namespace `api-router`; Enterprise tenants get one LoadBalancer and `api-router` per namespace. The router maps public API paths to `trip-service`, `social-service`, and `external-info-service`.
+- Tenant auth: Standard and Enterprise tenants use Google Identity Platform tenants. The hostname selects tenant config; backend services verify that the Identity Platform tenant ID in the token matches the hostname/router tenant.
 - Async/background services: none visible in the active deployment manifests. `seedJob` exists in the chart but is disabled.
 - Supporting services: External Secrets Operator syncs GCP Secret Manager secrets into Kubernetes; cert-manager issues TLS certs; Flux reconciles GitOps manifests. This follows the 12-Factor idea of externalized config/secrets and treating backing services as attached resources.
-
-#TODO: Current Terraform/frontend workflow files still contain the older same-origin `/api/*` frontend-LB setup (`api_backend_neg_self_links` and frontend build logic that forces an empty `VITE_API_BASE_URL`). If the final architecture only uses `api.k8s.tbd-htwg.de` for backend traffic, remove or update those parts.
 
 Running links:
 
 - Frontend: `https://k8s.tbd-htwg.de`
-- API: `https://api.k8s.tbd-htwg.de`
+- Standard tenant API: `<tenant>.k8s.tbd-htwg.de`
+- Enterprise tenant API: `<tenant>.enterprise.k8s.tbd-htwg.de`
 - GCP project/environment: `tbd-cloudappdev`
 
 ## 2.2 Microservices
@@ -26,7 +25,7 @@ Running links:
 - Runtime: Nginx `1.27-alpine`, port `8088`, 2 replicas in the active `tripplanning-free` values.
 - Purpose: routes selected `/api/v2/...` requests internally to `trip-service`, `social-service`, or `external-info-service`.
 - Scaling: manual replicas only; no HPA for `api-router`.
-- Security: exposed through GCP NEG and load balancer/Gateway routes; health endpoint `/healthz`.
+- Security: exposed through tenant LoadBalancer Services; health endpoint `/healthz`.
 - External services: none directly. The router is stateless and disposable, which matches the 12-Factor process model.
 
 ### trip-service
@@ -78,11 +77,11 @@ These datastores are separated from the application containers, which supports t
 ## 2.5 Infrastructure as Code
 
 - Terraform environment: `infrastructure/ms2/terraform/envs/dev`.
-- Terraform modules create project APIs, service accounts/IAM, VPC/subnet/NAT, GKE Autopilot, buckets, Firestore, Secret Manager secrets, DNS, frontend HTTPS load balancer, API gateway IP, and GitHub Workload Identity Federation.
-- GitOps: Flux bootstraps `infrastructure/ms2/gitops/clusters/dev`, then reconciles platform config, gateway, and tenant manifests.
-- Helm chart: `infrastructure/ms2/charts/tripplanning` deploys the backend services, router, backing services, routes, HPAs, config, and secrets references.
-- Active tenant values come from `gitops/tenants/free/shared/values-configmap.yaml`.
-- Present but not active in the deployment path: Cloud SQL module, KMS disabled, observability commented out, chart `seedJob` disabled.
+- Terraform modules create project APIs, service accounts/IAM, VPC/subnet/NAT, GKE Autopilot, buckets, Firestore, Secret Manager secrets, DNS, frontend HTTPS load balancer, tenant LoadBalancer IPs, Cloud SQL tenant databases/instances, Identity Platform tenants, and GitHub Workload Identity Federation.
+- GitOps: Flux bootstraps `infrastructure/ms2/gitops/clusters/dev`, then reconciles platform config and tenant manifests.
+- Helm chart: `infrastructure/ms2/charts/tripplanning` deploys the backend services, router, backing services, LoadBalancer service, HPAs, config, and secrets references.
+- Active base tenant values come from `gitops/tenants/free/shared/values-configmap.yaml` and `gitops/tenants/standard/shared/values-configmap.yaml`.
+- Present but not active in the deployment path: KMS disabled, observability commented out, chart `seedJob` disabled.
 - The split between Terraform, GitOps manifests, and Helm values supports repeatable environments and a clear build/release/run separation.
 
 # 3 Development View

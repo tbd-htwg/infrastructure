@@ -1,0 +1,234 @@
+name: Tenant provision
+
+on:
+  repository_dispatch:
+    types:
+      - tenant-created-standard
+      - tenant-created-enterprise
+  workflow_dispatch:
+    inputs:
+      slug:
+        description: Tenant slug
+        required: true
+      tier:
+        description: STANDARD or ENTERPRISE
+        required: true
+        type: choice
+        options:
+          - STANDARD
+          - ENTERPRISE
+      brandName:
+        description: Tenant brand name
+        required: false
+      colorScheme:
+        description: Tenant color scheme
+        required: false
+        default: default
+
+permissions:
+  contents: write
+  id-token: write
+
+concurrency:
+  group: tenant-provision-${{ github.event.client_payload.slug || inputs.slug }}
+  cancel-in-progress: false
+
+jobs:
+  provision:
+    runs-on: ubuntu-latest
+    environment: gke-dev
+    env:
+      MS2_DIR: ms2
+      TF_DIR: ms2/terraform/envs/dev
+      APPLY_TERRAFORM: ${{ vars.TENANT_PROVISION_APPLY_TERRAFORM || 'false' }}
+      GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+      GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+      GCP_TERRAFORM_SERVICE_ACCOUNT: ${{ secrets.GCP_TERRAFORM_SERVICE_ACCOUNT }}
+      FLUX_BOOTSTRAP_GIT_PASSWORD: ${{ secrets.FLUX_BOOTSTRAP_GIT_PASSWORD }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Parse request
+        id: payload
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            slug="${{ inputs.slug }}"
+            tier="${{ inputs.tier }}"
+            brand_name="${{ inputs.brandName }}"
+            color_scheme="${{ inputs.colorScheme }}"
+          else
+            slug="${{ github.event.client_payload.slug }}"
+            tier="${{ github.event.client_payload.tier || '' }}"
+            brand_name="${{ github.event.client_payload.brandName || '' }}"
+            color_scheme="${{ github.event.client_payload.colorScheme || 'default' }}"
+          fi
+
+          if [[ -z "${tier}" && "${GITHUB_EVENT_NAME}" == "repository_dispatch" ]]; then
+            case "${{ github.event.action }}" in
+              tenant-created-standard) tier="STANDARD" ;;
+              tenant-created-enterprise) tier="ENTERPRISE" ;;
+            esac
+          fi
+
+          tier="$(echo "${tier}" | tr '[:lower:]' '[:upper:]')"
+          if [[ ! "${slug}" =~ ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ ]]; then
+            echo "Invalid slug: ${slug}" >&2
+            exit 1
+          fi
+          if [[ "${tier}" != "STANDARD" && "${tier}" != "ENTERPRISE" ]]; then
+            echo "tier must be STANDARD or ENTERPRISE" >&2
+            exit 1
+          fi
+
+          if [[ -z "${brand_name}" ]]; then
+            brand_name="${slug}"
+          fi
+
+          echo "slug=${slug}" >> "$GITHUB_OUTPUT"
+          echo "tier=${tier}" >> "$GITHUB_OUTPUT"
+          echo "brand_name=${brand_name}" >> "$GITHUB_OUTPUT"
+          echo "color_scheme=${color_scheme}" >> "$GITHUB_OUTPUT"
+
+      - name: Install renderer dependencies
+        run: python3 -m pip install pyyaml
+
+      - name: Write tenant definition
+        shell: bash
+        run: |
+          set -euo pipefail
+          slug="${{ steps.payload.outputs.slug }}"
+          tier="${{ steps.payload.outputs.tier }}"
+          brand_name="${{ steps.payload.outputs.brand_name }}"
+          color_scheme="${{ steps.payload.outputs.color_scheme }}"
+          project_id="${GCP_PROJECT_ID}"
+
+          if [[ "${tier}" == "STANDARD" ]]; then
+            mkdir -p "${MS2_DIR}/tenants/standard"
+            tenant_path="${MS2_DIR}/tenants/standard/${slug}.yaml"
+          else
+            if [[ -z "${project_id}" ]]; then
+              echo "GCP_PROJECT_ID repo/environment variable is required for Enterprise tenants" >&2
+              exit 1
+            fi
+            mkdir -p "${MS2_DIR}/tenants/enterprise"
+            tenant_path="${MS2_DIR}/tenants/enterprise/${slug}.yaml"
+          fi
+
+          export TENANT_PATH="${tenant_path}"
+          export TENANT_SLUG="${slug}"
+          export TENANT_TIER="${tier}"
+          export TENANT_BRAND_NAME="${brand_name}"
+          export TENANT_COLOR_SCHEME="${color_scheme}"
+          export TENANT_PROJECT_ID="${project_id}"
+          python3 <<'PY'
+          import os
+          from pathlib import Path
+
+          import yaml
+
+          slug = os.environ["TENANT_SLUG"]
+          tier = os.environ["TENANT_TIER"]
+          brand_name = os.environ["TENANT_BRAND_NAME"]
+          color_scheme = os.environ["TENANT_COLOR_SCHEME"]
+          project_id = os.environ["TENANT_PROJECT_ID"]
+
+          if tier == "STANDARD":
+              tenant = {
+                  "tenantId": slug,
+                  "tier": "standard",
+                  "hostnames": [f"{slug}.k8s.tbd-htwg.de"],
+                  "identityPlatform": {
+                      "displayName": f"{slug}-standard",
+                      "emailPasswordEnabled": True,
+                      "mfaEnabled": False,
+                  },
+                  "frontend": {
+                      "bucketPrefix": f"standard/{slug}",
+                      "brandName": brand_name,
+                      "colorScheme": color_scheme,
+                      "brandIcon": "assets/brand-icon.png",
+                  },
+                  "database": {
+                      "cloudSqlInstance": "tripplanning-standard",
+                      "databaseName": f"tripplanning_std_{slug.replace('-', '_')}",
+                      "userName": f"tripplanning_app_{slug.replace('-', '_')}",
+                  },
+                  "storage": {"imagesPrefix": f"standard/{slug}"},
+                  "search": {"indexName": f"tripentity-{slug}"},
+                  "cache": {"keyPrefix": f"std:{slug}"},
+              }
+          else:
+              tenant = {
+                  "tenantId": slug,
+                  "tier": "enterprise",
+                  "namespace": f"tripplanning-ent-{slug}",
+                  "hostnames": [f"{slug}.enterprise.k8s.tbd-htwg.de"],
+                  "identityPlatform": {
+                      "displayName": f"{slug}-enterprise",
+                      "emailPasswordEnabled": True,
+                      "mfaEnabled": True,
+                  },
+                  "frontend": {
+                      "bucketPrefix": f"enterprise/{slug}",
+                      "brandName": brand_name,
+                      "colorScheme": color_scheme,
+                      "brandIcon": "assets/brand-icon.png",
+                  },
+                  "database": {
+                      "cloudSqlInstance": f"tripplanning-ent-{slug}",
+                      "databaseName": "tripplanning",
+                      "userName": "tripplanning_app",
+                  },
+                  "storage": {"imageBucketName": f"{project_id}-{slug}-images-bucket"},
+                  "search": {"releaseName": f"opensearch-{slug}"},
+                  "cache": {"dedicated": True},
+              }
+
+          Path(os.environ["TENANT_PATH"]).write_text(yaml.safe_dump(tenant, sort_keys=False), encoding="utf-8")
+          PY
+
+      - name: Render Terraform and GitOps inputs
+        working-directory: ms2
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${APPLY_TERRAFORM}" == "true" ]]; then
+            python3 scripts/render-tenants.py
+          else
+            python3 scripts/render-tenants.py --terraform-only
+          fi
+
+      - name: Optional Terraform apply
+        if: env.APPLY_TERRAFORM == 'true'
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ env.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ env.GCP_TERRAFORM_SERVICE_ACCOUNT }}
+
+      - name: Optional Terraform setup
+        if: env.APPLY_TERRAFORM == 'true'
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Optional Terraform apply and rerender computed IDs
+        if: env.APPLY_TERRAFORM == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          terraform -chdir="${TF_DIR}" init
+          TF_VAR_flux_bootstrap_git_password="${FLUX_BOOTSTRAP_GIT_PASSWORD}" terraform -chdir="${TF_DIR}" apply -auto-approve
+          terraform -chdir="${TF_DIR}" output -json > /tmp/ms2-terraform-output.json
+          (cd "${MS2_DIR}" && python3 scripts/render-tenants.py --terraform-output-json /tmp/ms2-terraform-output.json)
+
+      - name: Commit generated tenant files
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Provision tenant ${{ steps.payload.outputs.slug }}"
+          file_pattern: |
+            ms2/tenants/**
+            ms2/terraform/envs/dev/generated-tenants.auto.tfvars.json
+            ms2/gitops/tenants/**

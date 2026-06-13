@@ -20,7 +20,6 @@ network = {
 gke = {
   cluster_name           = "tripplanning-gke"
   release_channel        = "REGULAR"
-  enable_gateway_api     = true
   private_cluster        = true
   master_ipv4_cidr_block = "172.16.0.0/28"
 }
@@ -51,3 +50,93 @@ frontend = {
   api_health_check_port                  = 8088
   secondary_managed_ssl_certificate_name = "frontend-cert-v2"
 }
+
+standard_cloudsql = {
+  enabled           = true
+  instance_name     = "tripplanning-standard"
+  tier              = "db-custom-1-3840"
+  disk_size_gb      = 20
+  availability_type = "ZONAL"
+  private_ip_range  = "10.40.0.0"
+}
+
+standard_load_balancer = {
+  name = "tripplanning-standard-lb-ip"
+}
+
+standard_tenants = {
+  acme = {
+    hostnames = ["acme.k8s.tbd-htwg.de"]
+    identity_platform = {
+      display_name           = "acme-standard"
+      tenant_id              = "acme-standard"
+      email_password_enabled = true
+      mfa_enabled            = false
+    }
+    database = {
+      name      = "tripplanning_std_acme"
+      user_name = "tripplanning_app_acme"
+    }
+    frontend = {
+      bucket_prefix = "standard/acme"
+      brand_name    = "Acme Travel"
+      color_scheme  = "blue"
+      brand_icon    = "assets/brand-icon.png"
+    }
+    storage = {
+      images_prefix = "standard/acme"
+    }
+    search = {
+      index_name = "tripentity-acme"
+    }
+    cache = {
+      key_prefix = "std:acme"
+    }
+  }
+}
+
+enterprise_tenants = {
+  globex = {
+    namespace = "tripplanning-ent-globex"
+    hostnames = ["globex.enterprise.k8s.tbd-htwg.de"]
+    identity_platform = {
+      display_name           = "globex-enterprise"
+      tenant_id              = "globex-enterprise"
+      email_password_enabled = true
+      mfa_enabled            = true
+    }
+    database = {
+      instance_name     = "tripplanning-ent-globex"
+      name              = "tripplanning"
+      user_name         = "tripplanning_app"
+      tier              = "db-custom-1-3840"
+      disk_size_gb      = 20
+      availability_type = "ZONAL"
+    }
+    frontend = {
+      bucket_prefix = "enterprise/globex"
+      brand_name    = "Globex Travel"
+      color_scheme  = "green"
+      brand_icon    = "assets/brand-icon.png"
+    }
+    storage = {
+      image_bucket_name = "PROJECT_ID-globex-images-bucket"
+    }
+    search = {
+      release_name = "opensearch-globex"
+    }
+    cache = {
+      dedicated = true
+    }
+  }
+}
+
+flux_bootstrap = {
+  namespace    = "flux-system"
+  manifest_dir = "../../../gitops/clusters/dev/flux-system"
+  git_username = "git"
+}
+
+# Use a GitHub token for private repositories. Prefer passing this via
+# TF_VAR_flux_bootstrap_git_password or a local uncommitted tfvars file.
+flux_bootstrap_git_password = "REPLACE_WITH_GITHUB_TOKEN"

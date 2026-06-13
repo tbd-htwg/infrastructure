@@ -41,7 +41,6 @@ variable "gke" {
   type = object({
     cluster_name           = string
     release_channel        = string
-    enable_gateway_api     = bool
     private_cluster        = bool
     master_ipv4_cidr_block = string
   })
@@ -121,4 +120,127 @@ variable "backend_wif" {
     provider_id = string
   })
   description = "GitHub Workload Identity Federation settings for backend secret sync."
+}
+
+variable "flux_bootstrap" {
+  type = object({
+    namespace    = optional(string, "flux-system")
+    manifest_dir = optional(string, "../../../gitops/clusters/dev/flux-system")
+    git_username = optional(string, "git")
+  })
+  description = "Terraform-driven Flux bootstrap settings. Bootstrap is always enabled for this environment."
+  default     = {}
+}
+
+variable "flux_bootstrap_git_password" {
+  type        = string
+  description = "Git token/password used for the flux-system Git auth secret. Required because gotk-sync.yaml references secretRef."
+  sensitive   = true
+}
+
+variable "standard_cloudsql" {
+  type = object({
+    enabled                        = optional(bool, true)
+    instance_name                  = optional(string, "tripplanning-standard")
+    database_version               = optional(string, "POSTGRES_15")
+    tier                           = optional(string, "db-custom-1-3840")
+    disk_size_gb                   = optional(number, 20)
+    disk_autoresize                = optional(bool, true)
+    availability_type              = optional(string, "ZONAL")
+    backup_enabled                 = optional(bool, true)
+    point_in_time_recovery_enabled = optional(bool, false)
+    private_ip_range               = optional(string, "10.40.0.0")
+  })
+  description = "Shared Cloud SQL instance for Standard tenants."
+  default     = {}
+}
+
+variable "standard_load_balancer" {
+  type = object({
+    name = optional(string, "tripplanning-standard-lb-ip")
+  })
+  description = "Static regional IP settings for the shared Standard Kubernetes LoadBalancer."
+  default     = {}
+}
+
+variable "standard_tenants" {
+  type = map(object({
+    hostnames = list(string)
+    identity_platform = object({
+      display_name           = string
+      tenant_id              = optional(string)
+      email_password_enabled = optional(bool, true)
+      email_link_signin      = optional(bool, false)
+      mfa_enabled            = optional(bool, false)
+      auth_disabled          = optional(bool, false)
+    })
+    database = object({
+      name      = string
+      user_name = optional(string, "tripplanning_app")
+    })
+    frontend = object({
+      bucket_prefix = string
+      brand_name    = string
+      color_scheme  = string
+      brand_icon    = string
+    })
+    storage = object({
+      images_prefix = string
+    })
+    search = object({
+      index_name = string
+    })
+    cache = object({
+      key_prefix = string
+    })
+  }))
+  description = "Standard tenant definitions."
+  default     = {}
+}
+
+variable "enterprise_tenants" {
+  type = map(object({
+    namespace = string
+    hostnames = list(string)
+    identity_platform = object({
+      display_name           = string
+      tenant_id              = optional(string)
+      email_password_enabled = optional(bool, true)
+      email_link_signin      = optional(bool, false)
+      mfa_enabled            = optional(bool, false)
+      auth_disabled          = optional(bool, false)
+    })
+    load_balancer = optional(object({
+      name = optional(string)
+    }), {})
+    database = object({
+      instance_name                  = string
+      name                           = optional(string, "tripplanning")
+      user_name                      = optional(string, "tripplanning_app")
+      database_version               = optional(string, "POSTGRES_15")
+      tier                           = optional(string, "db-custom-1-3840")
+      disk_size_gb                   = optional(number, 20)
+      disk_autoresize                = optional(bool, true)
+      availability_type              = optional(string, "ZONAL")
+      backup_enabled                 = optional(bool, true)
+      point_in_time_recovery_enabled = optional(bool, false)
+    })
+    frontend = object({
+      bucket_prefix = string
+      brand_name    = string
+      color_scheme  = string
+      brand_icon    = string
+    })
+    storage = object({
+      image_bucket_name = string
+    })
+    search = object({
+      release_name = string
+    })
+    cache = object({
+      dedicated = optional(bool, true)
+    })
+  }))
+  description = "Enterprise tenant definitions."
+  default     = {}
 }

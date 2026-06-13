@@ -22,7 +22,7 @@ resource "google_container_cluster" "autopilot" {
   }
 
   gateway_api_config {
-    channel = var.enable_gateway_api ? "CHANNEL_STANDARD" : "CHANNEL_DISABLED"
+    channel = "CHANNEL_DISABLED"
   }
 
   private_cluster_config {

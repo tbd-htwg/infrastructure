@@ -2,13 +2,47 @@ global:
   nameOverride: ""
   fullnameOverride: ""
   namespace: ""
+  tier: "free"
+  tenantId: ""
+  hostnames: []
   imagePullSecrets: []
-  gateway:
-    name: "tripplanning-gateway"
-    namespace: "gateway-system"
   hosts:
     api: "api.k8s.tbd-htwg.de"
   corsAllowedOrigins: "https://k8s.tbd-htwg.de"
+  identityPlatform:
+    tenantId: ""
+  frontend:
+    bucketName: "tbd-cloudappdev-frontend-bucket"
+    bucketPrefix: ""
+    brandName: "TripPlanning"
+    colorScheme: "default"
+    brandIcon: ""
+  storage:
+    imagesBucketName: "tbd-cloudappdev-images-bucket"
+    imagesPrefix: ""
+  search:
+    indexName: "tripentity"
+  cache:
+    keyPrefix: ""
+  cloudSql:
+    enabled: false
+    connectionName: ""
+    databaseName: "tripplanning"
+    userName: "tripplanning_app"
+    proxyImage: "gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.18.0"
+    proxyPort: 5432
+
+apiRouter:
+  mode: "free"
+  enforceKnownHosts: false
+  tenantHeader: "X-Tenant-ID"
+  identityTenantHeader: "X-Identity-Platform-Tenant-ID"
+  tenants: []
+  loadBalancer:
+    enabled: false
+    ip: ""
+    annotations: {}
+    externalTrafficPolicy: Cluster
 
 services:
   apiRouter:
@@ -54,7 +88,6 @@ services:
       ELASTICSEARCH_PROTOCOL: "http"
       ELASTICSEARCH_HOSTS: "elasticsearch:9200"
       HIBERNATE_SEARCH_BACKEND_VERSION: "opensearch:2.19"
-      TRIPPLANNING_SEARCH_ELASTICSEARCH_INDEX_NAME: "tripentity"
       SPRING_AUTOCONFIGURE_EXCLUDE: "org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchRestClientAutoConfiguration"
       SPRING_DATA_REDIS_HOST: "valkey"
       SPRING_DATA_REDIS_PORT: "6379"
@@ -62,7 +95,6 @@ services:
       TRIPPLANNING_EXTERNAL_INFO_SERVICE_URL: "http://external-info-service:8082"
       TRIPPLANNING_AUTH_FIREBASE_PROJECT_ID: "tbd-cloudappdev"
       CORS_ALLOWED_ORIGINS: "https://k8s.tbd-htwg.de"
-      GCP_STORAGE_BUCKET_NAME: "tbd-cloudappdev-images-bucket"
       GCP_IMPERSONATE_SERVICE_ACCOUNT: "tripplanning-image-url-sig@tbd-cloudappdev.iam.gserviceaccount.com"
     secretRefs:
       - trip-service-secrets

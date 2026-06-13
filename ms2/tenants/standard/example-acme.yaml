@@ -1,0 +1,24 @@
+tenantId: acme
+tier: standard
+hostnames:
+  - acme.k8s.tbd-htwg.de
+identityPlatform:
+  displayName: acme-standard
+  tenantId: acme-standard
+  emailPasswordEnabled: true
+  mfaEnabled: false
+frontend:
+  bucketPrefix: standard/acme
+  brandName: Acme Travel
+  colorScheme: blue
+  brandIcon: assets/brand-icon.png
+database:
+  cloudSqlInstance: tripplanning-standard
+  databaseName: tripplanning_std_acme
+  userName: tripplanning_app_acme
+storage:
+  imagesPrefix: standard/acme
+search:
+  indexName: tripentity-acme
+cache:
+  keyPrefix: std:acme

@@ -82,3 +82,20 @@ spec:
             limits:
               cpu: {{ .Values.services.trip.resources.limits.cpu }}
               memory: {{ .Values.services.trip.resources.limits.memory }}
+{{- if .Values.global.cloudSql.enabled }}
+        - name: cloud-sql-proxy
+          image: {{ .Values.global.cloudSql.proxyImage | quote }}
+          args:
+            - "--private-ip"
+            - "--port={{ .Values.global.cloudSql.proxyPort }}"
+            - {{ .Values.global.cloudSql.connectionName | quote }}
+          securityContext:
+            runAsNonRoot: true
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+{{- end }}

@@ -7,5 +7,21 @@ metadata:
     app.kubernetes.io/component: trip-service
 data:
 {{- range $key, $value := .Values.services.trip.env }}
+{{- if not (and $.Values.global.cloudSql.enabled (or (eq $key "SPRING_DATASOURCE_URL") (eq $key "SPRING_DATASOURCE_USERNAME"))) }}
   {{ $key }}: {{ $value | quote }}
+{{- end }}
+{{- end }}
+  TRIPPLANNING_TIER: {{ .Values.global.tier | quote }}
+  TRIPPLANNING_TENANT_ID: {{ .Values.global.tenantId | quote }}
+  TRIPPLANNING_AUTH_IDENTITY_PLATFORM_TENANT_ID: {{ .Values.global.identityPlatform.tenantId | quote }}
+  TRIPPLANNING_FRONTEND_BUCKET_NAME: {{ .Values.global.frontend.bucketName | quote }}
+  TRIPPLANNING_FRONTEND_BUCKET_PREFIX: {{ .Values.global.frontend.bucketPrefix | quote }}
+  TRIPPLANNING_STORAGE_IMAGES_PREFIX: {{ .Values.global.storage.imagesPrefix | quote }}
+  GCP_STORAGE_BUCKET_NAME: {{ .Values.global.storage.imagesBucketName | quote }}
+  GCP_STORAGE_PREFIX: {{ .Values.global.storage.imagesPrefix | quote }}
+  TRIPPLANNING_SEARCH_ELASTICSEARCH_INDEX_NAME: {{ .Values.global.search.indexName | quote }}
+  TRIPPLANNING_CACHE_KEY_PREFIX: {{ .Values.global.cache.keyPrefix | quote }}
+{{- if .Values.global.cloudSql.enabled }}
+  SPRING_DATASOURCE_URL: {{ printf "jdbc:postgresql://127.0.0.1:%v/%s" .Values.global.cloudSql.proxyPort .Values.global.cloudSql.databaseName | quote }}
+  SPRING_DATASOURCE_USERNAME: {{ .Values.global.cloudSql.userName | quote }}
 {{- end }}

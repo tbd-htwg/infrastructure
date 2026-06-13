@@ -11,6 +11,7 @@ variable "location" {
 
 variable "buckets" {
   type = map(object({
+    name           = optional(string)
     name_suffix    = string
     storage_class  = string
     versioning     = bool

@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tripplanning-standard-generated-tenants
+  namespace: tripplanning-standard
+data:
+  values.yaml: |
+    apiRouter:
+      tenants: []
+      loadBalancer:
+        ip: ""

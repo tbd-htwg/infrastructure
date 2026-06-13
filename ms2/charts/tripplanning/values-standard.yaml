@@ -1,0 +1,75 @@
+global:
+  tier: standard
+  tenantId: standard-shared
+  hostnames: []
+  identityPlatform:
+    tenantId: ""
+  frontend:
+    bucketName: "tbd-cloudappdev-frontend-bucket"
+    bucketPrefix: standard
+    brandName: "TripPlanning"
+    colorScheme: "default"
+    brandIcon: ""
+  storage:
+    imagesBucketName: "tbd-cloudappdev-images-bucket"
+    imagesPrefix: standard
+  search:
+    indexName: tripentity-standard
+  cache:
+    keyPrefix: std
+
+apiRouter:
+  mode: standard
+  enforceKnownHosts: true
+  tenants: []
+  loadBalancer:
+    enabled: true
+    ip: ""
+    externalTrafficPolicy: Cluster
+
+services:
+  apiRouter:
+    replicas: 2
+  trip:
+    replicas: 2
+    resources:
+      requests:
+        cpu: "500m"
+        memory: "768Mi"
+      limits:
+        cpu: "2000m"
+        memory: "2Gi"
+  social:
+    replicas: 2
+    resources:
+      requests:
+        cpu: "300m"
+        memory: "512Mi"
+      limits:
+        cpu: "1000m"
+        memory: "1Gi"
+  externalInfo:
+    replicas: 2
+    resources:
+      requests:
+        cpu: "250m"
+        memory: "384Mi"
+      limits:
+        cpu: "1000m"
+        memory: "1Gi"
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 8
+  targetCPUUtilizationPercentage: 70
+  scaleUpStabilizationSeconds: 60
+  scaleDownStabilizationSeconds: 300
+
+backingServices:
+  postgres:
+    enabled: false
+  elasticsearch:
+    enabled: true
+  valkey:
+    enabled: true

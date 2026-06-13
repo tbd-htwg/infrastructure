@@ -14,3 +14,4 @@ github-pat-ghcr.txt
 **/crash.*.log
 **/*.tfplan
 **/plan.tfplan
+ms2/terraform/envs/dev/secrets.auto.tfvars

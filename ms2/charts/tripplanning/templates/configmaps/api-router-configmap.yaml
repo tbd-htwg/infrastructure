@@ -7,6 +7,30 @@ metadata:
     app.kubernetes.io/component: api-router
 data:
   default.conf: |
+    map $host $tripplanning_tenant_id {
+      default {{ .Values.global.tenantId | quote }};
+{{- range $tenant := .Values.apiRouter.tenants }}
+{{- range $tenant.hostnames }}
+      {{ . | quote }} {{ $tenant.tenantId | quote }};
+{{- end }}
+{{- end }}
+{{- range .Values.global.hostnames }}
+      {{ . | quote }} {{ $.Values.global.tenantId | quote }};
+{{- end }}
+    }
+
+    map $host $tripplanning_identity_tenant_id {
+      default {{ .Values.global.identityPlatform.tenantId | quote }};
+{{- range $tenant := .Values.apiRouter.tenants }}
+{{- range $tenant.hostnames }}
+      {{ . | quote }} {{ $tenant.identityPlatformTenantId | quote }};
+{{- end }}
+{{- end }}
+{{- range .Values.global.hostnames }}
+      {{ . | quote }} {{ $.Values.global.identityPlatform.tenantId | quote }};
+{{- end }}
+    }
+
     server {
       listen {{ .Values.services.apiRouter.port }};
       server_name _;
@@ -19,6 +43,12 @@ data:
         return 200 "ok\n";
       }
 
+{{- if .Values.apiRouter.enforceKnownHosts }}
+      if ($tripplanning_tenant_id = "") {
+        return 404;
+      }
+{{- end }}
+
       location = /api/v2/trips/search/countLikes {
         add_header X-Api-Router "tripplanning" always;
         proxy_pass http://social-service:{{ .Values.services.social.port }};
@@ -27,6 +57,8 @@ data:
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header {{ .Values.apiRouter.tenantHeader }} $tripplanning_tenant_id;
+        proxy_set_header {{ .Values.apiRouter.identityTenantHeader }} $tripplanning_identity_tenant_id;
       }
 
       location ~ ^/api/v2/trips/[^/]+/(community|comments|liked-by-current-user|like)$ {
@@ -37,6 +69,8 @@ data:
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header {{ .Values.apiRouter.tenantHeader }} $tripplanning_tenant_id;
+        proxy_set_header {{ .Values.apiRouter.identityTenantHeader }} $tripplanning_identity_tenant_id;
       }
 
       # Collection POST (text/uri-list body) — distinct from GET list on trip-service.
@@ -48,6 +82,8 @@ data:
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header {{ .Values.apiRouter.tenantHeader }} $tripplanning_tenant_id;
+        proxy_set_header {{ .Values.apiRouter.identityTenantHeader }} $tripplanning_identity_tenant_id;
       }
 
       location ~ ^/api/v2/users/[^/]+/likedTrips/[^/]+$ {
@@ -58,6 +94,8 @@ data:
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header {{ .Values.apiRouter.tenantHeader }} $tripplanning_tenant_id;
+        proxy_set_header {{ .Values.apiRouter.identityTenantHeader }} $tripplanning_identity_tenant_id;
       }
 
       location /api/v2/comments {
@@ -68,6 +106,8 @@ data:
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header {{ .Values.apiRouter.tenantHeader }} $tripplanning_tenant_id;
+        proxy_set_header {{ .Values.apiRouter.identityTenantHeader }} $tripplanning_identity_tenant_id;
       }
 
       location /api/v2/external {
@@ -78,6 +118,8 @@ data:
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header {{ .Values.apiRouter.tenantHeader }} $tripplanning_tenant_id;
+        proxy_set_header {{ .Values.apiRouter.identityTenantHeader }} $tripplanning_identity_tenant_id;
       }
 
       location /api/search {
@@ -88,6 +130,8 @@ data:
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header {{ .Values.apiRouter.tenantHeader }} $tripplanning_tenant_id;
+        proxy_set_header {{ .Values.apiRouter.identityTenantHeader }} $tripplanning_identity_tenant_id;
       }
 
       location / {
@@ -98,5 +142,7 @@ data:
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header {{ .Values.apiRouter.tenantHeader }} $tripplanning_tenant_id;
+        proxy_set_header {{ .Values.apiRouter.identityTenantHeader }} $tripplanning_identity_tenant_id;
       }
     }

@@ -2,7 +2,7 @@
 
 ## Status check (step 7)
 
-Step 7 is implemented in code: the Helm chart defines Deployments, Services, HTTPRoutes, ConfigMaps, optional HPAs, and secret references. It follows 12-factor (env-based config, stateless services, logs to stdout). It is usable once secrets are populated and the Gateway TLS setup is completed.
+Step 7 is implemented in code: the Helm chart defines Deployments, Services, LoadBalancer entrypoints, ConfigMaps, optional HPAs, and secret references. It follows 12-factor (env-based config, stateless services, logs to stdout).
 
 Known gaps to finish before a production rollout:
 - Secret values in GCP Secret Manager must be populated (placeholders only).
@@ -17,13 +17,13 @@ Known gaps to finish before a production rollout:
 
 ### GitOps (Flux)
 - Flux bootstrapped to reconcile [infrastructure/ms2/gitops/clusters/dev](../gitops/clusters/dev).
-- Platform add-ons: cert-manager, External Secrets Operator, Gateway, network policies.
+- Platform add-ons: cert-manager, External Secrets Operator, network policies.
 - Observability stack exists but is disabled in platform kustomization.
 
 ### App deployment
 - Helm chart at [infrastructure/ms2/charts/tripplanning](../charts/tripplanning) with:
   - trip-service, social-service, external-info-service
-  - HTTPRoute for the API host
+  - LoadBalancer-capable api-router Service
   - in-cluster Postgres, Redis, Elasticsearch (low-resource)
 - Free/shared tenant wired at [infrastructure/ms2/gitops/tenants/free/shared](../gitops/tenants/free/shared).
 
@@ -32,8 +32,8 @@ Known gaps to finish before a production rollout:
 - `flux-system`: Flux controllers and Git sources.
 - `cert-manager`: certificate manager.
 - `external-secrets`: External Secrets Operator.
-- `gateway-system`: Gateway resources for API routing.
 - `tripplanning-free`: free/shared tenant (services + backing DB/cache/search).
+- `tripplanning-standard`: Standard shared tenant runtime.
 - `default`: currently only baseline NetworkPolicy rules.
 
 ## Routing overview
@@ -42,26 +42,25 @@ Known gaps to finish before a production rollout:
   - DNS `k8s.tbd-htwg.de` -> GCP HTTPS LB -> GCS bucket `*-frontend-bucket`.
   - The same LB routes `/api/*` to the **api-router** NEG (trip, social, external-info paths).
 
-- API (direct / tooling):
-  - DNS `api.k8s.tbd-htwg.de` -> GKE Gateway -> HTTPRoute -> trip/social/external-info services.
-  - HTTPRoute lives in the Helm chart and routes paths to services.
-  - Browser clients should **not** call this host; use same-origin `/api/v2` on `k8s.tbd-htwg.de` instead.
+- Tenant API:
+  - Standard DNS `<tenant>.k8s.tbd-htwg.de` -> shared Standard LoadBalancer -> Standard api-router -> services.
+  - Enterprise DNS `<tenant>.enterprise.k8s.tbd-htwg.de` -> tenant LoadBalancer -> tenant api-router -> services.
 
 ### Routing diagram
 
 ```mermaid
 graph TD
   U[User] --> FQDN[k8s.tbd-htwg.de]
-  U --> API[api.k8s.tbd-htwg.de]
+  U --> API[Tenant API subdomain]
 
   FQDN --> LB[HTTPS Load Balancer]
   LB --> BUCKET[GCS Frontend Bucket]
 
-  API --> GWLb[GKE Gateway]
-  GWLb --> HR[HTTPRoute]
-  HR --> TRIP[trip-service]
-  HR --> SOCIAL[social-service]
-  HR --> EXT[external-info-service]
+  API --> KLB[Kubernetes LoadBalancer]
+  KLB --> ROUTER[api-router]
+  ROUTER --> TRIP[trip-service]
+  ROUTER --> SOCIAL[social-service]
+  ROUTER --> EXT[external-info-service]
 ```
 
 ## Application topology in the free/shared namespace
@@ -166,7 +165,7 @@ printf '%s' "${ghcr_config_json}" | gcloud secrets versions add tripplanning-ghc
 
 ### 4b) Let's Encrypt TLS (now wired)
 - cert-manager uses a ClusterIssuer named `letsencrypt-dns` with DNS-01 via Cloud DNS.
-- The Gateway TLS secret `api-tls` is issued for `api.k8s.tbd-htwg.de`.
+- Tenant API TLS/certificate handling must be configured for the chosen LoadBalancer exposure model.
 - IAM bindings are configured in Terraform for cert-manager to manage DNS records.
 - The `tripplanning-image-url-sig` signer account is managed in Terraform and the workload SA is allowed to impersonate it for signed GCS upload URLs.
 
@@ -252,6 +251,6 @@ To add new tenants later:
 
 ## Recommended next fixes
 
-- Wire Gateway TLS to a real certificate (managed cert or cert-manager).
+- Wire tenant LoadBalancer TLS/certificate handling for Standard and Enterprise domains.
 - Add Workload Identity IAM bindings for External Secrets.
 - Add tenant quotas and NetworkPolicies in tenant namespaces.

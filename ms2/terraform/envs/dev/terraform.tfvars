@@ -20,7 +20,6 @@ network = {
 gke = {
   cluster_name           = "tripplanning-gke"
   release_channel        = "REGULAR"
-  enable_gateway_api     = true
   private_cluster        = true
   master_ipv4_cidr_block = "172.16.0.0/28"
 }
@@ -40,8 +39,8 @@ firestore = {
 }
 
 frontend = {
-  domain                                 = "k8s.tbd-htwg.de"
-  enable_cdn                             = false
+  domain     = "k8s.tbd-htwg.de"
+  enable_cdn = false
   # api-router NEGs (both zones): routes /api/* to trip, social, and external-info.
   api_backend_neg_self_links = [
     "https://www.googleapis.com/compute/v1/projects/tbd-cloudappdev/zones/europe-west1-b/networkEndpointGroups/k8s1-5a871136-tripplanning-free-api-router-8088-dad08f08",
@@ -64,4 +63,10 @@ backend_wif = {
   owner       = "tbd-htwg"
   repo        = "backend"
   provider_id = "github-oidc-backend"
+}
+
+flux_bootstrap = {
+  namespace    = "flux-system"
+  manifest_dir = "../../../gitops/clusters/dev/flux-system"
+  git_username = "git"
 }

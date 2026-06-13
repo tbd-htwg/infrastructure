@@ -39,6 +39,10 @@ module "project_bootstrap" {
   ]
 
   iam_bindings = {
+    "roles/identityplatform.admin" = [
+      "serviceAccount:${local.service_account_emails["platform-admin"]}",
+      "serviceAccount:${local.service_account_emails["secrets_deployer"]}",
+    ]
     "roles/datastore.user" = [
       "serviceAccount:${local.service_account_emails["workload"]}",
     ]
@@ -115,7 +119,6 @@ module "gke_autopilot" {
 
   cluster_name           = var.gke.cluster_name
   release_channel        = var.gke.release_channel
-  enable_gateway_api     = var.gke.enable_gateway_api
   private_cluster        = var.gke.private_cluster
   master_ipv4_cidr_block = var.gke.master_ipv4_cidr_block
 
@@ -130,7 +133,7 @@ module "storage" {
   project_id = var.project_id
   location   = var.storage.location
 
-  buckets = {
+  buckets = merge({
     images = {
       name_suffix    = "images-bucket"
       storage_class  = "STANDARD"
@@ -167,7 +170,7 @@ module "storage" {
       force_destroy  = false
       cors           = []
     }
-  }
+  }, local.enterprise_image_buckets)
 }
 
 resource "google_storage_bucket_iam_member" "images_bucket_signer_viewer" {
@@ -178,6 +181,22 @@ resource "google_storage_bucket_iam_member" "images_bucket_signer_viewer" {
 
 resource "google_storage_bucket_iam_member" "images_bucket_signer_creator" {
   bucket = module.storage.bucket_names["images"]
+  role   = "roles/storage.objectCreator"
+  member = "serviceAccount:${local.service_account_emails["image_url_sig"]}"
+}
+
+resource "google_storage_bucket_iam_member" "enterprise_images_bucket_signer_viewer" {
+  for_each = local.enterprise_image_buckets
+
+  bucket = module.storage.bucket_names[each.key]
+  role   = "roles/storage.objectViewer"
+  member = "serviceAccount:${local.service_account_emails["image_url_sig"]}"
+}
+
+resource "google_storage_bucket_iam_member" "enterprise_images_bucket_signer_creator" {
+  for_each = local.enterprise_image_buckets
+
+  bucket = module.storage.bucket_names[each.key]
   role   = "roles/storage.objectCreator"
   member = "serviceAccount:${local.service_account_emails["image_url_sig"]}"
 }
@@ -214,18 +233,130 @@ module "frontend_lb" {
   secondary_managed_ssl_certificate_name = try(var.frontend.secondary_managed_ssl_certificate_name, null)
 }
 
-resource "google_compute_global_address" "api_gateway_ip" {
+resource "google_compute_address" "standard_lb_ip" {
   project = var.project_id
-  name    = "tripplanning-api-gateway-ip"
+  region  = var.region
+  name    = var.standard_load_balancer.name
 }
 
-resource "google_dns_record_set" "api_gateway" {
-  project      = var.project_id
-  name         = "api.${var.frontend.domain}."
-  type         = "A"
-  ttl          = 300
-  managed_zone = module.project_bootstrap.dns_zone_name
-  rrdatas      = [google_compute_global_address.api_gateway_ip.address]
+resource "google_compute_address" "enterprise_lb_ip" {
+  for_each = var.enterprise_tenants
+
+  project = var.project_id
+  region  = var.region
+  name    = coalesce(try(each.value.load_balancer.name, null), "tripplanning-ent-${each.key}-lb-ip")
+}
+
+module "standard_tenant_dns" {
+  for_each = var.standard_tenants
+  source   = "../../modules/tenant-dns"
+
+  project_id           = var.project_id
+  slug                 = each.key
+  tier                 = "STANDARD"
+  dns_zone_name        = module.project_bootstrap.dns_zone_name
+  host_base            = var.frontend.domain
+  enterprise_host_base = "enterprise.${var.frontend.domain}"
+  standard_lb_ip       = google_compute_address.standard_lb_ip.address
+}
+
+module "enterprise_tenant_dns" {
+  for_each = var.enterprise_tenants
+  source   = "../../modules/tenant-dns"
+
+  project_id           = var.project_id
+  slug                 = each.key
+  tier                 = "ENTERPRISE"
+  dns_zone_name        = module.project_bootstrap.dns_zone_name
+  host_base            = var.frontend.domain
+  enterprise_host_base = "enterprise.${var.frontend.domain}"
+  enterprise_lb_ip     = google_compute_address.enterprise_lb_ip[each.key].address
+}
+
+resource "google_identity_platform_tenant" "standard" {
+  for_each = var.standard_tenants
+
+  project                  = var.project_id
+  display_name             = each.value.identity_platform.display_name
+  allow_password_signup    = each.value.identity_platform.email_password_enabled
+  enable_email_link_signin = each.value.identity_platform.email_link_signin
+  disable_auth             = each.value.identity_platform.auth_disabled
+
+  depends_on = [
+    module.project_bootstrap,
+  ]
+}
+
+resource "google_identity_platform_tenant" "enterprise" {
+  for_each = var.enterprise_tenants
+
+  project                  = var.project_id
+  display_name             = each.value.identity_platform.display_name
+  allow_password_signup    = each.value.identity_platform.email_password_enabled
+  enable_email_link_signin = each.value.identity_platform.email_link_signin
+  disable_auth             = each.value.identity_platform.auth_disabled
+
+  depends_on = [
+    module.project_bootstrap,
+  ]
+}
+
+module "standard_cloudsql" {
+  count  = var.standard_cloudsql.enabled ? 1 : 0
+  source = "../../modules/tenant-cloudsql"
+
+  project_id                        = var.project_id
+  region                            = var.region
+  instance_name                     = var.standard_cloudsql.instance_name
+  database_version                  = var.standard_cloudsql.database_version
+  tier                              = var.standard_cloudsql.tier
+  disk_size_gb                      = var.standard_cloudsql.disk_size_gb
+  disk_autoresize                   = var.standard_cloudsql.disk_autoresize
+  availability_type                 = var.standard_cloudsql.availability_type
+  backup_enabled                    = var.standard_cloudsql.backup_enabled
+  point_in_time_recovery_enabled    = var.standard_cloudsql.point_in_time_recovery_enabled
+  private_network                   = module.network.network_self_link
+  create_private_service_connection = true
+  private_ip_range                  = var.standard_cloudsql.private_ip_range
+  databases                         = local.standard_tenant_databases
+  labels = {
+    app        = "tripplanning"
+    tier       = "standard"
+    managed_by = "terraform"
+  }
+
+  depends_on = [
+    module.project_bootstrap,
+  ]
+}
+
+module "enterprise_cloudsql" {
+  for_each = var.enterprise_tenants
+  source   = "../../modules/tenant-cloudsql"
+
+  project_id                        = var.project_id
+  region                            = var.region
+  instance_name                     = each.value.database.instance_name
+  database_version                  = each.value.database.database_version
+  tier                              = each.value.database.tier
+  disk_size_gb                      = each.value.database.disk_size_gb
+  disk_autoresize                   = each.value.database.disk_autoresize
+  availability_type                 = each.value.database.availability_type
+  backup_enabled                    = each.value.database.backup_enabled
+  point_in_time_recovery_enabled    = each.value.database.point_in_time_recovery_enabled
+  private_network                   = module.network.network_self_link
+  create_private_service_connection = false
+  databases                         = local.enterprise_tenant_databases[each.key]
+  labels = {
+    app        = "tripplanning"
+    tier       = "enterprise"
+    tenant_id  = each.key
+    managed_by = "terraform"
+  }
+
+  depends_on = [
+    module.standard_cloudsql,
+  ]
 }
 
 module "github_wif" {
@@ -295,4 +426,56 @@ resource "google_project_iam_member" "cert_manager_dns_admin" {
   project = var.project_id
   role    = "roles/dns.admin"
   member  = "serviceAccount:${local.service_account_emails["workload"]}"
+}
+
+moved {
+  from = terraform_data.flux_bootstrap[0]
+  to   = terraform_data.flux_bootstrap
+}
+
+resource "terraform_data" "flux_bootstrap" {
+
+  input = {
+    cluster_name  = module.gke_autopilot.cluster_name
+    location      = module.gke_autopilot.cluster_location
+    manifest_hash = local.flux_bootstrap_hash
+    manifest_dir  = local.flux_bootstrap_manifest_dir
+    namespace     = var.flux_bootstrap.namespace
+  }
+
+  provisioner "local-exec" {
+    interpreter = ["/bin/bash", "-c"]
+    environment = {
+      FLUX_GIT_USERNAME = var.flux_bootstrap.git_username
+      FLUX_GIT_PASSWORD = var.flux_bootstrap_git_password
+    }
+    command = <<-EOT
+      set -euo pipefail
+
+      gcloud container clusters get-credentials ${module.gke_autopilot.cluster_name} \
+        --region ${module.gke_autopilot.cluster_location} \
+        --project ${var.project_id}
+
+      kubectl create namespace ${var.flux_bootstrap.namespace} \
+        --dry-run=client \
+        -o yaml | kubectl apply -f -
+
+      if grep -q "secretRef:" ${local.flux_bootstrap_manifest_dir}/gotk-sync.yaml && [ -z "$FLUX_GIT_PASSWORD" ]; then
+        echo "flux_bootstrap_git_password is required because gotk-sync.yaml references secretRef: flux-system." >&2
+        exit 1
+      fi
+
+      kubectl -n ${var.flux_bootstrap.namespace} create secret generic flux-system \
+        --from-literal=username="$FLUX_GIT_USERNAME" \
+        --from-literal=password="$FLUX_GIT_PASSWORD" \
+        --dry-run=client \
+        -o yaml | kubectl apply -f -
+
+      kubectl apply -k ${local.flux_bootstrap_manifest_dir}
+    EOT
+  }
+
+  depends_on = [
+    module.gke_autopilot,
+  ]
 }
