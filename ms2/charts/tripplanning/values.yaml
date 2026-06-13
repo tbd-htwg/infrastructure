@@ -86,7 +86,7 @@ services:
       SPRING_DATASOURCE_USERNAME: "tripplanning_app"
       SPRING_DATASOURCE_DRIVER_CLASS_NAME: "org.postgresql.Driver"
       ELASTICSEARCH_PROTOCOL: "http"
-      ELASTICSEARCH_HOSTS: "elasticsearch:9200"
+      ELASTICSEARCH_HOSTS: "opensearch:9200"
       HIBERNATE_SEARCH_BACKEND_VERSION: "opensearch:2.19"
       SPRING_AUTOCONFIGURE_EXCLUDE: "org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchRestClientAutoConfiguration"
       SPRING_DATA_REDIS_HOST: "valkey"
@@ -257,7 +257,8 @@ backingServices:
         memory: "256Mi"
   elasticsearch:
     enabled: true
-    serviceName: elasticsearch
+    serviceName: opensearch
+    legacyServiceName: elasticsearch
     image: opensearchproject/opensearch:2.19.0
     javaOpts: "-Xms512m -Xmx512m"
     storageClassName: "standard"

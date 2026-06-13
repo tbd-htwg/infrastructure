@@ -214,6 +214,19 @@ jobs:
         if: env.APPLY_TERRAFORM == 'true'
         uses: hashicorp/setup-terraform@v3
 
+      - name: Optional Google Cloud SDK setup
+        if: env.APPLY_TERRAFORM == 'true'
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.GCP_PROJECT_ID }}
+
+      - name: Optional kubectl setup
+        if: env.APPLY_TERRAFORM == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          gcloud components install kubectl --quiet
+
       - name: Optional Terraform apply and rerender computed IDs
         if: env.APPLY_TERRAFORM == 'true'
         shell: bash

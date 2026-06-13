@@ -21,8 +21,10 @@ resource "google_container_cluster" "autopilot" {
     workload_pool = "${var.project_id}.svc.id.goog"
   }
 
+  # Autopilot currently only accepts STANDARD here. The app still does not use
+  # Gateway API resources; tenant traffic is routed through LoadBalancer Services.
   gateway_api_config {
-    channel = "CHANNEL_DISABLED"
+    channel = "CHANNEL_STANDARD"
   }
 
   private_cluster_config {

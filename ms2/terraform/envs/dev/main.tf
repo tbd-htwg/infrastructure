@@ -452,6 +452,17 @@ resource "terraform_data" "flux_bootstrap" {
     command = <<-EOT
       set -euo pipefail
 
+      if ! command -v gcloud >/dev/null 2>&1; then
+        echo "gcloud is required for Flux bootstrap. Install the Google Cloud CLI before running terraform apply." >&2
+        exit 1
+      fi
+
+      if ! command -v kubectl >/dev/null 2>&1; then
+        echo "kubectl is required for Flux bootstrap." >&2
+        echo "If gcloud is package-manager managed, install: sudo apt-get install kubectl google-cloud-cli-gke-gcloud-auth-plugin" >&2
+        exit 1
+      fi
+
       gcloud container clusters get-credentials ${module.gke_autopilot.cluster_name} \
         --region ${module.gke_autopilot.cluster_location} \
         --project ${var.project_id}
@@ -471,7 +482,10 @@ resource "terraform_data" "flux_bootstrap" {
         --dry-run=client \
         -o yaml | kubectl apply -f -
 
-      kubectl apply -k ${local.flux_bootstrap_manifest_dir}
+      kubectl apply -f ${local.flux_bootstrap_manifest_dir}/gotk-components.yaml
+      kubectl wait --for=condition=Established crd/gitrepositories.source.toolkit.fluxcd.io --timeout=120s
+      kubectl wait --for=condition=Established crd/kustomizations.kustomize.toolkit.fluxcd.io --timeout=120s
+      kubectl apply -f ${local.flux_bootstrap_manifest_dir}/gotk-sync.yaml
     EOT
   }
 

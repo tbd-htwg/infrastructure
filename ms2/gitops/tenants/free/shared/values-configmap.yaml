@@ -12,18 +12,18 @@ data:
       apiRouter:
         replicas: 2
       trip:
-        replicas: 2
+        replicas: 1
         image:
           repository: ghcr.io/tbd-htwg/backend/tripplanning-trip-service
           tag: latest
           pullPolicy: Always
         resources:
           requests:
-            cpu: "750m"
-            memory: "768Mi"
+            cpu: "250m"
+            memory: "512Mi"
           limits:
-            cpu: "2500m"
-            memory: "1536Mi"
+            cpu: "1000m"
+            memory: "1024Mi"
         terminationGracePeriodSeconds: 60
         rollingUpdate:
           maxSurge: 0
@@ -45,10 +45,10 @@ data:
           pullPolicy: Always
         resources:
           requests:
-            cpu: "500m"
-            memory: "512Mi"
+            cpu: "250m"
+            memory: "384Mi"
           limits:
-            cpu: "1000m"
+            cpu: "750m"
             memory: "768Mi"
         env:
           SPRING_DATA_REDIS_HOST: "valkey"
@@ -62,10 +62,10 @@ data:
           pullPolicy: Always
         resources:
           requests:
-            cpu: "500m"
-            memory: "512Mi"
+            cpu: "250m"
+            memory: "384Mi"
           limits:
-            cpu: "1000m"
+            cpu: "750m"
             memory: "768Mi"
         bootstrap:
           waitForValkey: false
@@ -82,15 +82,15 @@ data:
         storageSize: 1Gi
         resources:
           requests:
-            cpu: "500m"
-            memory: "1Gi"
+            cpu: "100m"
+            memory: "256Mi"
           limits:
-            cpu: "4000m"
-            memory: "2Gi"
+            cpu: "500m"
+            memory: "512Mi"
         extraConfigArgs:
-          - max_connections=150
-          - shared_buffers=256MB
-          - effective_cache_size=768MB
+          - max_connections=50
+          - shared_buffers=64MB
+          - effective_cache_size=256MB
       valkey:
         serviceName: valkey
         image: valkey/valkey:8-alpine
@@ -103,16 +103,16 @@ data:
             memory: "512Mi"
       elasticsearch:
         image: opensearchproject/opensearch:2.19.0
-        javaOpts: "-Xms768m -Xmx768m"
+        javaOpts: "-Xms384m -Xmx384m"
         storageClassName: "standard-hdd-wffc"
         storageSize: 1Gi
         resources:
           requests:
-            cpu: "500m"
-            memory: "1536Mi"
+            cpu: "250m"
+            memory: "768Mi"
           limits:
-            cpu: "1500m"
-            memory: "2Gi"
+            cpu: "1000m"
+            memory: "1280Mi"
     autoscaling:
       enabled: true
       minReplicas: 1
@@ -122,8 +122,8 @@ data:
       scaleUpStabilizationSeconds: 60
       scaleDownStabilizationSeconds: 300
       trip:
-        minReplicas: 2
-        maxReplicas: 4
+        minReplicas: 1
+        maxReplicas: 2
         targetCPUUtilizationPercentage: 70
         targetMemoryUtilizationPercentage: 0
       social:

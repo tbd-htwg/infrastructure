@@ -41,23 +41,30 @@ It deploys:
 3. Set DNS zone/domain values.
 4. Flux bootstrap is always enabled for this environment.
 5. For private Git repositories, provide `flux_bootstrap_git_password` through a local uncommitted `secrets.auto.tfvars` file or `TF_VAR_flux_bootstrap_git_password`.
-6. Populate or plan the required Secret Manager values:
+6. Install local bootstrap tools on the machine that runs Terraform:
+
+```bash
+sudo apt-get update
+sudo apt-get install kubectl google-cloud-cli-gke-gcloud-auth-plugin
+```
+
+7. Populate or plan the required Secret Manager values:
    - `tripplanning-ghcr-pull-dockerconfigjson`
    - `tripplanning-jwt-secret`
    - `tripplanning-internal-secret`
    - `tripplanning-google-maps-api-key`
    - `tripplanning-viator-api-key`
-7. Verify that `gitops/clusters/dev/flux-system/gotk-sync.yaml` points at the correct GitHub repository, branch, and path.
-8. Run:
+8. Verify that `gitops/clusters/dev/flux-system/gotk-sync.yaml` points at the correct GitHub repository, branch, and path.
+9. Run:
 
 ```bash
 terraform -chdir=infrastructure/ms2/terraform/envs/dev init
 terraform -chdir=infrastructure/ms2/terraform/envs/dev apply
 ```
 
-9. Terraform creates the cluster and bootstraps Flux by applying `gitops/clusters/dev/flux-system`.
-10. Flux then installs platform and tenant Kubernetes resources from Git.
-11. Run smoke tests for frontend, tenant API routing, Identity Platform login, and service health.
+10. Terraform creates the cluster and bootstraps Flux by applying `gitops/clusters/dev/flux-system`.
+11. Flux then installs platform and tenant Kubernetes resources from Git.
+12. Run smoke tests for frontend, tenant API routing, Identity Platform login, and service health.
 
 `flux_bootstrap.manifest_dir` is relative to `terraform/envs/dev`; for this repository it should stay `../../../gitops/clusters/dev/flux-system`.
 
@@ -169,6 +176,14 @@ or create the ignored local file `infrastructure/ms2/terraform/envs/dev/secrets.
 
 ```hcl
 flux_bootstrap_git_password = "github_pat_or_token"
+```
+
+When reusing an old project, some Secret Manager secrets may already exist outside the current Terraform state. Import them instead of deleting them. Example:
+
+```bash
+terraform -chdir=infrastructure/ms2/terraform/envs/dev import \
+  'module.project_bootstrap.google_secret_manager_secret.secrets["tripplanning-auth-test-bearer-token"]' \
+  projects/tbd-cloudappdev/secrets/tripplanning-auth-test-bearer-token
 ```
 
 Important current limitation:
