@@ -178,11 +178,23 @@ Required GitHub configuration for workflow-based provisioning:
 - Variables in the infrastructure repo: `GCP_PROJECT_ID`, `BACKEND_REPOSITORY`, and optional `TENANT_PROVISION_APPLY_TERRAFORM=true`.
 - Repository permissions: GitHub Actions must allow `contents: write` and `id-token: write`.
 
+Terraform creates the infrastructure repository identity for optional CI Terraform applies. After applying Terraform, copy these outputs into the infrastructure repository environment `gke-dev`:
+
+```bash
+terraform -chdir=infrastructure/ms2/terraform/envs/dev output infra_wif_provider
+terraform -chdir=infrastructure/ms2/terraform/envs/dev output infra_terraform_service_account
+```
+
+Use them as:
+
+- `GCP_WORKLOAD_IDENTITY_PROVIDER` = `infra_wif_provider`
+- `GCP_TERRAFORM_SERVICE_ACCOUNT` = `infra_terraform_service_account`
+
 Use CI Terraform apply only after the Terraform backend is shared/remote. Otherwise, apply locally and commit the rerendered outputs.
 
 ## Secret Manager Values
 
-Terraform creates the Secret Manager secret resources and IAM permissions, but it does not commit or manage the runtime secret values.
+Terraform creates the Secret Manager secret resources and IAM permissions. Most runtime values are synced by backend CI. The platform GitHub dispatch token can be written automatically by Terraform when `platform_github_dispatch_token` is provided.
 
 The values are synced by the backend repository workflow `.github/workflows/sync-gke-secrets.yml`. Configure these GitHub secrets in the backend repository environment `gke-dev`:
 
@@ -192,14 +204,22 @@ The values are synced by the backend repository workflow `.github/workflows/sync
 - `VIATOR_API_KEY` -> `tripplanning-viator-api-key`
 - `GHCR_PULL_USERNAME` and `GHCR_PULL_TOKEN` -> `tripplanning-ghcr-pull-dockerconfigjson`
 
-For application-driven tenant creation, add a GitHub token with permission to dispatch workflows in the infrastructure repository:
+For application-driven tenant creation, provide a GitHub token with permission to dispatch workflows in the infrastructure repository.
+
+Local Terraform apply:
 
 ```bash
-printf '%s' "github_pat_or_token" | gcloud secrets versions add \
-  tripplanning-platform-github-dispatch-token \
-  --data-file=- \
-  --project tbd-cloudappdev
+export TF_VAR_platform_github_dispatch_token="github_pat_or_token"
+export TF_VAR_flux_bootstrap_git_password="github_pat_or_token"
+terraform -chdir=infrastructure/ms2/terraform/envs/dev apply
 ```
+
+CI Terraform apply:
+
+- Add infrastructure repo environment secret `PLATFORM_GITHUB_DISPATCH_TOKEN`.
+- `tenant-provision.yml` passes it to Terraform as `TF_VAR_platform_github_dispatch_token`.
+
+Terraform stores this value in Terraform state because Secret Manager versions are stateful Terraform resources. Use the remote state bucket with restricted access and rotate the token if it is ever exposed.
 
 The backend workflow also needs backend repo variables `GCP_PROJECT_ID`, `GCP_WIF_PROVIDER`, and `GCP_SECRETS_DEPLOYER_SA_EMAIL` or `GCP_BACKEND_DEPLOYER_SA_EMAIL`. Terraform outputs the required values as `backend_wif_provider` and `secrets_deployer_sa_email`.
 

@@ -45,6 +45,7 @@ module "project_bootstrap" {
     "roles/identityplatform.admin" = [
       "serviceAccount:${local.service_account_emails["platform-admin"]}",
       "serviceAccount:${local.service_account_emails["secrets_deployer"]}",
+      "serviceAccount:${local.infra_terraform_service_account_email}",
     ]
     "roles/datastore.user" = [
       "serviceAccount:${local.service_account_emails["workload"]}",
@@ -55,6 +56,7 @@ module "project_bootstrap" {
     ]
     "roles/secretmanager.admin" = [
       "serviceAccount:${local.service_account_emails["secrets_deployer"]}",
+      "serviceAccount:${local.infra_terraform_service_account_email}",
     ]
     "roles/artifactregistry.reader" = [
       "serviceAccount:${local.service_account_emails["workload"]}",
@@ -93,6 +95,18 @@ module "project_bootstrap" {
       }
     }
   }
+}
+
+resource "google_secret_manager_secret_version" "platform_github_dispatch_token" {
+  count = var.platform_github_dispatch_token == null || var.platform_github_dispatch_token == "" ? 0 : 1
+
+  project     = var.project_id
+  secret      = "projects/${var.project_id}/secrets/tripplanning-platform-github-dispatch-token"
+  secret_data = var.platform_github_dispatch_token
+
+  depends_on = [
+    module.project_bootstrap,
+  ]
 }
 
 module "network" {
@@ -424,12 +438,60 @@ resource "google_iam_workload_identity_pool_provider" "backend" {
   }
 
   attribute_condition = "assertion.repository == '${var.backend_wif.owner}/${var.backend_wif.repo}'"
+
+  depends_on = [
+    module.github_wif,
+  ]
 }
 
 resource "google_service_account_iam_member" "backend_wif_binding" {
   service_account_id = "projects/${var.project_id}/serviceAccounts/${local.service_account_emails["secrets_deployer"]}"
   role               = "roles/iam.workloadIdentityUser"
   member             = "principalSet://iam.googleapis.com/projects/${data.google_project.current.number}/locations/global/workloadIdentityPools/${var.github_wif.pool_id}/attribute.repository/${var.backend_wif.owner}/${var.backend_wif.repo}"
+}
+
+resource "google_service_account" "infra_terraform_deployer" {
+  project      = var.project_id
+  account_id   = var.infra_wif.service_account_name
+  display_name = "Infrastructure Terraform deployer"
+  description  = "GitHub Actions service account for infrastructure repo Terraform applies."
+}
+
+resource "google_iam_workload_identity_pool_provider" "infra" {
+  project                            = var.project_id
+  workload_identity_pool_id          = var.github_wif.pool_id
+  workload_identity_pool_provider_id = var.infra_wif.provider_id
+  display_name                       = "GitHub OIDC Infrastructure"
+
+  oidc {
+    issuer_uri = "https://token.actions.githubusercontent.com"
+  }
+
+  attribute_mapping = {
+    "google.subject"       = "assertion.sub"
+    "attribute.repository" = "assertion.repository"
+    "attribute.actor"      = "assertion.actor"
+  }
+
+  attribute_condition = "assertion.repository == '${var.infra_wif.owner}/${var.infra_wif.repo}'"
+
+  depends_on = [
+    module.github_wif,
+  ]
+}
+
+resource "google_service_account_iam_member" "infra_wif_binding" {
+  service_account_id = google_service_account.infra_terraform_deployer.name
+  role               = "roles/iam.workloadIdentityUser"
+  member             = "principalSet://iam.googleapis.com/projects/${data.google_project.current.number}/locations/global/workloadIdentityPools/${var.github_wif.pool_id}/attribute.repository/${var.infra_wif.owner}/${var.infra_wif.repo}"
+}
+
+resource "google_project_iam_member" "infra_terraform_project_roles" {
+  for_each = local.infra_terraform_project_roles
+
+  project = var.project_id
+  role    = each.value
+  member  = "serviceAccount:${google_service_account.infra_terraform_deployer.email}"
 }
 
 resource "google_service_account_iam_member" "external_secrets_wi" {

@@ -45,6 +45,7 @@ jobs:
       GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
       GCP_TERRAFORM_SERVICE_ACCOUNT: ${{ secrets.GCP_TERRAFORM_SERVICE_ACCOUNT }}
       FLUX_BOOTSTRAP_GIT_PASSWORD: ${{ secrets.FLUX_BOOTSTRAP_GIT_PASSWORD }}
+      PLATFORM_GITHUB_DISPATCH_TOKEN: ${{ secrets.PLATFORM_GITHUB_DISPATCH_TOKEN }}
 
     steps:
       - name: Checkout
@@ -233,7 +234,9 @@ jobs:
         run: |
           set -euo pipefail
           terraform -chdir="${TF_DIR}" init
-          TF_VAR_flux_bootstrap_git_password="${FLUX_BOOTSTRAP_GIT_PASSWORD}" terraform -chdir="${TF_DIR}" apply -auto-approve
+          TF_VAR_flux_bootstrap_git_password="${FLUX_BOOTSTRAP_GIT_PASSWORD}" \
+          TF_VAR_platform_github_dispatch_token="${PLATFORM_GITHUB_DISPATCH_TOKEN}" \
+            terraform -chdir="${TF_DIR}" apply -auto-approve
           terraform -chdir="${TF_DIR}" output -json > /tmp/ms2-terraform-output.json
           (cd "${MS2_DIR}" && python3 scripts/render-tenants.py --terraform-output-json /tmp/ms2-terraform-output.json)
 

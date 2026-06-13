@@ -122,6 +122,17 @@ variable "backend_wif" {
   description = "GitHub Workload Identity Federation settings for backend secret sync."
 }
 
+variable "infra_wif" {
+  type = object({
+    owner                = optional(string, "tbd-htwg")
+    repo                 = optional(string, "infrastructure")
+    provider_id          = optional(string, "github-oidc-infrastructure")
+    service_account_name = optional(string, "terraform-deployer")
+  })
+  description = "GitHub Workload Identity Federation settings for infrastructure repo Terraform applies."
+  default     = {}
+}
+
 variable "flux_bootstrap" {
   type = object({
     namespace    = optional(string, "flux-system")
@@ -136,6 +147,13 @@ variable "flux_bootstrap_git_password" {
   type        = string
   description = "Git token/password used for the flux-system Git auth secret. Required because gotk-sync.yaml references secretRef."
   sensitive   = true
+}
+
+variable "platform_github_dispatch_token" {
+  type        = string
+  description = "Optional GitHub token stored in Secret Manager for platform-service repository_dispatch calls."
+  sensitive   = true
+  default     = null
 }
 
 variable "standard_cloudsql" {

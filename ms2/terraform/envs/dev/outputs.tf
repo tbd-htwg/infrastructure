@@ -64,6 +64,16 @@ output "backend_wif_provider" {
   value       = google_iam_workload_identity_pool_provider.backend.name
 }
 
+output "infra_wif_provider" {
+  description = "WIF provider name for infrastructure GitHub Actions."
+  value       = google_iam_workload_identity_pool_provider.infra.name
+}
+
+output "infra_terraform_service_account" {
+  description = "Service account email for infrastructure Terraform applies from GitHub Actions."
+  value       = google_service_account.infra_terraform_deployer.email
+}
+
 output "frontend_deployer_sa" {
   description = "Frontend deployer service account email."
   value       = module.github_wif.deployer_service_account

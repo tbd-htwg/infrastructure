@@ -6,6 +6,7 @@ locals {
     gitops           = "gitops@${var.project_id}.iam.gserviceaccount.com"
     workload         = "workload@${var.project_id}.iam.gserviceaccount.com"
   }
+  infra_terraform_service_account_email = "${var.infra_wif.service_account_name}@${var.project_id}.iam.gserviceaccount.com"
 
   standard_tenant_databases = {
     for tenant_id, tenant in var.standard_tenants : tenant_id => {
@@ -49,4 +50,22 @@ locals {
   flux_bootstrap_hash = sha256(join("", [
     for file in local.flux_bootstrap_files : filesha256("${local.flux_bootstrap_manifest_dir}/${file}")
   ]))
+
+  infra_terraform_project_roles = toset([
+    "roles/compute.admin",
+    "roles/container.admin",
+    "roles/dns.admin",
+    "roles/iam.serviceAccountAdmin",
+    "roles/iam.serviceAccountUser",
+    "roles/iam.workloadIdentityPoolAdmin",
+    "roles/identityplatform.admin",
+    "roles/logging.admin",
+    "roles/monitoring.admin",
+    "roles/resourcemanager.projectIamAdmin",
+    "roles/secretmanager.admin",
+    "roles/serviceusage.serviceUsageAdmin",
+    "roles/cloudsql.admin",
+    "roles/storage.admin",
+    "roles/datastore.owner",
+  ])
 }

@@ -51,6 +51,27 @@ frontend = {
   secondary_managed_ssl_certificate_name = "frontend-cert-v2"
 }
 
+github_wif = {
+  owner                = "GITHUB_ORG"
+  repo                 = "frontend"
+  pool_id              = "github-actions"
+  provider_id          = "github-oidc"
+  service_account_name = "frontend-deployer"
+}
+
+backend_wif = {
+  owner       = "GITHUB_ORG"
+  repo        = "backend"
+  provider_id = "github-oidc-backend"
+}
+
+infra_wif = {
+  owner                = "GITHUB_ORG"
+  repo                 = "infrastructure"
+  provider_id          = "github-oidc-infrastructure"
+  service_account_name = "terraform-deployer"
+}
+
 standard_cloudsql = {
   enabled           = true
   instance_name     = "tripplanning-standard"
@@ -149,3 +170,8 @@ flux_bootstrap = {
 # Use a GitHub token for private repositories. Prefer passing this via
 # TF_VAR_flux_bootstrap_git_password or a local uncommitted tfvars file.
 flux_bootstrap_git_password = "REPLACE_WITH_GITHUB_TOKEN"
+
+# Optional: if set, Terraform writes this token into Secret Manager as
+# tripplanning-platform-github-dispatch-token for platform-service tenant creation.
+# Prefer TF_VAR_platform_github_dispatch_token or an uncommitted secrets.auto.tfvars file.
+# platform_github_dispatch_token = "REPLACE_WITH_GITHUB_DISPATCH_TOKEN"
