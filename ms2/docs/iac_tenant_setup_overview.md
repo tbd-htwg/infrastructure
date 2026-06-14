@@ -225,6 +225,10 @@ The infrastructure Terraform service account needs enough read/write permissions
 gcloud projects add-iam-policy-binding tbd-cloudappdev \
   --member="serviceAccount:terraform-deployer@tbd-cloudappdev.iam.gserviceaccount.com" \
   --role="roles/artifactregistry.admin"
+
+gcloud projects add-iam-policy-binding tbd-cloudappdev \
+  --member="serviceAccount:terraform-deployer@tbd-cloudappdev.iam.gserviceaccount.com" \
+  --role="roles/servicenetworking.networksAdmin"
 ```
 
 Then rerun `terraform plan` or the tenant provisioning workflow. Terraform will keep the role in code afterwards.
