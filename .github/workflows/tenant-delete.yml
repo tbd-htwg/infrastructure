@@ -1,0 +1,157 @@
+name: Tenant delete
+
+on:
+  workflow_dispatch:
+    inputs:
+      slug:
+        description: Tenant slug to delete
+        required: true
+      tier:
+        description: STANDARD or ENTERPRISE
+        required: true
+        type: choice
+        options:
+          - STANDARD
+          - ENTERPRISE
+      confirm_slug:
+        description: Repeat the tenant slug to confirm deletion
+        required: true
+
+permissions:
+  contents: write
+  id-token: write
+
+concurrency:
+  group: tenant-delete-${{ inputs.slug }}
+  cancel-in-progress: false
+
+jobs:
+  delete:
+    runs-on: ubuntu-latest
+    environment: gke-dev
+    env:
+      MS2_DIR: ms2
+      TF_DIR: ms2/terraform/envs/dev
+      GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+      GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+      GCP_TERRAFORM_SERVICE_ACCOUNT: ${{ secrets.GCP_TERRAFORM_SERVICE_ACCOUNT }}
+      FLUX_BOOTSTRAP_GIT_PASSWORD: ${{ secrets.FLUX_BOOTSTRAP_GIT_PASSWORD }}
+      PLATFORM_GITHUB_DISPATCH_TOKEN: ${{ secrets.PLATFORM_GITHUB_DISPATCH_TOKEN }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate deletion request
+        id: payload
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          slug="${{ inputs.slug }}"
+          confirm_slug="${{ inputs.confirm_slug }}"
+          tier="$(echo "${{ inputs.tier }}" | tr '[:lower:]' '[:upper:]')"
+
+          if [[ "${slug}" != "${confirm_slug}" ]]; then
+            echo "confirm_slug must exactly match slug" >&2
+            exit 1
+          fi
+          if [[ ! "${slug}" =~ ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ ]]; then
+            echo "Invalid slug: ${slug}" >&2
+            exit 1
+          fi
+          if [[ "${tier}" != "STANDARD" && "${tier}" != "ENTERPRISE" ]]; then
+            echo "tier must be STANDARD or ENTERPRISE" >&2
+            exit 1
+          fi
+
+          if [[ "${tier}" == "STANDARD" ]]; then
+            tenant_path="${MS2_DIR}/tenants/standard/${slug}.yaml"
+          else
+            tenant_path="${MS2_DIR}/tenants/enterprise/${slug}.yaml"
+          fi
+
+          if [[ ! -f "${tenant_path}" ]]; then
+            echo "Tenant file does not exist: ${tenant_path}" >&2
+            exit 1
+          fi
+
+          echo "slug=${slug}" >> "$GITHUB_OUTPUT"
+          echo "tenant_path=${tenant_path}" >> "$GITHUB_OUTPUT"
+
+      - name: Install renderer dependencies
+        run: python3 -m pip install pyyaml
+
+      - name: Read externally managed identity tenant
+        id: tenant_config
+        shell: bash
+        run: |
+          set -euo pipefail
+          export TENANT_PATH="${{ steps.payload.outputs.tenant_path }}"
+          python3 <<'PY' >> "$GITHUB_OUTPUT"
+          import os
+          import yaml
+
+          with open(os.environ["TENANT_PATH"], "r", encoding="utf-8") as handle:
+              tenant = yaml.safe_load(handle) or {}
+          identity_tenant_id = (tenant.get("identityPlatform") or {}).get("tenantId", "")
+          print(f"identity_platform_tenant_id={identity_tenant_id}")
+          PY
+
+      - name: Remove tenant definition and render Terraform input
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm "${{ steps.payload.outputs.tenant_path }}"
+          (cd "${MS2_DIR}" && python3 scripts/render-tenants.py --terraform-only)
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ env.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ env.GCP_TERRAFORM_SERVICE_ACCOUNT }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Setup Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.GCP_PROJECT_ID }}
+
+      - name: Setup kubectl
+        shell: bash
+        run: |
+          set -euo pipefail
+          gcloud components install kubectl --quiet
+
+      - name: Delete externally managed Identity Platform tenant
+        if: steps.tenant_config.outputs.identity_platform_tenant_id != ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          access_token="$(gcloud auth print-access-token)"
+          curl --fail-with-body -sS \
+            -X DELETE \
+            -H "Authorization: Bearer ${access_token}" \
+            "https://identitytoolkit.googleapis.com/v2/projects/${GCP_PROJECT_ID}/tenants/${{ steps.tenant_config.outputs.identity_platform_tenant_id }}"
+
+      - name: Terraform destroy tenant resources and rerender GitOps
+        shell: bash
+        run: |
+          set -euo pipefail
+          terraform -chdir="${TF_DIR}" init -input=false
+          TF_VAR_flux_bootstrap_git_password="${FLUX_BOOTSTRAP_GIT_PASSWORD}" \
+          TF_VAR_platform_github_dispatch_token="${PLATFORM_GITHUB_DISPATCH_TOKEN}" \
+            terraform -chdir="${TF_DIR}" apply -auto-approve -input=false
+          terraform -chdir="${TF_DIR}" output -json > /tmp/ms2-terraform-output.json
+          (cd "${MS2_DIR}" && python3 scripts/render-tenants.py --terraform-output-json /tmp/ms2-terraform-output.json)
+
+      - name: Commit tenant deletion
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Delete tenant ${{ steps.payload.outputs.slug }}"
+          file_pattern: |
+            ms2/tenants/**
+            ms2/terraform/envs/dev/generated-tenants.auto.tfvars.json
+            ms2/gitops/tenants/**

@@ -16,6 +16,16 @@ locals {
     }
   }
 
+  standard_identity_platform_tenants = {
+    for tenant_id, tenant in var.standard_tenants : tenant_id => tenant
+    if try(tenant.identity_platform.tenant_id, null) == null || try(tenant.identity_platform.tenant_id, "") == ""
+  }
+
+  enterprise_identity_platform_tenants = {
+    for tenant_id, tenant in var.enterprise_tenants : tenant_id => tenant
+    if try(tenant.identity_platform.tenant_id, null) == null || try(tenant.identity_platform.tenant_id, "") == ""
+  }
+
   enterprise_tenant_databases = {
     for tenant_id, tenant in var.enterprise_tenants : tenant_id => {
       primary = {

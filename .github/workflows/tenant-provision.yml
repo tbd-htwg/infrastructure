@@ -67,6 +67,7 @@ jobs:
             tier="${{ github.event.client_payload.tier || '' }}"
             brand_name="${{ github.event.client_payload.brandName || '' }}"
             color_scheme="${{ github.event.client_payload.colorScheme || 'default' }}"
+            identity_platform_tenant_id="${{ github.event.client_payload.identityPlatformTenantId || '' }}"
           fi
 
           if [[ -z "${tier}" && "${GITHUB_EVENT_NAME}" == "repository_dispatch" ]]; then
@@ -94,6 +95,7 @@ jobs:
           echo "tier=${tier}" >> "$GITHUB_OUTPUT"
           echo "brand_name=${brand_name}" >> "$GITHUB_OUTPUT"
           echo "color_scheme=${color_scheme}" >> "$GITHUB_OUTPUT"
+          echo "identity_platform_tenant_id=${identity_platform_tenant_id:-}" >> "$GITHUB_OUTPUT"
 
       - name: Install renderer dependencies
         run: python3 -m pip install pyyaml
@@ -106,6 +108,7 @@ jobs:
           tier="${{ steps.payload.outputs.tier }}"
           brand_name="${{ steps.payload.outputs.brand_name }}"
           color_scheme="${{ steps.payload.outputs.color_scheme }}"
+          identity_platform_tenant_id="${{ steps.payload.outputs.identity_platform_tenant_id }}"
           project_id="${GCP_PROJECT_ID}"
 
           if [[ "${tier}" == "STANDARD" ]]; then
@@ -125,6 +128,7 @@ jobs:
           export TENANT_TIER="${tier}"
           export TENANT_BRAND_NAME="${brand_name}"
           export TENANT_COLOR_SCHEME="${color_scheme}"
+          export TENANT_IDENTITY_PLATFORM_TENANT_ID="${identity_platform_tenant_id}"
           export TENANT_PROJECT_ID="${project_id}"
           python3 <<'PY'
           import os
@@ -136,18 +140,23 @@ jobs:
           tier = os.environ["TENANT_TIER"]
           brand_name = os.environ["TENANT_BRAND_NAME"]
           color_scheme = os.environ["TENANT_COLOR_SCHEME"]
+          identity_platform_tenant_id = os.environ["TENANT_IDENTITY_PLATFORM_TENANT_ID"]
           project_id = os.environ["TENANT_PROJECT_ID"]
+
+          identity = {
+              "displayName": f"{slug}-{tier.lower()}",
+              "emailPasswordEnabled": True,
+              "mfaEnabled": tier == "ENTERPRISE",
+          }
+          if identity_platform_tenant_id:
+              identity["tenantId"] = identity_platform_tenant_id
 
           if tier == "STANDARD":
               tenant = {
                   "tenantId": slug,
                   "tier": "standard",
                   "hostnames": [f"{slug}.k8s.tbd-htwg.de"],
-                  "identityPlatform": {
-                      "displayName": f"{slug}-standard",
-                      "emailPasswordEnabled": True,
-                      "mfaEnabled": False,
-                  },
+                  "identityPlatform": identity,
                   "frontend": {
                       "bucketPrefix": f"standard/{slug}",
                       "brandName": brand_name,
@@ -169,11 +178,7 @@ jobs:
                   "tier": "enterprise",
                   "namespace": f"tripplanning-ent-{slug}",
                   "hostnames": [f"{slug}.enterprise.k8s.tbd-htwg.de"],
-                  "identityPlatform": {
-                      "displayName": f"{slug}-enterprise",
-                      "emailPasswordEnabled": True,
-                      "mfaEnabled": True,
-                  },
+                  "identityPlatform": identity,
                   "frontend": {
                       "bucketPrefix": f"enterprise/{slug}",
                       "brandName": brand_name,
@@ -233,10 +238,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          terraform -chdir="${TF_DIR}" init
+          terraform -chdir="${TF_DIR}" init -input=false
           TF_VAR_flux_bootstrap_git_password="${FLUX_BOOTSTRAP_GIT_PASSWORD}" \
           TF_VAR_platform_github_dispatch_token="${PLATFORM_GITHUB_DISPATCH_TOKEN}" \
-            terraform -chdir="${TF_DIR}" apply -auto-approve
+            terraform -chdir="${TF_DIR}" apply -auto-approve -input=false
           terraform -chdir="${TF_DIR}" output -json > /tmp/ms2-terraform-output.json
           (cd "${MS2_DIR}" && python3 scripts/render-tenants.py --terraform-output-json /tmp/ms2-terraform-output.json)
 

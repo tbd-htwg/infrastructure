@@ -110,8 +110,20 @@ output "tenant_dns_records" {
 output "identity_platform_tenant_ids" {
   description = "Identity Platform tenant IDs by tier and tenant key."
   value = {
-    standard   = { for tenant_id, tenant in google_identity_platform_tenant.standard : tenant_id => try(regex("[^/]+$", tenant.name), regex("[^/]+$", tenant.id)) }
-    enterprise = { for tenant_id, tenant in google_identity_platform_tenant.enterprise : tenant_id => try(regex("[^/]+$", tenant.name), regex("[^/]+$", tenant.id)) }
+    standard = {
+      for tenant_id, tenant in var.standard_tenants : tenant_id => coalesce(
+        try(tenant.identity_platform.tenant_id, null),
+        try(regex("[^/]+$", google_identity_platform_tenant.standard[tenant_id].name), null),
+        try(regex("[^/]+$", google_identity_platform_tenant.standard[tenant_id].id), null),
+      )
+    }
+    enterprise = {
+      for tenant_id, tenant in var.enterprise_tenants : tenant_id => coalesce(
+        try(tenant.identity_platform.tenant_id, null),
+        try(regex("[^/]+$", google_identity_platform_tenant.enterprise[tenant_id].name), null),
+        try(regex("[^/]+$", google_identity_platform_tenant.enterprise[tenant_id].id), null),
+      )
+    }
   }
 }
 

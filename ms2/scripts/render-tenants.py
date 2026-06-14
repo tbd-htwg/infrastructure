@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import shutil
 from pathlib import Path
 from typing import Any
 
@@ -252,6 +253,12 @@ def render_enterprise_gitops(
     terraform_outputs: dict[str, Any],
     check: bool,
 ) -> None:
+    desired_tenant_ids = set(tenants)
+    if not check and ENTERPRISE_GITOPS_DIR.exists():
+        for path in ENTERPRISE_GITOPS_DIR.iterdir():
+            if path.is_dir() and path.name not in desired_tenant_ids:
+                shutil.rmtree(path)
+
     resources: list[str] = []
     for tenant_id, tenant in tenants.items():
         tenant_dir = ENTERPRISE_GITOPS_DIR / tenant_id

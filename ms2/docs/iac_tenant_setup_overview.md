@@ -71,6 +71,31 @@ terraform -chdir=infrastructure/ms2/terraform/envs/dev apply
 
 `flux_bootstrap.manifest_dir` is relative to `terraform/envs/dev`; for this repository it should stay `../../../gitops/clusters/dev/flux-system`.
 
+## Terraform State
+
+Tenant automation requires shared Terraform state. The dev environment uses this GCS backend:
+
+```text
+bucket: tbd-cloudappdev-tfstate
+prefix: ms2/dev
+```
+
+If the project was already applied locally before the backend existed, migrate the local state once before running tenant workflows:
+
+```bash
+terraform -chdir=infrastructure/ms2/terraform/envs/dev init -migrate-state
+```
+
+After migration, rerun:
+
+```bash
+terraform -chdir=infrastructure/ms2/terraform/envs/dev plan
+```
+
+The plan should not try to recreate shared resources such as `tripplanning-standard-lb-ip`, `terraform-deployer`, `tbd-dns-zone`, the frontend/images/tfstate buckets, or existing Secret Manager secrets. If it does, stop and fix state before running tenant provisioning.
+
+For a brand-new project, create the state bucket before enabling the backend or do one local bootstrap apply, then immediately migrate the state to GCS before any GitHub Actions workflow runs Terraform.
+
 ## Routing Overview
 
 The target routing model does not use GKE Gateway API.
@@ -169,6 +194,8 @@ Admin UI
   -> Flux reconciles Kubernetes resources
 ```
 
+For application-driven creation, platform-service creates the Identity Platform tenant first and sends `identityPlatformTenantId` in the GitHub dispatch payload. The provisioning workflow writes that ID into the tenant YAML, and Terraform then skips creating a second Identity Platform tenant for that tenant. For manual `workflow_dispatch` runs, no pre-created Identity Platform tenant ID is provided, so Terraform creates the Identity Platform tenant.
+
 If `tripplanning-platform-github-dispatch-token` is missing, platform-service can still start, but real tenant provisioning cannot dispatch to GitHub.
 
 Required GitHub configuration for workflow-based provisioning:
@@ -191,6 +218,38 @@ Use them as:
 - `GCP_TERRAFORM_SERVICE_ACCOUNT` = `infra_terraform_service_account`
 
 Use CI Terraform apply only after the Terraform backend is shared/remote. Otherwise, apply locally and commit the rerendered outputs.
+
+## Deleting Tenants and Failed Runs
+
+Tenant infrastructure is declarative. A tenant exists because its YAML file exists under `ms2/tenants`.
+
+Preferred deletion path:
+
+1. Run `.github/workflows/tenant-delete.yml`.
+2. Choose the tier and slug.
+3. Repeat the slug in `confirm_slug`.
+4. The workflow removes the tenant YAML, rerenders Terraform input, applies Terraform, rerenders GitOps, and commits the deletion.
+5. Flux removes the tenant Kubernetes resources from the cluster.
+
+This deletes tenant-owned data resources. The current design intentionally does not retain tenant data after tenant destruction.
+
+Manual cleanup path:
+
+```bash
+rm infrastructure/ms2/tenants/standard/<slug>.yaml
+# or:
+rm infrastructure/ms2/tenants/enterprise/<slug>.yaml
+
+cd infrastructure/ms2
+python3 scripts/render-tenants.py --terraform-only
+terraform -chdir=terraform/envs/dev apply
+terraform -chdir=terraform/envs/dev output -json > /tmp/ms2-terraform-output.json
+python3 scripts/render-tenants.py --terraform-output-json /tmp/ms2-terraform-output.json
+```
+
+If tenant creation fails before the workflow commits tenant files, usually nothing needs to be deleted from Git. If creation fails after Terraform creates tenant resources, rerun the same tenant workflow after fixing the error, or use the deletion workflow once the tenant YAML has been committed.
+
+`409 already exists` errors for shared resources are not a tenant cleanup problem. They mean Terraform is running without the state that owns those resources. Migrate or repair Terraform state before creating or deleting tenants.
 
 ## Secret Manager Values
 

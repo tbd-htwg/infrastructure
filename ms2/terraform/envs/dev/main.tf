@@ -291,7 +291,7 @@ module "enterprise_tenant_dns" {
 }
 
 resource "google_identity_platform_tenant" "standard" {
-  for_each = var.standard_tenants
+  for_each = local.standard_identity_platform_tenants
 
   project                  = var.project_id
   display_name             = each.value.identity_platform.display_name
@@ -305,7 +305,7 @@ resource "google_identity_platform_tenant" "standard" {
 }
 
 resource "google_identity_platform_tenant" "enterprise" {
-  for_each = var.enterprise_tenants
+  for_each = local.enterprise_identity_platform_tenants
 
   project                  = var.project_id
   display_name             = each.value.identity_platform.display_name
