@@ -46,6 +46,8 @@ jobs:
       GCP_TERRAFORM_SERVICE_ACCOUNT: ${{ secrets.GCP_TERRAFORM_SERVICE_ACCOUNT }}
       FLUX_BOOTSTRAP_GIT_PASSWORD: ${{ secrets.FLUX_BOOTSTRAP_GIT_PASSWORD }}
       PLATFORM_GITHUB_DISPATCH_TOKEN: ${{ secrets.PLATFORM_GITHUB_DISPATCH_TOKEN }}
+      PLATFORM_CALLBACK_BASE_URL: ${{ vars.PLATFORM_CALLBACK_BASE_URL }}
+      PLATFORM_INTERNAL_SECRET: ${{ secrets.PLATFORM_INTERNAL_SECRET }}
 
     steps:
       - name: Checkout
@@ -279,3 +281,24 @@ jobs:
             ms2/tenants/**
             ms2/terraform/envs/dev/generated-tenants.auto.tfvars.json
             ms2/gitops/tenants/**
+
+      - name: Notify platform-service provisioning callback
+        if: env.PLATFORM_CALLBACK_BASE_URL != '' && env.PLATFORM_INTERNAL_SECRET != ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          slug="${{ steps.payload.outputs.slug }}"
+          base_url="${PLATFORM_CALLBACK_BASE_URL%/}"
+          payload='{"status":"SUCCESS"}'
+          http_code="$(curl -sS -o /tmp/platform-callback-response.txt -w "%{http_code}" \
+            -X POST \
+            -H "Content-Type: application/json" \
+            -H "X-Internal-Secret: ${PLATFORM_INTERNAL_SECRET}" \
+            "${base_url}/internal/tenants/${slug}/provisioning-callback" \
+            -d "${payload}")"
+          if [[ "${http_code}" -lt 200 || "${http_code}" -ge 300 ]]; then
+            echo "Platform callback failed with HTTP ${http_code}" >&2
+            cat /tmp/platform-callback-response.txt >&2 || true
+            exit 1
+          fi
+          echo "Platform callback succeeded for ${slug}"

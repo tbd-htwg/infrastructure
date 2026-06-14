@@ -544,6 +544,12 @@ resource "google_project_iam_member" "workload_cloudsql_client" {
   member  = "serviceAccount:${local.service_account_emails["workload"]}"
 }
 
+resource "google_project_iam_member" "platform_secret_accessor" {
+  project = var.project_id
+  role    = "roles/secretmanager.secretAccessor"
+  member  = "serviceAccount:${local.service_account_emails["platform-admin"]}"
+}
+
 resource "google_project_iam_member" "cert_manager_dns_admin" {
   project = var.project_id
   role    = "roles/dns.admin"

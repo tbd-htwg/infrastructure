@@ -321,8 +321,8 @@ terraform -chdir=infrastructure/ms2/terraform/envs/dev import \
 
 Important current limitation:
 
-- Standard runtime exists but its HelmRelease is suspended until backend support for tenant-aware database routing is implemented.
-- Enterprise is the cleaner immediate tenant path because each tenant has its own runtime and Cloud SQL instance.
+- Standard runtime requires trip-service env wiring (`TRIPPLANNING_TENANT_DATASOURCE_ROUTING`, platform base URL, Cloud SQL) and per-tenant DB credentials via platform-service Secret Manager access.
+- Enterprise is the cleaner immediate tenant path when each tenant needs an isolated runtime and Cloud SQL instance.
 
 ## Tenant Deletion
 

@@ -339,6 +339,9 @@ spec:
     - secretKey: TRIPPLANNING_INTERNAL_SECRET
       remoteRef:
         key: tripplanning-internal-secret
+    - secretKey: TRIPPLANNING_AUTH_TEST_BEARER_TOKEN
+      remoteRef:
+        key: tripplanning-auth-test-bearer-token
 ---
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
@@ -359,6 +362,9 @@ spec:
     - secretKey: TRIPPLANNING_INTERNAL_SECRET
       remoteRef:
         key: tripplanning-internal-secret
+    - secretKey: TRIPPLANNING_AUTH_TEST_BEARER_TOKEN
+      remoteRef:
+        key: tripplanning-auth-test-bearer-token
 ---
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
@@ -379,6 +385,9 @@ spec:
     - secretKey: TRIPPLANNING_INTERNAL_SECRET
       remoteRef:
         key: tripplanning-internal-secret
+    - secretKey: TRIPPLANNING_AUTH_TEST_BEARER_TOKEN
+      remoteRef:
+        key: tripplanning-auth-test-bearer-token
     - secretKey: GOOGLE_MAPS_API_KEY
       remoteRef:
         key: tripplanning-google-maps-api-key

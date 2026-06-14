@@ -11,6 +11,11 @@ data:
       imagePullSecrets:
         - ghcr-pull
       hostnames: []
+      cloudSql:
+        enabled: true
+        connectionName: tbd-cloudappdev:europe-west1:tripplanning-standard
+        databaseName: postgres
+        userName: postgres
       frontend:
         bucketName: tbd-cloudappdev-frontend-bucket
         bucketPrefix: standard
@@ -54,9 +59,8 @@ data:
           SPRING_DATA_REDIS_HOST: valkey
           SPRING_AUTOCONFIGURE_EXCLUDE: "org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchRestClientAutoConfiguration"
           JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError"
-          TRIPPLANNING_TENANT_REGISTRY_MODE: standard
-          TRIPPLANNING_TENANT_DATASOURCE_ROUTING: "false"
-          TRIPPLANNING_PLATFORM_BASE_URL: "http://platform-service.tripplanning-system:8083"
+          TRIPPLANNING_TENANT_DATASOURCE_ROUTING: "true"
+          TRIPPLANNING_PLATFORM_BASE_URL: "http://platform-service.tripplanning-system.svc.cluster.local:8083"
       social:
         replicas: 1
         resources:

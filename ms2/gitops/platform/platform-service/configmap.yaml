@@ -19,5 +19,6 @@ data:
   TRIPPLANNING_PLATFORM_ENTERPRISE_HOST_BASE: "enterprise.k8s.tbd-htwg.de"
   TRIPPLANNING_PLATFORM_BOOTSTRAP_ADMIN_EMAIL: "admin@platform.demo"
   TRIPPLANNING_PLATFORM_USE_STUBS: "false"
+  TRIPPLANNING_PLATFORM_GCP_PROJECT_ID: "tbd-cloudappdev"
   TRIPPLANNING_PLATFORM_GITHUB_DISPATCH_URL: "https://api.github.com/repos/tbd-htwg/infrastructure/dispatches"
   TRIPPLANNING_TRIP_SERVICE_URL: "http://trip-service.tripplanning-free.svc.cluster.local:8080"
