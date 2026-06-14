@@ -132,6 +132,7 @@ jobs:
           export TENANT_PROJECT_ID="${project_id}"
           python3 <<'PY'
           import os
+          import re
           from pathlib import Path
 
           import yaml
@@ -143,8 +144,16 @@ jobs:
           identity_platform_tenant_id = os.environ["TENANT_IDENTITY_PLATFORM_TENANT_ID"]
           project_id = os.environ["TENANT_PROJECT_ID"]
 
+          def identity_display_name(value: str) -> str:
+              cleaned = re.sub(r"[^a-z0-9-]", "-", value.lower())
+              if not cleaned or not cleaned[0].isalpha():
+                  cleaned = f"t-{cleaned}"
+              if len(cleaned) < 4:
+                  cleaned = f"{cleaned}-tenant"
+              return cleaned[:20]
+
           identity = {
-              "displayName": f"{slug}-{tier.lower()}",
+              "displayName": identity_display_name(slug),
               "emailPasswordEnabled": True,
               "mfaEnabled": tier == "ENTERPRISE",
           }

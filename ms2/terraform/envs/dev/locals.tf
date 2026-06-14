@@ -26,6 +26,30 @@ locals {
     if try(tenant.identity_platform.tenant_id, null) == null || try(tenant.identity_platform.tenant_id, "") == ""
   }
 
+  standard_identity_platform_display_name_candidates = {
+    for tenant_id, tenant in local.standard_identity_platform_tenants : tenant_id => replace(lower(tenant.identity_platform.display_name), "/[^a-z0-9-]/", "-")
+  }
+
+  enterprise_identity_platform_display_name_candidates = {
+    for tenant_id, tenant in local.enterprise_identity_platform_tenants : tenant_id => replace(lower(tenant.identity_platform.display_name), "/[^a-z0-9-]/", "-")
+  }
+
+  standard_identity_platform_display_names = {
+    for tenant_id, display_name in local.standard_identity_platform_display_name_candidates : tenant_id => substr(
+      "${can(regex("^[a-z]", display_name)) ? "" : "t-"}${length(display_name) >= 4 ? display_name : "${display_name}-tenant"}",
+      0,
+      20,
+    )
+  }
+
+  enterprise_identity_platform_display_names = {
+    for tenant_id, display_name in local.enterprise_identity_platform_display_name_candidates : tenant_id => substr(
+      "${can(regex("^[a-z]", display_name)) ? "" : "t-"}${length(display_name) >= 4 ? display_name : "${display_name}-tenant"}",
+      0,
+      20,
+    )
+  }
+
   enterprise_tenant_databases = {
     for tenant_id, tenant in var.enterprise_tenants : tenant_id => {
       primary = {

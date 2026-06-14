@@ -294,7 +294,7 @@ resource "google_identity_platform_tenant" "standard" {
   for_each = local.standard_identity_platform_tenants
 
   project                  = var.project_id
-  display_name             = each.value.identity_platform.display_name
+  display_name             = local.standard_identity_platform_display_names[each.key]
   allow_password_signup    = each.value.identity_platform.email_password_enabled
   enable_email_link_signin = each.value.identity_platform.email_link_signin
   disable_auth             = each.value.identity_platform.auth_disabled
@@ -308,7 +308,7 @@ resource "google_identity_platform_tenant" "enterprise" {
   for_each = local.enterprise_identity_platform_tenants
 
   project                  = var.project_id
-  display_name             = each.value.identity_platform.display_name
+  display_name             = local.enterprise_identity_platform_display_names[each.key]
   allow_password_signup    = each.value.identity_platform.email_password_enabled
   enable_email_link_signin = each.value.identity_platform.email_link_signin
   disable_auth             = each.value.identity_platform.auth_disabled
