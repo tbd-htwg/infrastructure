@@ -74,6 +74,7 @@ locals {
     "roles/resourcemanager.projectIamAdmin",
     "roles/secretmanager.admin",
     "roles/serviceusage.serviceUsageAdmin",
+    "roles/artifactregistry.admin",
     "roles/cloudsql.admin",
     "roles/storage.admin",
     "roles/datastore.owner",

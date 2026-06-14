@@ -219,6 +219,16 @@ Use them as:
 
 Use CI Terraform apply only after the Terraform backend is shared/remote. Otherwise, apply locally and commit the rerendered outputs.
 
+The infrastructure Terraform service account needs enough read/write permissions to refresh and modify all Terraform-managed resources. Terraform manages these roles after the first successful apply, but if CI fails with `artifactregistry.repositories.get denied`, grant the missing role once with an owner/admin account:
+
+```bash
+gcloud projects add-iam-policy-binding tbd-cloudappdev \
+  --member="serviceAccount:terraform-deployer@tbd-cloudappdev.iam.gserviceaccount.com" \
+  --role="roles/artifactregistry.admin"
+```
+
+Then rerun `terraform plan` or the tenant provisioning workflow. Terraform will keep the role in code afterwards.
+
 ## Deleting Tenants and Failed Runs
 
 Tenant infrastructure is declarative. A tenant exists because its YAML file exists under `ms2/tenants`.

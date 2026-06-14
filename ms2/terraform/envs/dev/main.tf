@@ -549,7 +549,6 @@ resource "terraform_data" "flux_bootstrap" {
     cluster_name  = module.gke_autopilot.cluster_name
     location      = module.gke_autopilot.cluster_location
     manifest_hash = local.flux_bootstrap_hash
-    manifest_dir  = local.flux_bootstrap_manifest_dir
     namespace     = var.flux_bootstrap.namespace
   }
 
