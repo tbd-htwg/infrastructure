@@ -520,6 +520,12 @@ resource "google_service_account_iam_member" "trip_namespace_default_wi" {
   member             = "serviceAccount:${var.project_id}.svc.id.goog[tripplanning-free/default]"
 }
 
+resource "google_service_account_iam_member" "standard_namespace_default_wi" {
+  service_account_id = "projects/${var.project_id}/serviceAccounts/${local.service_account_emails["workload"]}"
+  role               = "roles/iam.workloadIdentityUser"
+  member             = "serviceAccount:${var.project_id}.svc.id.goog[tripplanning-standard/default]"
+}
+
 resource "google_service_account_iam_member" "platform_service_wi" {
   service_account_id = "projects/${var.project_id}/serviceAccounts/${local.service_account_emails["platform-admin"]}"
   role               = "roles/iam.workloadIdentityUser"
@@ -530,6 +536,12 @@ resource "google_project_iam_member" "platform_cloudsql_client" {
   project = var.project_id
   role    = "roles/cloudsql.client"
   member  = "serviceAccount:${local.service_account_emails["platform-admin"]}"
+}
+
+resource "google_project_iam_member" "workload_cloudsql_client" {
+  project = var.project_id
+  role    = "roles/cloudsql.client"
+  member  = "serviceAccount:${local.service_account_emails["workload"]}"
 }
 
 resource "google_project_iam_member" "cert_manager_dns_admin" {

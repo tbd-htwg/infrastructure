@@ -24,6 +24,11 @@ data:
         indexName: tripentity-standard
       cache:
         keyPrefix: std
+      cloudSql:
+        enabled: true
+        connectionName: tbd-cloudappdev:europe-west1:tripplanning-standard
+        databaseName: tripplanning_std_test03
+        userName: tripplanning_app_test03
     apiRouter:
       mode: standard
       enforceKnownHosts: true
@@ -35,21 +40,44 @@ data:
         externalTrafficPolicy: Cluster
     services:
       apiRouter:
-        replicas: 2
+        replicas: 1
       trip:
-        replicas: 2
+        replicas: 1
+        resources:
+          requests:
+            cpu: "250m"
+            memory: "384Mi"
+          limits:
+            cpu: "750m"
+            memory: "768Mi"
         env:
           SPRING_DATA_REDIS_HOST: valkey
           SPRING_AUTOCONFIGURE_EXCLUDE: "org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchRestClientAutoConfiguration"
           JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError"
           TRIPPLANNING_TENANT_REGISTRY_MODE: standard
+          TRIPPLANNING_TENANT_DATASOURCE_ROUTING: "false"
+          TRIPPLANNING_PLATFORM_BASE_URL: "http://platform-service.tripplanning-system:8083"
       social:
-        replicas: 2
+        replicas: 1
+        resources:
+          requests:
+            cpu: "150m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
         env:
           SPRING_DATA_REDIS_HOST: valkey
           JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError"
       externalInfo:
-        replicas: 2
+        replicas: 1
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "192Mi"
+          limits:
+            cpu: "500m"
+            memory: "384Mi"
         env:
           SPRING_DATA_REDIS_HOST: valkey
           JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError"
@@ -60,12 +88,28 @@ data:
         enabled: true
         serviceName: valkey
         image: valkey/valkey:8-alpine
+        resources:
+          requests:
+            cpu: "25m"
+            memory: "64Mi"
+          limits:
+            cpu: "100m"
+            memory: "128Mi"
       elasticsearch:
         enabled: true
         image: opensearchproject/opensearch:2.19.0
+        javaOpts: "-Xms256m -Xmx256m"
         storageClassName: "standard-hdd-wffc"
+        storageSize: 2Gi
+        resources:
+          requests:
+            cpu: "250m"
+            memory: "512Mi"
+          limits:
+            cpu: "750m"
+            memory: "1Gi"
     autoscaling:
-      enabled: true
-      minReplicas: 2
-      maxReplicas: 8
+      enabled: false
+      minReplicas: 1
+      maxReplicas: 2
       targetCPUUtilizationPercentage: 70
