@@ -6,6 +6,10 @@ metadata:
 data:
   values.yaml: |
     apiRouter:
-      tenants: []
+      tenants:
+      - tenantId: test03
+        identityPlatformTenantId: test03-tj13t
+        hostnames:
+        - test03.k8s.tbd-htwg.de
       loadBalancer:
-        ip: ""
+        ip: 34.52.217.31

@@ -4,7 +4,6 @@ metadata:
   name: tripplanning-standard
   namespace: tripplanning-standard
 spec:
-  suspend: true
   interval: 10m
   chart:
     spec:

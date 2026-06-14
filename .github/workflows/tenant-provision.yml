@@ -254,6 +254,23 @@ jobs:
           terraform -chdir="${TF_DIR}" output -json > /tmp/ms2-terraform-output.json
           (cd "${MS2_DIR}" && python3 scripts/render-tenants.py --terraform-output-json /tmp/ms2-terraform-output.json)
 
+      - name: Verify generated tenant files
+        shell: bash
+        run: |
+          set -euo pipefail
+          slug="${{ steps.payload.outputs.slug }}"
+          tier="${{ steps.payload.outputs.tier }}"
+
+          grep -q "\"${slug}\"" "${MS2_DIR}/terraform/envs/dev/generated-tenants.auto.tfvars.json"
+
+          if [[ "${APPLY_TERRAFORM}" == "true" ]]; then
+            if [[ "${tier}" == "STANDARD" ]]; then
+              grep -q "tenantId: ${slug}" "${MS2_DIR}/gitops/tenants/standard/shared/generated-tenants-configmap.yaml"
+            else
+              test -f "${MS2_DIR}/gitops/tenants/enterprise/${slug}/helmrelease.yaml"
+            fi
+          fi
+
       - name: Commit generated tenant files
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
