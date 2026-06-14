@@ -7,6 +7,11 @@ metadata:
     app.kubernetes.io/component: social-service
 spec:
   replicas: {{ include "tripplanning.socialReplicas" . }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: {{ .Values.services.social.rollingUpdate.maxSurge | default 0 }}
+      maxUnavailable: {{ .Values.services.social.rollingUpdate.maxUnavailable | default 1 }}
   selector:
     matchLabels:
       app.kubernetes.io/component: social-service

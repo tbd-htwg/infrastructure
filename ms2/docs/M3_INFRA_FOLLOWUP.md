@@ -48,7 +48,7 @@ Enough to develop and demo multitenancy locally; not enough to run Standard/Ente
 | **Dispatch workflow** | Root `.github/workflows/tenant-provision.yml` writes tenant YAML and Terraform inputs from `tenant-created-standard` / `tenant-created-enterprise`. Optional CI Terraform apply can also create cloud resources and rerender GitOps with computed outputs. |
 | **Platform DB** | Cloud SQL `tripplanning_platform`; JDBC + Flyway for platform-service on GKE |
 | **LB layout** | Free: shared apex; Standard: one LB, `{slug}.k8s…` → same IP; Enterprise: one LB per tenant, `{slug}.enterprise.k8s…` |
-| **Runtime caveat** | Standard HelmRelease is present but suspended until backend tenant-aware database routing is ready. Enterprise is the cleaner immediate path. |
+| **Runtime caveat** | Standard now boots for the current smoke path through the shared Standard Cloud SQL instance. Multiple Standard tenants still need a clear backend credential strategy if tenant DB users differ. |
 
 **Workflow:** root `.github/workflows/tenant-provision.yml` creates tenant YAML and generated Terraform inputs. Optional CI Terraform apply is gated by `TENANT_PROVISION_APPLY_TERRAFORM=true`; otherwise apply Terraform manually, then rerender GitOps with Terraform outputs. **GitOps today:** Free and Standard base tiers exist; Enterprise tenant directories are generated from tenant YAML. The old `ms2/.github/workflows` path is not used for tenant provisioning because GitHub Actions only runs workflows from the repository root.
 

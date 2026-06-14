@@ -8,6 +8,11 @@ metadata:
     app.kubernetes.io/component: valkey
 spec:
   replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: {{ .Values.backingServices.valkey.rollingUpdate.maxSurge | default 0 }}
+      maxUnavailable: {{ .Values.backingServices.valkey.rollingUpdate.maxUnavailable | default 1 }}
   selector:
     matchLabels:
       app.kubernetes.io/component: valkey

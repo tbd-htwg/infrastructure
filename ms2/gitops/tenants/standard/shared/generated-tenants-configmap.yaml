@@ -13,3 +13,17 @@ data:
         - test03.k8s.tbd-htwg.de
       loadBalancer:
         ip: 34.52.217.31
+    global:
+      cloudSql:
+        enabled: true
+        connectionName: tbd-cloudappdev:europe-west1:tripplanning-standard
+        databaseName: tripplanning_std_test03
+        userName: tripplanning_app_test03
+    services:
+      trip:
+        secretRefs:
+        - trip-service-secrets
+        - trip-service-db-secrets
+        env:
+          TRIPPLANNING_TENANT_DATASOURCE_ROUTING: 'false'
+          TRIPPLANNING_PLATFORM_BASE_URL: http://platform-service.tripplanning-system:8083

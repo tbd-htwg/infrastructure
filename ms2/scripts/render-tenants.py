@@ -19,6 +19,7 @@ ROOT = Path(__file__).resolve().parents[1]
 TENANTS_DIR = ROOT / "tenants"
 TERRAFORM_OUT = ROOT / "terraform/envs/dev/generated-tenants.auto.tfvars.json"
 STANDARD_GITOPS_OUT = ROOT / "gitops/tenants/standard/shared/generated-tenants-configmap.yaml"
+STANDARD_DB_SECRET_OUT = ROOT / "gitops/tenants/standard/shared/generated-db-external-secret.yaml"
 ENTERPRISE_GITOPS_DIR = ROOT / "gitops/tenants/enterprise"
 
 
@@ -157,6 +158,9 @@ def render_standard_configmap(
             }
         )
 
+    primary_tenant_id = next(iter(tenants), None)
+    primary_tenant = tenants[primary_tenant_id] if primary_tenant_id else None
+
     values = {
         "apiRouter": {
             "tenants": router_tenants,
@@ -165,6 +169,27 @@ def render_standard_configmap(
             },
         }
     }
+    if primary_tenant_id and primary_tenant:
+        values["global"] = {
+            "cloudSql": {
+                "enabled": True,
+                "connectionName": cloudsql_connection_name("standard", primary_tenant_id, terraform_outputs),
+                "databaseName": primary_tenant["database"]["databaseName"],
+                "userName": primary_tenant["database"].get("userName", "tripplanning_app"),
+            }
+        }
+        values["services"] = {
+            "trip": {
+                "secretRefs": [
+                    "trip-service-secrets",
+                    "trip-service-db-secrets",
+                ],
+                "env": {
+                    "TRIPPLANNING_TENANT_DATASOURCE_ROUTING": "false",
+                    "TRIPPLANNING_PLATFORM_BASE_URL": "http://platform-service.tripplanning-system:8083",
+                }
+            }
+        }
 
     values_yaml = yaml.safe_dump(values, sort_keys=False)
     indented = "\n".join(f"    {line}" if line else "" for line in values_yaml.splitlines())
@@ -176,6 +201,33 @@ metadata:
 data:
   values.yaml: |
 {indented}
+"""
+
+
+def render_standard_db_external_secret(tenants: dict[str, dict[str, Any]]) -> str:
+    primary_tenant_id = next(iter(tenants), None)
+    if not primary_tenant_id:
+        data = "  data: []"
+    else:
+        data = f"""  data:
+    - secretKey: SPRING_DATASOURCE_PASSWORD
+      remoteRef:
+        key: tripplanning-standard-{primary_tenant_id}-db-password"""
+
+    return f"""apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: trip-service-db-secrets
+  namespace: tripplanning-standard
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: gcp-secret-manager
+    kind: ClusterSecretStore
+  target:
+    name: trip-service-db-secrets
+    creationPolicy: Owner
+{data}
 """
 
 
@@ -470,16 +522,19 @@ def main() -> None:
         print(f"would write: {TERRAFORM_OUT}")
         if not args.terraform_only:
             print(f"would write: {STANDARD_GITOPS_OUT}")
+            print(f"would write: {STANDARD_DB_SECRET_OUT}")
             render_enterprise_gitops(enterprise, terraform_outputs, check=True)
         return
 
     TERRAFORM_OUT.write_text(json.dumps(tfvars, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     if not args.terraform_only:
         STANDARD_GITOPS_OUT.write_text(standard_configmap, encoding="utf-8")
+        STANDARD_DB_SECRET_OUT.write_text(render_standard_db_external_secret(standard), encoding="utf-8")
         render_enterprise_gitops(enterprise, terraform_outputs, check=False)
     print(f"wrote {TERRAFORM_OUT}")
     if not args.terraform_only:
         print(f"wrote {STANDARD_GITOPS_OUT}")
+        print(f"wrote {STANDARD_DB_SECRET_OUT}")
         print(f"wrote {ENTERPRISE_GITOPS_DIR}")
 
 

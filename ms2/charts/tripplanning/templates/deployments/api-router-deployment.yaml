@@ -7,6 +7,11 @@ metadata:
     app.kubernetes.io/component: api-router
 spec:
   replicas: {{ .Values.services.apiRouter.replicas }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: {{ .Values.services.apiRouter.rollingUpdate.maxSurge | default 0 }}
+      maxUnavailable: {{ .Values.services.apiRouter.rollingUpdate.maxUnavailable | default 1 }}
   selector:
     matchLabels:
       app.kubernetes.io/component: api-router

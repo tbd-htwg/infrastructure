@@ -7,6 +7,11 @@ metadata:
     app.kubernetes.io/component: external-info-service
 spec:
   replicas: {{ include "tripplanning.externalInfoReplicas" . }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: {{ .Values.services.externalInfo.rollingUpdate.maxSurge | default 0 }}
+      maxUnavailable: {{ .Values.services.externalInfo.rollingUpdate.maxUnavailable | default 1 }}
   selector:
     matchLabels:
       app.kubernetes.io/component: external-info-service

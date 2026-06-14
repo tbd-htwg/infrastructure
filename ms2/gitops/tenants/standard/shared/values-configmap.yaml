@@ -24,11 +24,6 @@ data:
         indexName: tripentity-standard
       cache:
         keyPrefix: std
-      cloudSql:
-        enabled: true
-        connectionName: tbd-cloudappdev:europe-west1:tripplanning-standard
-        databaseName: tripplanning_std_test03
-        userName: tripplanning_app_test03
     apiRouter:
       mode: standard
       enforceKnownHosts: true
@@ -55,8 +50,9 @@ data:
           SPRING_AUTOCONFIGURE_EXCLUDE: "org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchRestClientAutoConfiguration"
           JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError"
           TRIPPLANNING_TENANT_REGISTRY_MODE: standard
-          TRIPPLANNING_TENANT_DATASOURCE_ROUTING: "false"
-          TRIPPLANNING_PLATFORM_BASE_URL: "http://platform-service.tripplanning-system:8083"
+        bootstrap:
+          waitForValkey: true
+          waitForSearch: true
       social:
         replicas: 1
         resources:
@@ -98,16 +94,16 @@ data:
       elasticsearch:
         enabled: true
         image: opensearchproject/opensearch:2.19.0
-        javaOpts: "-Xms256m -Xmx256m"
+        javaOpts: "-Xms192m -Xmx192m"
         storageClassName: "standard-hdd-wffc"
         storageSize: 2Gi
         resources:
           requests:
-            cpu: "250m"
-            memory: "512Mi"
+            cpu: "100m"
+            memory: "384Mi"
           limits:
-            cpu: "750m"
-            memory: "1Gi"
+            cpu: "500m"
+            memory: "768Mi"
     autoscaling:
       enabled: false
       minReplicas: 1

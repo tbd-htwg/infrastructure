@@ -6,4 +6,5 @@ resources:
   - external-secrets.yaml
   - values-configmap.yaml
   - generated-tenants-configmap.yaml
+  - generated-db-external-secret.yaml
   - helmrelease.yaml

@@ -71,6 +71,19 @@ terraform -chdir=infrastructure/ms2/terraform/envs/dev apply
 
 `flux_bootstrap.manifest_dir` is relative to `terraform/envs/dev`; for this repository it should stay `../../../gitops/clusters/dev/flux-system`.
 
+## Dev Cluster Capacity and Quotas
+
+This environment is intentionally small, but GKE Autopilot still needs enough Compute Engine CPU quota to add nodes during rollouts. If pods stay `Pending` with `GCE quota exceeded`, check:
+
+```bash
+gcloud compute project-info describe --project tbd-cloudappdev \
+  --format="table(quotas.metric,quotas.limit,quotas.usage)"
+```
+
+The quota to watch is `CPUS_ALL_REGIONS`. This project currently has a low default limit, so running Free, Standard, and Enterprise at the same time can exceed quota or pod density during rollouts. For development, either run one shared tier at a time or request a quota increase in Google Cloud Console: **IAM & Admin -> Quotas -> CPUS_ALL_REGIONS**. A practical dev target is at least 32 CPUs; more is useful when adding Enterprise tenants with dedicated OpenSearch.
+
+The Helm chart uses no-surge rolling updates for shared services so upgrades do not temporarily double pod count. Standard also uses reduced dev resources for OpenSearch and waits for Valkey/OpenSearch before starting trip-service.
+
 ## Terraform State
 
 Tenant automation requires shared Terraform state. The dev environment uses this GCS backend:
@@ -179,6 +192,8 @@ python3 scripts/render-tenants.py --terraform-output-json /tmp/ms2-terraform-out
 6. Commit and push the tenant YAML, generated Terraform input file, and generated GitOps files.
 7. Flux reconciles the cluster.
 8. Run tenant smoke tests.
+
+For Standard tenants, the render step also creates `gitops/tenants/standard/shared/generated-db-external-secret.yaml`. This keeps the tenant DB password in a separate Kubernetes Secret (`trip-service-db-secrets`) and avoids multiple ExternalSecrets trying to own the same target Secret.
 
 The repository workflow `.github/workflows/tenant-provision.yml` can perform the same first step from a `repository_dispatch` or manual run. By default it commits tenant YAML plus Terraform inputs only. If `TENANT_PROVISION_APPLY_TERRAFORM=true`, it also applies Terraform, rerenders GitOps with real outputs, and commits the Kubernetes manifests.
 
@@ -321,8 +336,8 @@ terraform -chdir=infrastructure/ms2/terraform/envs/dev import \
 
 Important current limitation:
 
-- Standard runtime exists but its HelmRelease is suspended until backend support for tenant-aware database routing is implemented.
-- Enterprise is the cleaner immediate tenant path because each tenant has its own runtime and Cloud SQL instance.
+- Standard runtime supports the current single-tenant smoke path through the shared Standard Cloud SQL instance and generated tenant DB Secret. Multiple Standard tenants may need additional backend work or a shared Standard DB user strategy if each tenant must use different DB credentials at runtime.
+- Enterprise remains the cleaner high-isolation path because each tenant has its own runtime, Cloud SQL instance, image bucket, and OpenSearch.
 
 ## Tenant Deletion
 
