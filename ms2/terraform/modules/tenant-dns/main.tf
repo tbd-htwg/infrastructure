@@ -6,8 +6,6 @@ locals {
 }
 
 resource "google_dns_record_set" "tenant_a" {
-  count = local.ip_address == "" ? 0 : 1
-
   project      = var.project_id
   name         = local.fqdn
   type         = "A"
