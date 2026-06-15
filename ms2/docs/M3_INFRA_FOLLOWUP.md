@@ -31,7 +31,7 @@ Enough to develop and demo multitenancy locally; not enough to run Standard/Ente
 | Item | Why |
 |------|-----|
 | **GKE platform-service deploy** | Image exists; no Flux/Helm release or Cloud SQL `tripplanning_platform` in prod yet |
-| **`use-stubs=false` completion** | Prod tenants stay `PROVISIONING` after dispatch; need workflow poll or `POST /internal/tenants/{slug}/provisioning-callback` |
+| **`use-stubs=false` completion** | Infra workflow now waits for Flux/Helm readiness and calls `POST /internal/tenants/{slug}/provisioning-callback` |
 | **Prod secrets** | `TRIPPLANNING_PLATFORM_GITHUB_DISPATCH_*`, bootstrap admin, shared JWT/internal secret on all four services |
 | **Per-tenant search writes** | Index naming stubbed; Hibernate Search write coordination not done |
 | **Hygiene** | Disable test bearer in prod; extend backend secret-sync for platform |
@@ -67,7 +67,7 @@ Enough to develop and demo multitenancy locally; not enough to run Standard/Ente
 | **Local dev** | Not specified | Full provisioning pipeline with `TRIPPLANNING_PLATFORM_USE_STUBS=true` (default); `VITE_DEMO_MODE` = frontend-only mocks |
 | **platform-service** | Not in original ms2 model | Fourth microservice; auth/admin/registry removed from trip-service |
 | **Standard automation** | Same Terraform/GitOps as Enterprise (shared pool) | Same dispatch events; local stub skips real Terraform |
-| **Prod tenant state** | Infra completes → tenant active | Stub: auto-ACTIVE; prod still needs callback/poll after Terraform/Flux completes |
+| **Prod tenant state** | Infra completes → tenant active | Stub: auto-ACTIVE; prod workflow callback marks tenants ACTIVE after Terraform/Flux completes |
 
 **Aligned:** tier names (`FREE` / `STANDARD` / `ENTERPRISE`), host patterns (`{slug}.k8s…`, `{slug}.enterprise.k8s…`), Identity Platform tenant per paid tenant, Postgres-per-tenant (Standard DB in shared instance; Enterprise dedicated instance), no GKE Gateway as target.
 

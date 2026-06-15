@@ -207,9 +207,12 @@ Admin UI
   -> .github/workflows/tenant-provision.yml
   -> tenant YAML / Terraform inputs / GitOps render
   -> Flux reconciles Kubernetes resources
+  -> workflow calls platform-service /internal/tenants/{slug}/provisioning-callback
 ```
 
 For application-driven creation, platform-service creates the Identity Platform tenant first and sends `identityPlatformTenantId` in the GitHub dispatch payload. The provisioning workflow writes that ID into the tenant YAML, and Terraform then skips creating a second Identity Platform tenant for that tenant. For manual `workflow_dispatch` runs, no pre-created Identity Platform tenant ID is provided, so Terraform creates the Identity Platform tenant.
+
+When `TENANT_PROVISION_APPLY_TERRAFORM=true`, the provisioning workflow waits for the generated tenant HelmRelease to become ready and then marks the tenant `ACTIVE` through the internal platform-service callback. The callback is protected by `X-Internal-Secret` using `tripplanning-internal-secret`.
 
 If `tripplanning-platform-github-dispatch-token` is missing, platform-service can still start, but real tenant provisioning cannot dispatch to GitHub.
 

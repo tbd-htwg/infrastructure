@@ -24,6 +24,9 @@ on:
         description: Tenant color scheme
         required: false
         default: default
+      imageTag:
+        description: Enterprise service image tag
+        required: false
 
 permissions:
   contents: write
@@ -62,12 +65,14 @@ jobs:
             tier="${{ inputs.tier }}"
             brand_name="${{ inputs.brandName }}"
             color_scheme="${{ inputs.colorScheme }}"
+            image_tag="${{ inputs.imageTag }}"
           else
             slug="${{ github.event.client_payload.slug }}"
             tier="${{ github.event.client_payload.tier || '' }}"
             brand_name="${{ github.event.client_payload.brandName || '' }}"
             color_scheme="${{ github.event.client_payload.colorScheme || 'default' }}"
             identity_platform_tenant_id="${{ github.event.client_payload.identityPlatformTenantId || '' }}"
+            image_tag="${{ github.event.client_payload.imageTag || '' }}"
           fi
 
           if [[ -z "${tier}" && "${GITHUB_EVENT_NAME}" == "repository_dispatch" ]]; then
@@ -96,6 +101,7 @@ jobs:
           echo "brand_name=${brand_name}" >> "$GITHUB_OUTPUT"
           echo "color_scheme=${color_scheme}" >> "$GITHUB_OUTPUT"
           echo "identity_platform_tenant_id=${identity_platform_tenant_id:-}" >> "$GITHUB_OUTPUT"
+          echo "image_tag=${image_tag:-}" >> "$GITHUB_OUTPUT"
 
       - name: Install renderer dependencies
         run: python3 -m pip install pyyaml
@@ -109,6 +115,7 @@ jobs:
           brand_name="${{ steps.payload.outputs.brand_name }}"
           color_scheme="${{ steps.payload.outputs.color_scheme }}"
           identity_platform_tenant_id="${{ steps.payload.outputs.identity_platform_tenant_id }}"
+          image_tag="${{ steps.payload.outputs.image_tag }}"
           project_id="${GCP_PROJECT_ID}"
 
           if [[ "${tier}" == "STANDARD" ]]; then
@@ -129,6 +136,7 @@ jobs:
           export TENANT_BRAND_NAME="${brand_name}"
           export TENANT_COLOR_SCHEME="${color_scheme}"
           export TENANT_IDENTITY_PLATFORM_TENANT_ID="${identity_platform_tenant_id}"
+          export TENANT_IMAGE_TAG="${image_tag}"
           export TENANT_PROJECT_ID="${project_id}"
           python3 <<'PY'
           import os
@@ -142,6 +150,7 @@ jobs:
           brand_name = os.environ["TENANT_BRAND_NAME"]
           color_scheme = os.environ["TENANT_COLOR_SCHEME"]
           identity_platform_tenant_id = os.environ["TENANT_IDENTITY_PLATFORM_TENANT_ID"]
+          image_tag = os.environ["TENANT_IMAGE_TAG"]
           project_id = os.environ["TENANT_PROJECT_ID"]
 
           def identity_display_name(value: str) -> str:
@@ -185,6 +194,7 @@ jobs:
               tenant = {
                   "tenantId": slug,
                   "tier": "enterprise",
+                  "projectId": project_id,
                   "namespace": f"tripplanning-ent-{slug}",
                   "hostnames": [f"{slug}.enterprise.k8s.tbd-htwg.de"],
                   "identityPlatform": identity,
@@ -203,6 +213,12 @@ jobs:
                   "search": {"releaseName": f"opensearch-{slug}"},
                   "cache": {"dedicated": True},
               }
+              if image_tag:
+                  tenant["services"] = {
+                      "trip": {"image": {"tag": image_tag, "pullPolicy": "Always"}},
+                      "social": {"image": {"tag": image_tag, "pullPolicy": "Always"}},
+                      "externalInfo": {"image": {"tag": image_tag, "pullPolicy": "Always"}},
+                  }
 
           Path(os.environ["TENANT_PATH"]).write_text(yaml.safe_dump(tenant, sort_keys=False), encoding="utf-8")
           PY
@@ -279,3 +295,71 @@ jobs:
             ms2/tenants/**
             ms2/terraform/envs/dev/generated-tenants.auto.tfvars.json
             ms2/gitops/tenants/**
+
+      - name: Notify platform tenant ready
+        if: env.APPLY_TERRAFORM == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          slug="${{ steps.payload.outputs.slug }}"
+          tier="${{ steps.payload.outputs.tier }}"
+          cluster_name="$(jq -r '.gke_cluster_name.value' /tmp/ms2-terraform-output.json)"
+          cluster_location="$(jq -r '.gke_cluster_location.value' /tmp/ms2-terraform-output.json)"
+
+          gcloud container clusters get-credentials "${cluster_name}" \
+            --region "${cluster_location}" \
+            --project "${GCP_PROJECT_ID}"
+
+          kubectl -n flux-system annotate gitrepository flux-system \
+            "reconcile.fluxcd.io/requestedAt=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --overwrite
+          kubectl -n flux-system annotate kustomization tenants \
+            "reconcile.fluxcd.io/requestedAt=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --overwrite
+
+          if [[ "${tier}" == "ENTERPRISE" ]]; then
+            namespace="tripplanning-ent-${slug}"
+            helmrelease="tripplanning-enterprise-${slug}"
+          else
+            namespace="tripplanning-standard"
+            helmrelease="tripplanning-standard"
+          fi
+
+          for _ in {1..120}; do
+            if kubectl get namespace "${namespace}" >/dev/null 2>&1; then
+              break
+            fi
+            sleep 5
+          done
+          kubectl get namespace "${namespace}" >/dev/null
+
+          for _ in {1..120}; do
+            if kubectl get "helmrelease/${helmrelease}" -n "${namespace}" >/dev/null 2>&1; then
+              break
+            fi
+            sleep 5
+          done
+          kubectl get "helmrelease/${helmrelease}" -n "${namespace}" >/dev/null
+
+          kubectl wait --for=condition=Ready "helmrelease/${helmrelease}" \
+            -n "${namespace}" \
+            --timeout=25m
+
+          internal_secret="$(gcloud secrets versions access latest \
+            --secret=tripplanning-internal-secret \
+            --project="${GCP_PROJECT_ID}")"
+
+          callback_name="tenant-callback-${slug:0:24}-${GITHUB_RUN_ID}"
+          kubectl -n tripplanning-system run "${callback_name}" \
+            --rm \
+            --restart=Never \
+            --image=curlimages/curl:8.8.0 \
+            --quiet \
+            -i \
+            -- \
+            -fsS \
+            -X POST \
+            -H "Content-Type: application/json" \
+            -H "X-Internal-Secret: ${internal_secret}" \
+            --data '{"status":"ACTIVE"}' \
+            "http://platform-service:8083/internal/tenants/${slug}/provisioning-callback"

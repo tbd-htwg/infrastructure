@@ -144,6 +144,16 @@ def load_balancer_ip(tier: str, tenant_id: str, terraform_outputs: dict[str, Any
     return terraform_outputs.get("standard_load_balancer_ip", {}).get("value", "")
 
 
+def deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
+    merged = dict(base)
+    for key, value in override.items():
+        if isinstance(value, dict) and isinstance(merged.get(key), dict):
+            merged[key] = deep_merge(merged[key], value)
+        else:
+            merged[key] = value
+    return merged
+
+
 def render_standard_configmap(
     tenants: dict[str, dict[str, Any]],
     terraform_outputs: dict[str, Any],
@@ -236,17 +246,54 @@ def render_enterprise_values(
     tenant: dict[str, Any],
     terraform_outputs: dict[str, Any],
 ) -> str:
+    project_id = tenant.get("projectId", "tbd-cloudappdev")
+    frontend_bucket_name = tenant["frontend"].get("bucketName", f"{project_id}-frontend-bucket")
+    cors_origins = ",".join(f"https://{hostname}" for hostname in tenant["hostnames"])
     services = tenant.get("services", {})
+    service_defaults = {
+        "trip": {
+            "env": {
+                "CORS_ALLOWED_ORIGINS": cors_origins,
+                "TRIPPLANNING_AUTH_FIREBASE_PROJECT_ID": project_id,
+                "GCP_IMPERSONATE_SERVICE_ACCOUNT": f"tripplanning-image-url-sig@{project_id}.iam.gserviceaccount.com",
+                "TRIPPLANNING_PLATFORM_BASE_URL": "http://platform-service.tripplanning-system:8083",
+            },
+            "bootstrap": {
+                "waitForValkey": True,
+                "waitForSearch": True,
+            },
+        },
+        "social": {
+            "env": {
+                "CORS_ALLOWED_ORIGINS": cors_origins,
+                "TRIPPLANNING_AUTH_FIREBASE_PROJECT_ID": project_id,
+                "SPRING_DATA_REDIS_HOST": "valkey",
+            },
+            "bootstrap": {
+                "waitForValkey": True,
+            },
+        },
+        "externalInfo": {
+            "env": {
+                "CORS_ALLOWED_ORIGINS": cors_origins,
+                "SPRING_DATA_REDIS_HOST": "valkey",
+            },
+            "bootstrap": {
+                "waitForValkey": True,
+            },
+        },
+    }
+    merged_services = deep_merge(service_defaults, services)
     values = {
         "global": {
             "tier": "enterprise",
             "tenantId": tenant_id,
-            "hostnames": tenant["hostnames"],
+            "hostnames": list(tenant["hostnames"]),
             "identityPlatform": {
                 "tenantId": identity_tenant_id("enterprise", tenant_id, tenant, terraform_outputs),
             },
             "frontend": {
-                "bucketName": "tbd-cloudappdev-frontend-bucket",
+                "bucketName": frontend_bucket_name,
                 "bucketPrefix": tenant["frontend"]["bucketPrefix"],
                 "brandName": tenant["frontend"]["brandName"],
                 "colorScheme": tenant["frontend"]["colorScheme"],
@@ -277,7 +324,7 @@ def render_enterprise_values(
                 {
                     "tenantId": tenant_id,
                     "identityPlatformTenantId": identity_tenant_id("enterprise", tenant_id, tenant, terraform_outputs),
-                    "hostnames": tenant["hostnames"],
+                    "hostnames": list(tenant["hostnames"]),
                 }
             ],
             "loadBalancer": {
@@ -286,6 +333,7 @@ def render_enterprise_values(
                 "externalTrafficPolicy": "Cluster",
             },
         },
+        "services": merged_services,
         "backingServices": {
             "postgres": {"enabled": False},
             "elasticsearch": {
@@ -295,8 +343,6 @@ def render_enterprise_values(
             "valkey": {"enabled": tenant.get("cache", {}).get("dedicated", True)},
         },
     }
-    if services:
-        values["services"] = services
     return yaml.safe_dump(values, sort_keys=False)
 
 
@@ -313,6 +359,7 @@ def render_enterprise_gitops(
 
     resources: list[str] = []
     for tenant_id, tenant in tenants.items():
+        project_id = tenant.get("projectId", "tbd-cloudappdev")
         tenant_dir = ENTERPRISE_GITOPS_DIR / tenant_id
         resources.append(tenant_id)
         files = {
@@ -345,7 +392,7 @@ metadata:
   name: default
   namespace: {tenant["namespace"]}
   annotations:
-    iam.gke.io/gcp-service-account: workload@tbd-cloudappdev.iam.gserviceaccount.com
+    iam.gke.io/gcp-service-account: workload@{project_id}.iam.gserviceaccount.com
 """,
             "external-secrets.yaml": f"""apiVersion: external-secrets.io/v1
 kind: ExternalSecret

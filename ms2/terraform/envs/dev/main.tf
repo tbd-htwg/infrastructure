@@ -526,6 +526,14 @@ resource "google_service_account_iam_member" "standard_namespace_default_wi" {
   member             = "serviceAccount:${var.project_id}.svc.id.goog[tripplanning-standard/default]"
 }
 
+resource "google_service_account_iam_member" "enterprise_namespace_default_wi" {
+  for_each = var.enterprise_tenants
+
+  service_account_id = "projects/${var.project_id}/serviceAccounts/${local.service_account_emails["workload"]}"
+  role               = "roles/iam.workloadIdentityUser"
+  member             = "serviceAccount:${var.project_id}.svc.id.goog[${each.value.namespace}/default]"
+}
+
 resource "google_service_account_iam_member" "platform_service_wi" {
   service_account_id = "projects/${var.project_id}/serviceAccounts/${local.service_account_emails["platform-admin"]}"
   role               = "roles/iam.workloadIdentityUser"

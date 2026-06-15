@@ -14,7 +14,8 @@ The provisioning flow is:
 4. `scripts/render-tenants.py` generates Terraform tenant variables and GitOps/Helm values.
 5. If `TENANT_PROVISION_APPLY_TERRAFORM=true`, CI applies Terraform and rerenders GitOps with computed outputs.
 6. Flux reconciles generated GitOps manifests.
-7. Run smoke tests for DNS, Identity Platform tenant matching, database routing, storage prefixes/buckets, and service health.
+7. If CI applied Terraform, the workflow waits for the tenant HelmRelease and calls platform-service back through `/internal/tenants/{slug}/provisioning-callback`.
+8. Run smoke tests for DNS, Identity Platform tenant matching, database routing, storage prefixes/buckets, and service health.
 
 The renderer is still part of the platform-service pipeline. Run it manually only for debugging:
 
@@ -39,5 +40,6 @@ The renderer skips files named `example-*.yaml` and writes:
 
 - `terraform/envs/dev/generated-tenants.auto.tfvars.json`
 - `gitops/tenants/standard/shared/generated-tenants-configmap.yaml`
+- `gitops/tenants/standard/shared/generated-db-external-secret.yaml`
 - `gitops/tenants/enterprise/<tenant-id>/`
 - `gitops/tenants/enterprise/kustomization.yaml`
