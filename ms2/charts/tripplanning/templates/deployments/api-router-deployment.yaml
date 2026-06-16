@@ -1,3 +1,4 @@
+{{- $rollingUpdate := default dict .Values.services.apiRouter.rollingUpdate }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -10,8 +11,8 @@ spec:
   strategy:
     type: RollingUpdate
     rollingUpdate:
-      maxSurge: {{ .Values.services.apiRouter.rollingUpdate.maxSurge | default 0 }}
-      maxUnavailable: {{ .Values.services.apiRouter.rollingUpdate.maxUnavailable | default 1 }}
+      maxSurge: {{ default 0 $rollingUpdate.maxSurge }}
+      maxUnavailable: {{ default 1 $rollingUpdate.maxUnavailable }}
   selector:
     matchLabels:
       app.kubernetes.io/component: api-router

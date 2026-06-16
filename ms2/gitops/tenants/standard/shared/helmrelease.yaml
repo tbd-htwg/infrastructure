@@ -5,6 +5,7 @@ metadata:
   namespace: tripplanning-standard
 spec:
   interval: 10m
+  timeout: 15m
   chart:
     spec:
       chart: ms2/charts/tripplanning

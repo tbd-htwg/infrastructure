@@ -1,3 +1,4 @@
+{{- $rollingUpdate := default dict .Values.services.social.rollingUpdate }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -10,8 +11,8 @@ spec:
   strategy:
     type: RollingUpdate
     rollingUpdate:
-      maxSurge: {{ .Values.services.social.rollingUpdate.maxSurge | default 0 }}
-      maxUnavailable: {{ .Values.services.social.rollingUpdate.maxUnavailable | default 1 }}
+      maxSurge: {{ default 0 $rollingUpdate.maxSurge }}
+      maxUnavailable: {{ default 1 $rollingUpdate.maxUnavailable }}
   selector:
     matchLabels:
       app.kubernetes.io/component: social-service
@@ -41,18 +42,30 @@ spec:
             - secretRef:
                 name: {{ . }}
 {{- end }}
+          startupProbe:
+            httpGet:
+              path: {{ .Values.services.social.livenessPath }}
+              port: {{ .Values.services.social.port }}
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 24
           readinessProbe:
             httpGet:
               path: {{ .Values.services.social.readinessPath }}
               port: {{ .Values.services.social.port }}
             initialDelaySeconds: 20
             periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 12
           livenessProbe:
             httpGet:
               path: {{ .Values.services.social.livenessPath }}
               port: {{ .Values.services.social.port }}
             initialDelaySeconds: 40
             periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 6
           resources:
             requests:
               cpu: {{ .Values.services.social.resources.requests.cpu }}

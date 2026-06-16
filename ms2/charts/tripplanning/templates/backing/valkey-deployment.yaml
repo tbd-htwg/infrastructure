@@ -1,4 +1,5 @@
 {{- if .Values.backingServices.valkey.enabled }}
+{{- $rollingUpdate := default dict .Values.backingServices.valkey.rollingUpdate }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -11,8 +12,8 @@ spec:
   strategy:
     type: RollingUpdate
     rollingUpdate:
-      maxSurge: {{ .Values.backingServices.valkey.rollingUpdate.maxSurge | default 0 }}
-      maxUnavailable: {{ .Values.backingServices.valkey.rollingUpdate.maxUnavailable | default 1 }}
+      maxSurge: {{ default 0 $rollingUpdate.maxSurge }}
+      maxUnavailable: {{ default 1 $rollingUpdate.maxUnavailable }}
   selector:
     matchLabels:
       app.kubernetes.io/component: valkey

@@ -36,8 +36,14 @@ data:
     services:
       apiRouter:
         replicas: 1
+        rollingUpdate:
+          maxSurge: 0
+          maxUnavailable: 1
       trip:
         replicas: 1
+        rollingUpdate:
+          maxSurge: 0
+          maxUnavailable: 1
         resources:
           requests:
             cpu: "250m"
@@ -55,6 +61,9 @@ data:
           waitForSearch: true
       social:
         replicas: 1
+        rollingUpdate:
+          maxSurge: 0
+          maxUnavailable: 1
         resources:
           requests:
             cpu: "150m"
@@ -67,6 +76,9 @@ data:
           JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError"
       externalInfo:
         replicas: 1
+        rollingUpdate:
+          maxSurge: 0
+          maxUnavailable: 1
         resources:
           requests:
             cpu: "100m"
@@ -84,6 +96,9 @@ data:
         enabled: true
         serviceName: valkey
         image: valkey/valkey:8-alpine
+        rollingUpdate:
+          maxSurge: 0
+          maxUnavailable: 1
         resources:
           requests:
             cpu: "25m"

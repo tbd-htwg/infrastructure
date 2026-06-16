@@ -1,3 +1,4 @@
+{{- $rollingUpdate := default dict .Values.services.externalInfo.rollingUpdate }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -10,8 +11,8 @@ spec:
   strategy:
     type: RollingUpdate
     rollingUpdate:
-      maxSurge: {{ .Values.services.externalInfo.rollingUpdate.maxSurge | default 0 }}
-      maxUnavailable: {{ .Values.services.externalInfo.rollingUpdate.maxUnavailable | default 1 }}
+      maxSurge: {{ default 0 $rollingUpdate.maxSurge }}
+      maxUnavailable: {{ default 1 $rollingUpdate.maxUnavailable }}
   selector:
     matchLabels:
       app.kubernetes.io/component: external-info-service
@@ -45,18 +46,30 @@ spec:
             - secretRef:
                 name: {{ . }}
 {{- end }}
+          startupProbe:
+            httpGet:
+              path: {{ .Values.services.externalInfo.livenessPath }}
+              port: {{ .Values.services.externalInfo.port }}
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 24
           readinessProbe:
             httpGet:
               path: {{ .Values.services.externalInfo.readinessPath }}
               port: {{ .Values.services.externalInfo.port }}
             initialDelaySeconds: 15
             periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 12
           livenessProbe:
             httpGet:
               path: {{ .Values.services.externalInfo.livenessPath }}
               port: {{ .Values.services.externalInfo.port }}
             initialDelaySeconds: 30
             periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 6
           resources:
             requests:
               cpu: {{ .Values.services.externalInfo.resources.requests.cpu }}

@@ -1,3 +1,4 @@
+{{- $rollingUpdate := default dict .Values.services.trip.rollingUpdate }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -10,8 +11,8 @@ spec:
   strategy:
     type: RollingUpdate
     rollingUpdate:
-      maxSurge: {{ .Values.services.trip.rollingUpdate.maxSurge | default 0 }}
-      maxUnavailable: {{ .Values.services.trip.rollingUpdate.maxUnavailable | default 1 }}
+      maxSurge: {{ default 0 $rollingUpdate.maxSurge }}
+      maxUnavailable: {{ default 1 $rollingUpdate.maxUnavailable }}
   selector:
     matchLabels:
       app.kubernetes.io/component: trip-service
@@ -58,7 +59,7 @@ spec:
             initialDelaySeconds: 20
             timeoutSeconds: 5
             periodSeconds: 10
-            failureThreshold: 18
+            failureThreshold: 60
           readinessProbe:
             httpGet:
               path: {{ .Values.services.trip.readinessPath }}
