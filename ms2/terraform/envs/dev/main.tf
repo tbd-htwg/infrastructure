@@ -462,6 +462,12 @@ resource "google_service_account_iam_member" "backend_wif_binding" {
   member             = "principalSet://iam.googleapis.com/projects/${data.google_project.current.number}/locations/global/workloadIdentityPools/${var.github_wif.pool_id}/attribute.repository/${var.backend_wif.owner}/${var.backend_wif.repo}"
 }
 
+resource "google_project_iam_member" "backend_gke_deployer" {
+  project = var.project_id
+  role    = "roles/container.developer"
+  member  = "serviceAccount:${local.service_account_emails["secrets_deployer"]}"
+}
+
 resource "google_service_account" "infra_terraform_deployer" {
   project      = var.project_id
   account_id   = var.infra_wif.service_account_name

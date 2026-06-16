@@ -8,6 +8,11 @@ output "secrets_deployer_sa_email" {
   value       = module.project_bootstrap.service_account_emails["secrets_deployer"]
 }
 
+output "backend_deployer_sa_email" {
+  description = "GitHub Actions service account email for backend image deploys and Secret Manager syncs."
+  value       = module.project_bootstrap.service_account_emails["secrets_deployer"]
+}
+
 output "artifact_registry_repo" {
   description = "Artifact Registry repository name."
   value       = module.project_bootstrap.artifact_registry_repo
