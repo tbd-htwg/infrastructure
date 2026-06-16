@@ -1,6 +1,8 @@
 provider "google" {
-  project = var.project_id
-  region  = var.region
+  project               = var.project_id
+  region                = var.region
+  billing_project       = var.project_id
+  user_project_override = true
 }
 
 data "google_project" "current" {
@@ -235,15 +237,25 @@ module "kms" {
 }
 
 module "frontend_lb" {
-  source                                 = "../../modules/frontend-lb"
-  project_id                             = var.project_id
-  frontend_domain                        = var.frontend.domain
+  source                      = "../../modules/frontend-lb"
+  project_id                  = var.project_id
+  frontend_domain             = var.frontend.domain
+  additional_frontend_domains = flatten([for tenant in values(var.standard_tenants) : tenant.hostnames])
+  host_api_backend_internet_endpoints = {
+    for tenant_id, tenant in var.enterprise_tenants : tenant_id => {
+      hostnames = tenant.hostnames
+      ip        = google_compute_address.enterprise_lb_ip[tenant_id].address
+      port      = 8088
+    }
+  }
   dns_zone_name                          = module.project_bootstrap.dns_zone_name
   bucket_name                            = module.storage.bucket_names["frontend_assets"]
   network_self_link                      = module.network.network_self_link
   enable_cdn                             = var.frontend.enable_cdn
   api_backend_neg_self_link              = try(var.frontend.api_backend_neg_self_link, null)
   api_backend_neg_self_links             = coalesce(try(var.frontend.api_backend_neg_self_links, null), [])
+  api_backend_internet_endpoint_ip       = google_compute_address.standard_lb_ip.address
+  api_backend_internet_endpoint_port     = 8088
   api_paths                              = coalesce(try(var.frontend.api_paths, null), ["/api/*"])
   api_health_check_path                  = coalesce(try(var.frontend.api_health_check_path, null), "/actuator/health/readiness")
   api_health_check_port                  = coalesce(try(var.frontend.api_health_check_port, null), 8080)
@@ -274,7 +286,7 @@ module "standard_tenant_dns" {
   dns_zone_name        = module.project_bootstrap.dns_zone_name
   host_base            = var.frontend.domain
   enterprise_host_base = "enterprise.${var.frontend.domain}"
-  standard_lb_ip       = google_compute_address.standard_lb_ip.address
+  standard_lb_ip       = module.frontend_lb.frontend_ip
 }
 
 module "enterprise_tenant_dns" {
@@ -287,7 +299,7 @@ module "enterprise_tenant_dns" {
   dns_zone_name        = module.project_bootstrap.dns_zone_name
   host_base            = var.frontend.domain
   enterprise_host_base = "enterprise.${var.frontend.domain}"
-  enterprise_lb_ip     = google_compute_address.enterprise_lb_ip[each.key].address
+  enterprise_lb_ip     = module.frontend_lb.frontend_ip
 }
 
 resource "google_identity_platform_tenant" "standard" {

@@ -10,5 +10,5 @@ output "frontend_domain" {
 
 output "api_backend_service" {
   description = "API backend service self link (if enabled)."
-  value       = length(local.api_backend_neg_self_links) == 0 ? null : google_compute_backend_service.api[0].self_link
+  value       = local.has_api_backend ? google_compute_backend_service.api[0].self_link : null
 }

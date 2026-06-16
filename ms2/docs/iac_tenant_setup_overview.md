@@ -10,7 +10,7 @@ Terraform in `infrastructure/ms2/terraform/envs/dev` creates the cloud foundatio
 - VPC and GKE Autopilot cluster.
 - Cloud Storage buckets for frontend assets and shared images.
 - Frontend HTTPS load balancer for the shared frontend.
-- Static IPs and DNS records for tenant API subdomains.
+- Static IPs and DNS records for tenant browser/API subdomains.
 - Google Identity Platform tenants for Standard and Enterprise customers.
 - Cloud SQL:
   - one small platform Cloud SQL instance for the platform-service tenant registry;
@@ -115,22 +115,16 @@ The target routing model does not use GKE Gateway API.
 
 ```text
 User
-  -> frontend domain
+  -> frontend or tenant domain
   -> global HTTPS frontend load balancer
   -> frontend Cloud Storage bucket
 
 Browser API call
-  -> frontend domain /api/*
+  -> same domain /api/*
   -> global HTTPS frontend load balancer
-  -> free api-router NEG
+  -> Standard or Enterprise api-router backend
   -> platform-service for /api/v2/auth, /api/v2/admin, /api/v2/tenants
   -> tenant services for trip/social/external-info paths
-
-User
-  -> tenant API subdomain
-  -> Kubernetes LoadBalancer Service
-  -> in-namespace api-router
-  -> trip/social/external-info services
 ```
 
 Domain pattern:
@@ -139,7 +133,18 @@ Domain pattern:
 - Standard: `<tenant>.k8s.tbd-htwg.de`
 - Enterprise: `<tenant>.enterprise.k8s.tbd-htwg.de`
 
-The `api-router` resolves the tenant from the hostname and forwards API traffic to the correct backend service. Backend services must verify that the Google Identity Platform tenant ID in the user token matches the hostname tenant.
+Only `tbd-dns-zone` (`tbd-htwg.de.`) should be used for public records. Do not create a separate public managed zone for `k8s.tbd-htwg.de.` unless the parent zone delegates NS records to it. Without delegation, the child zone is orphaned and public DNS ignores it.
+
+Tenant A records point to the global frontend load balancer IP. The frontend load balancer serves the shared frontend bucket for normal browser routes and forwards `/api/*` to the correct Kubernetes `api-router`:
+
+- Standard tenants share one Standard `api-router` LoadBalancer in `tripplanning-standard`.
+- Enterprise tenants each keep a dedicated `api-router` LoadBalancer in their own namespace. The frontend load balancer has a host-specific `/api/*` backend for each Enterprise tenant.
+
+New tenant hostnames are added to the frontend HTTPS certificate. Google-managed certificates can take time to provision after Terraform apply, so a tenant may be reachable over DNS before HTTPS is marked `ACTIVE`.
+
+The frontend load balancer uses `EXTERNAL_MANAGED` forwarding rules for tenant host routing. In existing projects that still have older classic forwarding rules or the old `api-backend-service`, Terraform replaces them with managed resources instead of migrating them in place. This avoids Google Cloud migration-state errors around backend buckets and Internet NEGs.
+
+The `api-router` receives the original `Host` header, resolves the tenant from the hostname, and forwards API traffic to the correct backend service. Backend services must verify that the Google Identity Platform tenant ID in the user token matches the hostname tenant.
 
 The platform-service is intentionally outside tenant namespaces in `tripplanning-system`. It is control-plane infrastructure and should keep running even if a tenant namespace is recreated.
 
@@ -148,8 +153,8 @@ The platform-service is intentionally outside tenant namespaces in `tripplanning
 | Tier | Isolation model | Main resources |
 | --- | --- | --- |
 | Free | Shared runtime, shared namespace, shared backing services, best effort. | `tripplanning-free`, in-cluster Postgres/OpenSearch/Valkey, shared image bucket prefix. |
-| Standard | Shared runtime, tenant-isolated data. | One `tripplanning-standard` namespace, one Standard LoadBalancer, one Standard API router, shared Standard Cloud SQL instance with database per tenant, shared image bucket prefixes. |
-| Enterprise | Dedicated runtime and stronger isolation. | Namespace per tenant, LoadBalancer per tenant, API router per tenant, Cloud SQL instance per tenant, dedicated image bucket, dedicated OpenSearch, dedicated Valkey. |
+| Standard | Shared runtime, tenant-isolated data. | One `tripplanning-standard` namespace, one Standard API router behind one Standard LoadBalancer, shared Standard Cloud SQL instance with database per tenant, shared frontend bucket, shared image bucket prefixes. |
+| Enterprise | Dedicated runtime and stronger isolation. | Namespace per tenant, API router behind a tenant LoadBalancer, Cloud SQL instance per tenant, shared frontend bucket with tenant prefix, dedicated image bucket, dedicated OpenSearch, dedicated Valkey. |
 
 ## How Tenants Are Created Right Now
 

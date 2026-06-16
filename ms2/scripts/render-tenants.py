@@ -159,6 +159,14 @@ def render_standard_configmap(
     terraform_outputs: dict[str, Any],
 ) -> str:
     router_tenants = []
+    cors_origins = ",".join(
+        ["https://k8s.tbd-htwg.de"]
+        + [
+            f"https://{hostname}"
+            for tenant in tenants.values()
+            for hostname in tenant["hostnames"]
+        ]
+    )
     for tenant_id, tenant in tenants.items():
         router_tenants.append(
             {
@@ -195,9 +203,20 @@ def render_standard_configmap(
                     "trip-service-db-secrets",
                 ],
                 "env": {
+                    "CORS_ALLOWED_ORIGINS": cors_origins,
                     "TRIPPLANNING_TENANT_DATASOURCE_ROUTING": "false",
                     "TRIPPLANNING_PLATFORM_BASE_URL": "http://platform-service.tripplanning-system:8083",
                 }
+            }
+        }
+        values["services"]["social"] = {
+            "env": {
+                "CORS_ALLOWED_ORIGINS": cors_origins,
+            }
+        }
+        values["services"]["externalInfo"] = {
+            "env": {
+                "CORS_ALLOWED_ORIGINS": cors_origins,
             }
         }
 

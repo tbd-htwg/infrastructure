@@ -25,5 +25,12 @@ data:
         - trip-service-secrets
         - trip-service-db-secrets
         env:
+          CORS_ALLOWED_ORIGINS: https://k8s.tbd-htwg.de,https://test03.k8s.tbd-htwg.de
           TRIPPLANNING_TENANT_DATASOURCE_ROUTING: 'false'
           TRIPPLANNING_PLATFORM_BASE_URL: http://platform-service.tripplanning-system:8083
+      social:
+        env:
+          CORS_ALLOWED_ORIGINS: https://k8s.tbd-htwg.de,https://test03.k8s.tbd-htwg.de
+      externalInfo:
+        env:
+          CORS_ALLOWED_ORIGINS: https://k8s.tbd-htwg.de,https://test03.k8s.tbd-htwg.de
