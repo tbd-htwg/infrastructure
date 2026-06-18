@@ -474,6 +474,38 @@ jobs:
               echo "Kubernetes database password did not sync from ${expected_password_secret}" >&2
               exit 1
             fi
+
+            # If Helm already started an upgrade from the new Git revision
+            # before Flux applied the generated values ConfigMap, it can be
+            # waiting on a pod that still targets the deleted primary tenant.
+            # Bridge that in-flight release to the new primary database so it
+            # can finish; the forced reconcile below then persists the full
+            # desired Helm values.
+            primary_database_name="$(
+              jq -r \
+                --arg slug "${primary_slug}" \
+                '.standard_tenants[$slug].database.name' \
+                "${TF_DIR}/generated-tenants.auto.tfvars.json"
+            )"
+            primary_database_user="$(
+              jq -r \
+                --arg slug "${primary_slug}" \
+                '.standard_tenants[$slug].database.user_name' \
+                "${TF_DIR}/generated-tenants.auto.tfvars.json"
+            )"
+            runtime_patch="$(
+              jq -n \
+                --arg url "jdbc:postgresql://127.0.0.1:5432/${primary_database_name}" \
+                --arg username "${primary_database_user}" \
+                '{data: {
+                  SPRING_DATASOURCE_URL: $url,
+                  SPRING_DATASOURCE_USERNAME: $username
+                }}'
+            )"
+            kubectl -n tripplanning-standard patch configmap trip-service-config \
+              --type=merge \
+              --patch="${runtime_patch}"
+            kubectl -n tripplanning-standard rollout restart deployment/trip-service
           fi
 
           # A new Git revision can make the Helm chart reconcile before the
