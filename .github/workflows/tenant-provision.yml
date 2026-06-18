@@ -382,17 +382,45 @@ jobs:
             --secret=tripplanning-internal-secret \
             --project="${GCP_PROJECT_ID}")"
 
-          callback_name="tenant-callback-${slug:0:24}-${GITHUB_RUN_ID}"
-          kubectl -n tripplanning-system run "${callback_name}" \
-            --rm \
-            --restart=Never \
-            --image=curlimages/curl:8.8.0 \
-            --quiet \
-            -i \
-            -- \
+          # Use the existing platform-service pod instead of scheduling a
+          # one-shot callback pod. Autopilot may be temporarily unable to
+          # schedule extra pods when a zone is short on capacity.
+          callback_port=18083
+          port_forward_log="/tmp/platform-service-port-forward.log"
+          kubectl -n tripplanning-system port-forward \
+            service/platform-service \
+            "${callback_port}:8083" \
+            >"${port_forward_log}" 2>&1 &
+          port_forward_pid=$!
+          trap 'kill "${port_forward_pid}" 2>/dev/null || true' EXIT
+
+          for _ in {1..30}; do
+            if ! kill -0 "${port_forward_pid}" 2>/dev/null; then
+              cat "${port_forward_log}" >&2
+              exit 1
+            fi
+            if curl --connect-timeout 1 --max-time 2 -sS -o /dev/null \
+              "http://127.0.0.1:${callback_port}/actuator/health/readiness"; then
+              break
+            fi
+            sleep 1
+          done
+
+          if ! curl --connect-timeout 1 --max-time 2 -sS -o /dev/null \
+            "http://127.0.0.1:${callback_port}/actuator/health/readiness"; then
+            cat "${port_forward_log}" >&2
+            exit 1
+          fi
+
+          curl \
             -fsS \
+            --retry 5 \
+            --retry-connrefused \
+            --retry-delay 2 \
+            --connect-timeout 5 \
+            --max-time 30 \
             -X POST \
             -H "Content-Type: application/json" \
             -H "X-Internal-Secret: ${internal_secret}" \
             --data '{"status":"ACTIVE"}' \
-            "http://platform-service:8083/internal/tenants/${slug}/provisioning-callback"
+            "http://127.0.0.1:${callback_port}/internal/tenants/${slug}/provisioning-callback"

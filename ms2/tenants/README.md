@@ -14,7 +14,7 @@ The provisioning flow is:
 4. `scripts/render-tenants.py` generates Terraform tenant variables and GitOps/Helm values.
 5. If `TENANT_PROVISION_APPLY_TERRAFORM=true`, CI applies Terraform and rerenders GitOps with computed outputs.
 6. Flux reconciles generated GitOps manifests.
-7. If CI applied Terraform, the workflow waits for the tenant HelmRelease and calls platform-service back through `/internal/tenants/{slug}/provisioning-callback`.
+7. If CI applied Terraform, the workflow waits for the tenant HelmRelease, port-forwards the existing platform-service Service to the GitHub runner, and calls `/internal/tenants/{slug}/provisioning-callback`. It does not schedule a temporary callback pod.
 8. Run smoke tests for DNS, Identity Platform tenant matching, database routing, storage prefixes/buckets, and service health.
 
 Standard and Enterprise tenant hostnames are covered by the shared Certificate Manager wildcards (`*.k8s.tbd-htwg.de` and `*.enterprise.k8s.tbd-htwg.de`). Adding a tenant does not create or rotate a TLS certificate. Keep generated hostnames within the tier's documented pattern unless the frontend certificate map is extended deliberately.

@@ -225,7 +225,7 @@ Admin UI
 
 For application-driven creation, platform-service creates the Identity Platform tenant first and sends `identityPlatformTenantId` in the GitHub dispatch payload. The provisioning workflow writes that ID into the tenant YAML, and Terraform then skips creating a second Identity Platform tenant for that tenant. For manual `workflow_dispatch` runs, no pre-created Identity Platform tenant ID is provided, so Terraform creates the Identity Platform tenant.
 
-When `TENANT_PROVISION_APPLY_TERRAFORM=true`, the provisioning workflow waits for the generated tenant HelmRelease to become ready and then marks the tenant `ACTIVE` through the internal platform-service callback. The callback is protected by `X-Internal-Secret` using `tripplanning-internal-secret`.
+When `TENANT_PROVISION_APPLY_TERRAFORM=true`, the provisioning workflow waits for the generated tenant HelmRelease to become ready and then marks the tenant `ACTIVE` through the internal platform-service callback. CI reaches the existing platform-service Service through `kubectl port-forward`; it does not create a temporary callback pod, so callback delivery does not depend on Autopilot finding capacity for another pod. The callback is protected by `X-Internal-Secret` using `tripplanning-internal-secret`, and platform-service handles `/internal/**` in a dedicated security chain rather than the public OAuth2 chain.
 
 If `tripplanning-platform-github-dispatch-token` is missing, platform-service can still start, but real tenant provisioning cannot dispatch to GitHub.
 
