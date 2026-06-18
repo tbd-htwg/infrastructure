@@ -398,10 +398,6 @@ jobs:
             exit 1
           fi
 
-          kubectl -n tripplanning-standard wait \
-            --for=condition=Ready helmrelease/tripplanning-standard \
-            --timeout=25m
-
           remaining_tenants="$(
             jq -r '.standard_tenants | length' \
               "${TF_DIR}/generated-tenants.auto.tfvars.json"
@@ -478,9 +474,22 @@ jobs:
               echo "Kubernetes database password did not sync from ${expected_password_secret}" >&2
               exit 1
             fi
-
-            kubectl -n tripplanning-standard rollout restart deployment/trip-service
           fi
+
+          # A new Git revision can make the Helm chart reconcile before the
+          # generated values ConfigMap and ExternalSecret have both updated.
+          # Reset any stale attempt and force a fresh render only after the
+          # replacement database credential is ready.
+          reconcile_token="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          kubectl -n tripplanning-standard annotate helmrelease tripplanning-standard \
+            "reconcile.fluxcd.io/resetAt=${reconcile_token}" \
+            "reconcile.fluxcd.io/forceAt=${reconcile_token}" \
+            "reconcile.fluxcd.io/requestedAt=${reconcile_token}" \
+            --overwrite
+
+          kubectl -n tripplanning-standard wait \
+            --for=condition=Ready helmrelease/tripplanning-standard \
+            --timeout=25m
 
           for _ in {1..120}; do
             replicas="$(kubectl -n tripplanning-standard get deployment trip-service -o jsonpath='{.spec.replicas}')"

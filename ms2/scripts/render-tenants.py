@@ -233,6 +233,8 @@ kind: ConfigMap
 metadata:
   name: tripplanning-standard-generated-tenants
   namespace: tripplanning-standard
+  labels:
+    reconcile.fluxcd.io/watch: Enabled
 data:
   values.yaml: |
 {indented}
