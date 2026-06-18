@@ -244,9 +244,15 @@ data:
 def render_standard_db_external_secret(tenants: dict[str, dict[str, Any]]) -> str:
     primary_tenant_id = next(iter(tenants), None)
     if not primary_tenant_id:
-        data = "  data: []"
-    else:
-        data = f"""  data:
+        # External Secrets rejects resources without at least one data or
+        # dataFrom entry. Emit no resources so Flux prunes the old
+        # tenant-specific ExternalSecret when the Standard tier is empty.
+        return """apiVersion: v1
+kind: List
+items: []
+"""
+
+    data = f"""  data:
     - secretKey: SPRING_DATASOURCE_PASSWORD
       remoteRef:
         key: tripplanning-standard-{primary_tenant_id}-db-password"""
