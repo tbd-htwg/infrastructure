@@ -275,10 +275,14 @@ Preferred deletion path:
 1. Run `.github/workflows/tenant-delete.yml`.
 2. Choose the tier and slug.
 3. Repeat the slug in `confirm_slug`.
-4. The workflow removes the tenant YAML, rerenders Terraform input, applies Terraform, rerenders GitOps, and commits the deletion.
-5. Flux removes the tenant Kubernetes resources from the cluster.
+4. For Standard tenants, the workflow briefly scales the shared trip service to zero, removes objects owned by the tenant database role, and removes tenant-scoped search indexes, cache keys, and bucket objects.
+5. The workflow removes the tenant YAML, rerenders Terraform input, applies Terraform, rerenders GitOps, and commits the deletion.
+6. Flux removes the tenant from shared runtime routing and either starts the trip service with the next Standard tenant database or leaves it at zero replicas when no Standard tenants remain.
+7. The workflow verifies that Cloud SQL database/user, Secret Manager secret, DNS, Identity Platform, Terraform state, search/cache data, and storage prefixes no longer contain the tenant.
 
 This deletes tenant-owned data resources. The current design intentionally does not retain tenant data after tenant destruction.
+
+Standard database cleanup is required before Terraform deletion because application roles own Flyway-created objects, and active trip-service connections otherwise prevent Cloud SQL from deleting the role and database. Do not bypass this cleanup by manually removing resources from Terraform state.
 
 Manual cleanup path:
 

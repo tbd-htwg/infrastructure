@@ -77,6 +77,7 @@ jobs:
           fi
 
           echo "slug=${slug}" >> "$GITHUB_OUTPUT"
+          echo "tier=${tier}" >> "$GITHUB_OUTPUT"
           echo "tenant_path=${tenant_path}" >> "$GITHUB_OUTPUT"
 
       - name: Install renderer dependencies
@@ -96,6 +97,20 @@ jobs:
               tenant = yaml.safe_load(handle) or {}
           identity_tenant_id = (tenant.get("identityPlatform") or {}).get("tenantId", "")
           print(f"identity_platform_tenant_id={identity_tenant_id}")
+          database = tenant.get("database") or {}
+          storage = tenant.get("storage") or {}
+          frontend = tenant.get("frontend") or {}
+          search = tenant.get("search") or {}
+          cache = tenant.get("cache") or {}
+          hostnames = tenant.get("hostnames") or []
+          print(f"database_name={database.get('databaseName', '')}")
+          print(f"database_user={database.get('userName', '')}")
+          print(f"database_password_secret=tripplanning-standard-{tenant.get('tenantId', '')}-db-password")
+          print(f"frontend_prefix={frontend.get('bucketPrefix', '')}")
+          print(f"images_prefix={storage.get('imagesPrefix', '')}")
+          print(f"search_index={search.get('indexName', '')}")
+          print(f"cache_prefix={cache.get('keyPrefix', '')}")
+          print(f"hostname={hostnames[0] if hostnames else ''}")
           PY
 
       - name: Remove tenant definition and render Terraform input
@@ -124,6 +139,185 @@ jobs:
         run: |
           set -euo pipefail
           gcloud components install kubectl --quiet
+          gcloud container clusters get-credentials tripplanning-gke \
+            --region europe-west1 \
+            --project "${GCP_PROJECT_ID}"
+
+      - name: Prepare Standard tenant database for deletion
+        id: standard_cleanup
+        if: steps.payload.outputs.tier == 'STANDARD'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          slug="${{ steps.payload.outputs.slug }}"
+          database_name="${{ steps.tenant_config.outputs.database_name }}"
+          database_user="${{ steps.tenant_config.outputs.database_user }}"
+          password_secret="${{ steps.tenant_config.outputs.database_password_secret }}"
+          cleanup_name="tenant-db-cleanup-${slug:0:20}-${GITHUB_RUN_ID}"
+          cleanup_secret="${cleanup_name}-db"
+
+          if [[ -z "${database_name}" || -z "${database_user}" ]]; then
+            echo "Standard tenant YAML must define databaseName and userName" >&2
+            exit 1
+          fi
+
+          original_replicas="$(kubectl -n tripplanning-standard get deployment trip-service -o jsonpath='{.spec.replicas}')"
+          echo "original_replicas=${original_replicas}" >> "$GITHUB_OUTPUT"
+
+          restore_trip_service() {
+            kubectl -n tripplanning-standard scale deployment trip-service \
+              --replicas="${original_replicas}" >/dev/null 2>&1 || true
+          }
+          cleanup_temporary_resources() {
+            kubectl -n tripplanning-standard delete job "${cleanup_name}" \
+              --ignore-not-found --wait=false >/dev/null 2>&1 || true
+            kubectl -n tripplanning-standard delete secret "${cleanup_secret}" \
+              --ignore-not-found >/dev/null 2>&1 || true
+          }
+          trap 'cleanup_temporary_resources; restore_trip_service' ERR
+
+          # Standard tenants share this deployment. Stop it briefly so its
+          # Cloud SQL connection cannot block database deletion.
+          kubectl -n tripplanning-standard scale deployment trip-service --replicas=0
+          kubectl -n tripplanning-standard wait \
+            --for=delete pod \
+            -l app.kubernetes.io/component=trip-service \
+            --timeout=10m
+
+          database_password="$(
+            gcloud secrets versions access latest \
+              --secret="${password_secret}" \
+              --project="${GCP_PROJECT_ID}" 2>/dev/null || true
+          )"
+
+          # A previous partial Terraform destroy may already have removed the
+          # Secret Manager secret while External Secrets still has the value.
+          if [[ -z "${database_password}" ]]; then
+            synced_secret="$(
+              kubectl -n tripplanning-standard get externalsecret trip-service-db-secrets \
+                -o jsonpath='{.spec.data[0].remoteRef.key}' 2>/dev/null || true
+            )"
+            if [[ "${synced_secret}" == "${password_secret}" ]]; then
+              database_password="$(
+                kubectl -n tripplanning-standard get secret trip-service-db-secrets \
+                  -o jsonpath='{.data.SPRING_DATASOURCE_PASSWORD}' | base64 -d
+              )"
+            fi
+          fi
+
+          if [[ -z "${database_password}" ]]; then
+            echo "Could not obtain the database password from ${password_secret} or the synced Kubernetes Secret" >&2
+            exit 1
+          fi
+
+          database_ip="$(
+            gcloud sql instances describe tripplanning-standard \
+              --project="${GCP_PROJECT_ID}" \
+              --format='value(ipAddresses[0].ipAddress)'
+          )"
+          password_b64="$(printf '%s' "${database_password}" | base64 -w0)"
+
+          kubectl -n tripplanning-standard apply -f - <<EOF
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: ${cleanup_secret}
+          type: Opaque
+          data:
+            password: ${password_b64}
+          ---
+          apiVersion: batch/v1
+          kind: Job
+          metadata:
+            name: ${cleanup_name}
+          spec:
+            backoffLimit: 2
+            ttlSecondsAfterFinished: 600
+            template:
+              spec:
+                restartPolicy: Never
+                containers:
+                  - name: postgres-cleanup
+                    image: postgres:15-alpine
+                    env:
+                      - name: PGHOST
+                        value: ${database_ip}
+                      - name: PGPORT
+                        value: "5432"
+                      - name: PGDATABASE
+                        value: ${database_name}
+                      - name: PGUSER
+                        value: ${database_user}
+                      - name: PGPASSWORD
+                        valueFrom:
+                          secretKeyRef:
+                            name: ${cleanup_secret}
+                            key: password
+                      - name: PGSSLMODE
+                        value: disable
+                    command:
+                      - sh
+                      - -ec
+                      - |
+                        psql -v ON_ERROR_STOP=1 \
+                          --command="DROP OWNED BY \\"\${PGUSER}\\" CASCADE;"
+                    resources:
+                      requests:
+                        cpu: 50m
+                        memory: 64Mi
+                      limits:
+                        cpu: 250m
+                        memory: 256Mi
+          EOF
+
+          if ! kubectl -n tripplanning-standard wait \
+            --for=condition=complete "job/${cleanup_name}" \
+            --timeout=10m; then
+            kubectl -n tripplanning-standard logs "job/${cleanup_name}" --all-containers >&2 || true
+            exit 1
+          fi
+          kubectl -n tripplanning-standard logs "job/${cleanup_name}" --all-containers
+          cleanup_temporary_resources
+          trap - ERR
+
+      - name: Remove Standard tenant search, cache, and stored objects
+        if: steps.payload.outputs.tier == 'STANDARD'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          search_index="${{ steps.tenant_config.outputs.search_index }}"
+          cache_prefix="${{ steps.tenant_config.outputs.cache_prefix }}"
+          frontend_prefix="${{ steps.tenant_config.outputs.frontend_prefix }}"
+          images_prefix="${{ steps.tenant_config.outputs.images_prefix }}"
+
+          if [[ -n "${search_index}" ]]; then
+            kubectl -n tripplanning-standard exec statefulset/elasticsearch -- \
+              curl -fsS -X DELETE "http://127.0.0.1:9200/${search_index}" \
+              >/dev/null 2>&1 || true
+          fi
+
+          if [[ -n "${cache_prefix}" ]]; then
+            kubectl -n tripplanning-standard exec deployment/valkey -- \
+              sh -ec '
+                valkey-cli --scan --pattern "$1*" |
+                  while IFS= read -r key; do
+                    valkey-cli del "$key" >/dev/null
+                  done
+              ' -- "${cache_prefix}"
+          fi
+
+          if [[ -n "${frontend_prefix}" ]]; then
+            gcloud storage rm --recursive \
+              "gs://${GCP_PROJECT_ID}-frontend-bucket/${frontend_prefix}/**" \
+              >/dev/null 2>&1 || true
+          fi
+          if [[ -n "${images_prefix}" ]]; then
+            gcloud storage rm --recursive \
+              "gs://${GCP_PROJECT_ID}-images-bucket/${images_prefix}/**" \
+              >/dev/null 2>&1 || true
+          fi
 
       - name: Delete externally managed Identity Platform tenant
         if: steps.tenant_config.outputs.identity_platform_tenant_id != ''
@@ -131,16 +325,37 @@ jobs:
         run: |
           set -euo pipefail
           access_token="$(gcloud auth print-access-token)"
-          curl --fail-with-body -sS \
+          status="$(
+            curl -sS -o /tmp/identity-delete-response.json -w '%{http_code}' \
             -X DELETE \
             -H "Authorization: Bearer ${access_token}" \
+            -H "X-Goog-User-Project: ${GCP_PROJECT_ID}" \
             "https://identitytoolkit.googleapis.com/v2/projects/${GCP_PROJECT_ID}/tenants/${{ steps.tenant_config.outputs.identity_platform_tenant_id }}"
+          )"
+          if [[ "${status}" != "200" && "${status}" != "204" && "${status}" != "404" ]]; then
+            cat /tmp/identity-delete-response.json >&2
+            exit 1
+          fi
 
       - name: Terraform destroy tenant resources and rerender GitOps
+        id: terraform_destroy
         shell: bash
         run: |
           set -euo pipefail
           terraform -chdir="${TF_DIR}" init -input=false
+
+          if [[ -z "${{ steps.tenant_config.outputs.identity_platform_tenant_id }}" ]]; then
+            terraform -chdir="${TF_DIR}" output -json > /tmp/ms2-before-delete-output.json
+            identity_tenant_id="$(
+              jq -r \
+                --arg tier "$(echo "${{ steps.payload.outputs.tier }}" | tr '[:upper:]' '[:lower:]')" \
+                --arg slug "${{ steps.payload.outputs.slug }}" \
+                '.identity_platform_tenant_ids.value[$tier][$slug] // empty' \
+                /tmp/ms2-before-delete-output.json
+            )"
+            echo "terraform_identity_platform_tenant_id=${identity_tenant_id}" >> "$GITHUB_OUTPUT"
+          fi
+
           TF_VAR_flux_bootstrap_git_password="${FLUX_BOOTSTRAP_GIT_PASSWORD}" \
           TF_VAR_platform_github_dispatch_token="${PLATFORM_GITHUB_DISPATCH_TOKEN}" \
             terraform -chdir="${TF_DIR}" apply -auto-approve -input=false
@@ -151,7 +366,272 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "Delete tenant ${{ steps.payload.outputs.slug }}"
-          file_pattern: |
-            ms2/tenants/**
-            ms2/terraform/envs/dev/generated-tenants.auto.tfvars.json
-            ms2/gitops/tenants/**
+          file_pattern: "ms2/tenants/** ms2/terraform/envs/dev/generated-tenants.auto.tfvars.json ms2/gitops/tenants/**"
+
+      - name: Reconcile Standard runtime after deletion
+        if: steps.payload.outputs.tier == 'STANDARD'
+        shell: bash
+        run: |
+          set -euo pipefail
+          slug="${{ steps.payload.outputs.slug }}"
+
+          kubectl -n flux-system annotate gitrepository flux-system \
+            "reconcile.fluxcd.io/requestedAt=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --overwrite
+          kubectl -n flux-system annotate kustomization tenants \
+            "reconcile.fluxcd.io/requestedAt=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --overwrite
+
+          for _ in {1..120}; do
+            if ! kubectl -n tripplanning-standard get configmap \
+              tripplanning-standard-generated-tenants \
+              -o jsonpath='{.data.values\.yaml}' | grep -q "tenantId: ${slug}"; then
+              break
+            fi
+            sleep 5
+          done
+
+          if kubectl -n tripplanning-standard get configmap \
+            tripplanning-standard-generated-tenants \
+            -o jsonpath='{.data.values\.yaml}' | grep -q "tenantId: ${slug}"; then
+            echo "Flux did not remove ${slug} from the Standard runtime configuration" >&2
+            exit 1
+          fi
+
+          kubectl -n tripplanning-standard wait \
+            --for=condition=Ready helmrelease/tripplanning-standard \
+            --timeout=25m
+
+          remaining_tenants="$(
+            jq -r '.standard_tenants | length' \
+              "${TF_DIR}/generated-tenants.auto.tfvars.json"
+          )"
+          expected_replicas=0
+          if (( remaining_tenants > 0 )); then
+            expected_replicas=1
+
+            primary_slug="$(
+              jq -r '.standard_tenants | keys | sort | first' \
+                "${TF_DIR}/generated-tenants.auto.tfvars.json"
+            )"
+            expected_password_secret="tripplanning-standard-${primary_slug}-db-password"
+
+            for _ in {1..120}; do
+              live_password_secret="$(
+                kubectl -n tripplanning-standard get externalsecret trip-service-db-secrets \
+                  -o jsonpath='{.spec.data[0].remoteRef.key}' 2>/dev/null || true
+              )"
+              if [[ "${live_password_secret}" == "${expected_password_secret}" ]]; then
+                break
+              fi
+              sleep 5
+            done
+
+            live_password_secret="$(
+              kubectl -n tripplanning-standard get externalsecret trip-service-db-secrets \
+                -o jsonpath='{.spec.data[0].remoteRef.key}' 2>/dev/null || true
+            )"
+            if [[ "${live_password_secret}" != "${expected_password_secret}" ]]; then
+              echo "ExternalSecret did not switch to ${expected_password_secret}" >&2
+              exit 1
+            fi
+
+            kubectl -n tripplanning-standard annotate externalsecret trip-service-db-secrets \
+              "force-sync=$(date +%s)" \
+              --overwrite
+
+            expected_password_hash="$(
+              gcloud secrets versions access latest \
+                --secret="${expected_password_secret}" \
+                --project="${GCP_PROJECT_ID}" |
+                sha256sum |
+                cut -d' ' -f1
+            )"
+            for _ in {1..120}; do
+              encoded_password="$(
+                kubectl -n tripplanning-standard get secret trip-service-db-secrets \
+                  -o jsonpath='{.data.SPRING_DATASOURCE_PASSWORD}' 2>/dev/null || true
+              )"
+              live_password_hash=""
+              if [[ -n "${encoded_password}" ]]; then
+                live_password_hash="$(
+                  printf '%s' "${encoded_password}" |
+                    base64 -d |
+                    sha256sum |
+                    cut -d' ' -f1
+                )"
+              fi
+              if [[ "${live_password_hash}" == "${expected_password_hash}" ]]; then
+                break
+              fi
+              sleep 5
+            done
+
+            live_password_hash="$(
+              kubectl -n tripplanning-standard get secret trip-service-db-secrets \
+                -o jsonpath='{.data.SPRING_DATASOURCE_PASSWORD}' |
+                base64 -d |
+                sha256sum |
+                cut -d' ' -f1
+            )"
+            if [[ "${live_password_hash}" != "${expected_password_hash}" ]]; then
+              echo "Kubernetes database password did not sync from ${expected_password_secret}" >&2
+              exit 1
+            fi
+
+            kubectl -n tripplanning-standard rollout restart deployment/trip-service
+          fi
+
+          for _ in {1..120}; do
+            replicas="$(kubectl -n tripplanning-standard get deployment trip-service -o jsonpath='{.spec.replicas}')"
+            available="$(kubectl -n tripplanning-standard get deployment trip-service -o jsonpath='{.status.availableReplicas}')"
+            available="${available:-0}"
+            if [[ "${replicas}" == "${expected_replicas}" ]] &&
+               (( expected_replicas == 0 || available >= expected_replicas )); then
+              break
+            fi
+            sleep 5
+          done
+
+          replicas="$(kubectl -n tripplanning-standard get deployment trip-service -o jsonpath='{.spec.replicas}')"
+          available="$(kubectl -n tripplanning-standard get deployment trip-service -o jsonpath='{.status.availableReplicas}')"
+          available="${available:-0}"
+          if [[ "${replicas}" != "${expected_replicas}" ]] ||
+             (( expected_replicas > 0 && available < expected_replicas )); then
+            echo "Standard trip-service did not reconcile to ${expected_replicas} replicas" >&2
+            exit 1
+          fi
+          if (( expected_replicas > 0 )); then
+            kubectl -n tripplanning-standard rollout status deployment/trip-service \
+              --timeout=15m
+          fi
+
+      - name: Verify tenant resources are gone
+        shell: bash
+        run: |
+          set -euo pipefail
+          slug="${{ steps.payload.outputs.slug }}"
+          tier="${{ steps.payload.outputs.tier }}"
+          failures=0
+
+          fail_if_output() {
+            local description="$1"
+            shift
+            local output
+            output="$("$@" 2>/dev/null || true)"
+            if [[ -n "${output}" ]]; then
+              echo "${description} still exists: ${output}" >&2
+              failures=$((failures + 1))
+            fi
+          }
+
+          if [[ "${tier}" == "STANDARD" ]]; then
+            database_name="${{ steps.tenant_config.outputs.database_name }}"
+            database_user="${{ steps.tenant_config.outputs.database_user }}"
+            password_secret="${{ steps.tenant_config.outputs.database_password_secret }}"
+            hostname="${{ steps.tenant_config.outputs.hostname }}"
+            search_index="${{ steps.tenant_config.outputs.search_index }}"
+            cache_prefix="${{ steps.tenant_config.outputs.cache_prefix }}"
+            frontend_prefix="${{ steps.tenant_config.outputs.frontend_prefix }}"
+            images_prefix="${{ steps.tenant_config.outputs.images_prefix }}"
+
+            fail_if_output "Cloud SQL database" \
+              gcloud sql databases list \
+                --instance=tripplanning-standard \
+                --project="${GCP_PROJECT_ID}" \
+                --filter="name=${database_name}" \
+                --format='value(name)'
+            fail_if_output "Cloud SQL user" \
+              gcloud sql users list \
+                --instance=tripplanning-standard \
+                --project="${GCP_PROJECT_ID}" \
+                --filter="name=${database_user}" \
+                --format='value(name)'
+            fail_if_output "Secret Manager secret" \
+              gcloud secrets list \
+                --project="${GCP_PROJECT_ID}" \
+                --filter="name=${password_secret}" \
+                --format='value(name)'
+            fail_if_output "DNS record" \
+              gcloud dns record-sets list \
+                --project="${GCP_PROJECT_ID}" \
+                --zone=tbd-dns-zone \
+                --name="${hostname}." \
+                --format='value(name)'
+            fail_if_output "Frontend objects" \
+              gcloud storage ls \
+                "gs://${GCP_PROJECT_ID}-frontend-bucket/${frontend_prefix}/**"
+            fail_if_output "Image objects" \
+              gcloud storage ls \
+                "gs://${GCP_PROJECT_ID}-images-bucket/${images_prefix}/**"
+
+            if [[ -n "${search_index}" ]]; then
+              search_status="$(
+                kubectl -n tripplanning-standard exec statefulset/elasticsearch -- \
+                  curl -s -o /dev/null -w '%{http_code}' \
+                  "http://127.0.0.1:9200/${search_index}"
+              )"
+              if [[ "${search_status}" != "404" ]]; then
+                echo "Search index ${search_index} still exists (HTTP ${search_status})" >&2
+                failures=$((failures + 1))
+              fi
+            fi
+
+            if [[ -n "${cache_prefix}" ]]; then
+              cache_key="$(
+                kubectl -n tripplanning-standard exec deployment/valkey -- \
+                  valkey-cli --scan --pattern "${cache_prefix}*" | head -1
+              )"
+              if [[ -n "${cache_key}" ]]; then
+                echo "Cache keys with prefix ${cache_prefix} still exist" >&2
+                failures=$((failures + 1))
+              fi
+            fi
+          fi
+
+          identity_tenant_id="${{ steps.tenant_config.outputs.identity_platform_tenant_id }}"
+          if [[ -z "${identity_tenant_id}" ]]; then
+            identity_tenant_id="${{ steps.terraform_destroy.outputs.terraform_identity_platform_tenant_id }}"
+          fi
+          if [[ -n "${identity_tenant_id}" ]]; then
+            access_token="$(gcloud auth print-access-token)"
+            identity_status="$(
+              curl -sS -o /dev/null -w '%{http_code}' \
+                -H "Authorization: Bearer ${access_token}" \
+                -H "X-Goog-User-Project: ${GCP_PROJECT_ID}" \
+                "https://identitytoolkit.googleapis.com/v2/projects/${GCP_PROJECT_ID}/tenants/${identity_tenant_id}"
+            )"
+            if [[ "${identity_status}" != "404" ]]; then
+              echo "Identity Platform tenant ${identity_tenant_id} still exists (HTTP ${identity_status})" >&2
+              failures=$((failures + 1))
+            fi
+          fi
+
+          if terraform -chdir="${TF_DIR}" state list | grep -F "[\"${slug}\"]" >/dev/null; then
+            echo "Terraform state still contains resources keyed by ${slug}" >&2
+            failures=$((failures + 1))
+          fi
+
+          if (( failures > 0 )); then
+            exit 1
+          fi
+
+      - name: Restore Standard runtime after failed deletion
+        if: failure() && steps.payload.outputs.tier == 'STANDARD' && steps.standard_cleanup.outputs.original_replicas != ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          database_name="${{ steps.tenant_config.outputs.database_name }}"
+          database_exists="$(
+            gcloud sql databases list \
+              --instance=tripplanning-standard \
+              --project="${GCP_PROJECT_ID}" \
+              --filter="name=${database_name}" \
+              --format='value(name)' 2>/dev/null || true
+          )"
+          if [[ -n "${database_exists}" ]]; then
+            kubectl -n tripplanning-standard scale deployment trip-service \
+              --replicas="${{ steps.standard_cleanup.outputs.original_replicas }}"
+          else
+            echo "The deleted tenant database is already gone; leaving trip-service stopped until GitOps reconciliation succeeds." >&2
+          fi

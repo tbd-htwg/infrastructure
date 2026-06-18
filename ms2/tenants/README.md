@@ -21,6 +21,8 @@ Standard and Enterprise tenant hostnames are covered by the shared Certificate M
 
 The renderer is still part of the platform-service pipeline. Run it manually only for debugging. Likewise, manual workflow dispatch is an infrastructure test path: its tenant will not appear in the platform tenant registry or UI unless it is separately created there.
 
+Delete tenants with `.github/workflows/tenant-delete.yml`. For Standard tenants it drains the shared trip service, removes objects owned by the tenant PostgreSQL role, deletes tenant-scoped search/cache/storage data, applies Terraform, reconciles GitOps, and verifies that no tenant resources remain. When deleting several Standard tenants after a partial failed destroy, delete the tenant whose password is currently referenced by `trip-service-db-secrets` first so the cached credential can be used to clean its database.
+
 ```bash
 python3 scripts/render-tenants.py
 ```

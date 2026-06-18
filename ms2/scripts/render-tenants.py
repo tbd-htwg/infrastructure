@@ -187,6 +187,12 @@ def render_standard_configmap(
             },
         }
     }
+    if not primary_tenant:
+        values["services"] = {
+            "trip": {
+                "replicas": 0,
+            }
+        }
     if primary_tenant_id and primary_tenant:
         values["global"] = {
             "cloudSql": {
