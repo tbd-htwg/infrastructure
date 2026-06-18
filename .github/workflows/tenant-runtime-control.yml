@@ -1,0 +1,208 @@
+name: Tenant runtime control
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: Start or stop the selected runtime
+        required: true
+        type: choice
+        options:
+          - START
+          - STOP
+      tier:
+        description: Runtime tier
+        required: true
+        type: choice
+        options:
+          - FREE
+          - STANDARD
+          - ENTERPRISE
+      tenant:
+        description: Enterprise tenant slug or namespace; ignored for Free and Standard
+        required: false
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: tenant-runtime-${{ inputs.tier }}-${{ inputs.tenant || 'shared' }}
+  cancel-in-progress: false
+
+jobs:
+  control:
+    runs-on: ubuntu-latest
+    environment: gke-dev
+    env:
+      GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+      GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+      GCP_TERRAFORM_SERVICE_ACCOUNT: ${{ secrets.GCP_TERRAFORM_SERVICE_ACCOUNT }}
+      GKE_CLUSTER_NAME: ${{ vars.GKE_CLUSTER_NAME || 'tripplanning-gke' }}
+      GKE_CLUSTER_LOCATION: ${{ vars.GKE_CLUSTER_LOCATION || 'europe-west1' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve runtime
+        id: runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          action="${{ inputs.action }}"
+          tier="${{ inputs.tier }}"
+          tenant="${{ inputs.tenant }}"
+
+          case "${tier}" in
+            FREE)
+              namespace="tripplanning-free"
+              release="tripplanning-free"
+              ;;
+            STANDARD)
+              namespace="tripplanning-standard"
+              release="tripplanning-standard"
+              ;;
+            ENTERPRISE)
+              tenant="${tenant#tripplanning-ent-}"
+              if [[ ! "${tenant}" =~ ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ ]]; then
+                echo "Enterprise tenant must be a valid slug or tripplanning-ent-<slug> namespace" >&2
+                exit 1
+              fi
+              namespace="tripplanning-ent-${tenant}"
+              release="tripplanning-enterprise-${tenant}"
+              ;;
+          esac
+
+          echo "action=${action}" >> "${GITHUB_OUTPUT}"
+          echo "namespace=${namespace}" >> "${GITHUB_OUTPUT}"
+          echo "release=${release}" >> "${GITHUB_OUTPUT}"
+
+      - name: Validate deploy configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          missing=()
+          for name in GCP_PROJECT_ID GCP_WORKLOAD_IDENTITY_PROVIDER GCP_TERRAFORM_SERVICE_ACCOUNT GKE_CLUSTER_NAME GKE_CLUSTER_LOCATION; do
+            if [[ -z "${!name:-}" ]]; then
+              missing+=("${name}")
+            fi
+          done
+          if [[ "${#missing[@]}" -gt 0 ]]; then
+            printf 'Missing gke-dev variable/secret(s): %s\n' "${missing[*]}" >&2
+            exit 1
+          fi
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ env.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ env.GCP_TERRAFORM_SERVICE_ACCOUNT }}
+          project_id: ${{ env.GCP_PROJECT_ID }}
+
+      - name: Setup Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.GCP_PROJECT_ID }}
+
+      - name: Setup kubectl
+        shell: bash
+        run: |
+          set -euo pipefail
+          gcloud components install gke-gcloud-auth-plugin kubectl --quiet
+          gcloud container clusters get-credentials "${GKE_CLUSTER_NAME}" \
+            --region "${GKE_CLUSTER_LOCATION}" \
+            --project "${GCP_PROJECT_ID}"
+
+      - name: Check runtime exists
+        id: exists
+        shell: bash
+        env:
+          NAMESPACE: ${{ steps.runtime.outputs.namespace }}
+          RELEASE: ${{ steps.runtime.outputs.release }}
+        run: |
+          set -euo pipefail
+          if ! kubectl get namespace "${NAMESPACE}" >/dev/null 2>&1; then
+            echo "Runtime namespace ${NAMESPACE} does not exist; nothing to do."
+            echo "value=false" >> "${GITHUB_OUTPUT}"
+            exit 0
+          fi
+          if ! kubectl -n "${NAMESPACE}" get "helmrelease/${RELEASE}" >/dev/null 2>&1; then
+            echo "HelmRelease ${NAMESPACE}/${RELEASE} does not exist; nothing to do."
+            echo "value=false" >> "${GITHUB_OUTPUT}"
+            exit 0
+          fi
+          echo "value=true" >> "${GITHUB_OUTPUT}"
+
+      - name: Stop runtime
+        if: steps.exists.outputs.value == 'true' && steps.runtime.outputs.action == 'STOP'
+        shell: bash
+        env:
+          NAMESPACE: ${{ steps.runtime.outputs.namespace }}
+          RELEASE: ${{ steps.runtime.outputs.release }}
+        run: |
+          set -euo pipefail
+
+          kubectl -n "${NAMESPACE}" patch "helmrelease/${RELEASE}" \
+            --type=merge \
+            -p '{"spec":{"suspend":true}}'
+
+          kubectl -n "${NAMESPACE}" delete horizontalpodautoscaler --all --ignore-not-found=true
+
+          mapfile -t workloads < <(
+            kubectl -n "${NAMESPACE}" get deployment,statefulset -o name 2>/dev/null || true
+          )
+          if [[ "${#workloads[@]}" -eq 0 ]]; then
+            echo "No scalable workloads found in ${NAMESPACE}; runtime is already stopped."
+            exit 0
+          fi
+
+          kubectl -n "${NAMESPACE}" scale "${workloads[@]}" --replicas=0
+          echo "Stopped ${NAMESPACE}; Helm reconciliation is suspended."
+
+      - name: Start runtime
+        if: steps.exists.outputs.value == 'true' && steps.runtime.outputs.action == 'START'
+        shell: bash
+        env:
+          NAMESPACE: ${{ steps.runtime.outputs.namespace }}
+          RELEASE: ${{ steps.runtime.outputs.release }}
+        run: |
+          set -euo pipefail
+
+          token="${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-$(date +%s)"
+          kubectl -n "${NAMESPACE}" patch "helmrelease/${RELEASE}" \
+            --type=merge \
+            -p '{"spec":{"suspend":false}}'
+          kubectl -n "${NAMESPACE}" annotate "helmrelease/${RELEASE}" \
+            "reconcile.fluxcd.io/requestedAt=${token}" \
+            "reconcile.fluxcd.io/forceAt=${token}" \
+            --overwrite
+
+          for _ in {1..180}; do
+            handled="$(
+              kubectl -n "${NAMESPACE}" get "helmrelease/${RELEASE}" \
+                -o jsonpath='{.status.lastHandledReconcileAt}' 2>/dev/null || true
+            )"
+            if [[ "${handled}" == "${token}" ]]; then
+              break
+            fi
+            sleep 5
+          done
+
+          handled="$(
+            kubectl -n "${NAMESPACE}" get "helmrelease/${RELEASE}" \
+              -o jsonpath='{.status.lastHandledReconcileAt}' 2>/dev/null || true
+          )"
+          if [[ "${handled}" != "${token}" ]]; then
+            echo "Timed out waiting for forced Helm reconciliation of ${NAMESPACE}/${RELEASE}" >&2
+            exit 1
+          fi
+
+          kubectl -n "${NAMESPACE}" wait \
+            --for=condition=Ready \
+            "helmrelease/${RELEASE}" \
+            --timeout=20m
+
+          kubectl -n "${NAMESPACE}" get deployment,statefulset,horizontalpodautoscaler
+          echo "Started ${NAMESPACE}; chart replica counts and HPAs were restored."
