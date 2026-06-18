@@ -1,0 +1,23 @@
+tenantId: bluex1
+tier: standard
+hostnames:
+- bluex1.k8s.tbd-htwg.de
+identityPlatform:
+  displayName: bluex1
+  emailPasswordEnabled: true
+  mfaEnabled: false
+frontend:
+  bucketPrefix: standard/bluex1
+  brandName: Blue Tenant
+  colorScheme: blue
+  brandIcon: assets/brand-icon.png
+database:
+  cloudSqlInstance: tripplanning-standard
+  databaseName: tripplanning_std_bluex1
+  userName: tripplanning_app_bluex1
+storage:
+  imagesPrefix: standard/bluex1
+search:
+  indexName: tripentity-bluex1
+cache:
+  keyPrefix: std:bluex1
