@@ -43,9 +43,8 @@ frontend = {
   enable_cdn = false
   # /api/* routes through an internet NEG to the shared Standard api-router LoadBalancer.
   # Leave api_backend_neg_self_links unset unless you intentionally manage GKE standalone NEG names.
-  api_health_check_path                  = "/healthz"
-  api_health_check_port                  = 8088
-  secondary_managed_ssl_certificate_name = "frontend-cert-v3"
+  api_health_check_path = "/healthz"
+  api_health_check_port = 8088
 }
 
 github_wif = {

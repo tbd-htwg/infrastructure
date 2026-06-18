@@ -140,7 +140,15 @@ Tenant A records point to the global frontend load balancer IP. The frontend loa
 - Standard tenants share one Standard `api-router` LoadBalancer in `tripplanning-standard`.
 - Enterprise tenants each keep a dedicated `api-router` LoadBalancer in their own namespace. The frontend load balancer has a host-specific `/api/*` backend for each Enterprise tenant.
 
-New tenant hostnames are added to the frontend HTTPS certificate. Google-managed certificates can take time to provision after Terraform apply, so a tenant may be reachable over DNS before HTTPS is marked `ACTIVE`.
+The frontend HTTPS load balancer uses one Certificate Manager certificate with DNS authorization. It covers:
+
+- `k8s.tbd-htwg.de`
+- `*.k8s.tbd-htwg.de` for Standard tenants
+- `*.enterprise.k8s.tbd-htwg.de` for Enterprise tenants
+
+Creating a tenant still adds its A record and load-balancer host routing, but no longer changes or rotates the certificate. Wildcards cover exactly one DNS label, which is why Standard and Enterprise need separate wildcard names. Custom domains outside these patterns require an explicit certificate and certificate-map design before they can be used.
+
+Certificate Manager provisions and renews the certificate from Terraform-managed DNS authorization CNAME records in `tbd-dns-zone`. Initial issuance can take time after the first apply. The Certificate Manager API must be enabled; project bootstrap manages this API.
 
 The frontend load balancer uses `EXTERNAL_MANAGED` forwarding rules for tenant host routing. In existing projects that still have older classic forwarding rules or the old `api-backend-service`, Terraform replaces them with managed resources instead of migrating them in place. This avoids Google Cloud migration-state errors around backend buckets and Internet NEGs.
 

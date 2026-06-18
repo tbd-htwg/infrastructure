@@ -264,6 +264,39 @@ jobs:
         run: |
           set -euo pipefail
           terraform -chdir="${TF_DIR}" init -input=false
+
+          # Keep the existing load-balancer certificate attached while Certificate
+          # Manager performs the asynchronous initial wildcard issuance.
+          TF_VAR_flux_bootstrap_git_password="${FLUX_BOOTSTRAP_GIT_PASSWORD}" \
+          TF_VAR_platform_github_dispatch_token="${PLATFORM_GITHUB_DISPATCH_TOKEN}" \
+            terraform -chdir="${TF_DIR}" apply \
+              -target=module.frontend_lb.google_certificate_manager_certificate.frontend \
+              -auto-approve \
+              -input=false
+
+          certificate_state="UNKNOWN"
+          for _ in {1..120}; do
+            certificate_json="$(gcloud certificate-manager certificates describe frontend-wildcard-cert \
+              --location=global \
+              --project="${GCP_PROJECT_ID}" \
+              --format=json)"
+            certificate_state="$(jq -r '.managed.state // "UNKNOWN"' <<<"${certificate_json}")"
+
+            if [[ "${certificate_state}" == "ACTIVE" ]]; then
+              break
+            fi
+            if [[ "${certificate_state}" == "FAILED" ]]; then
+              jq '.managed.provisioningIssue, .managed.authorizationAttemptInfo' <<<"${certificate_json}" >&2
+              exit 1
+            fi
+            sleep 15
+          done
+
+          if [[ "${certificate_state}" != "ACTIVE" ]]; then
+            echo "frontend-wildcard-cert did not become ACTIVE within 30 minutes" >&2
+            exit 1
+          fi
+
           TF_VAR_flux_bootstrap_git_password="${FLUX_BOOTSTRAP_GIT_PASSWORD}" \
           TF_VAR_platform_github_dispatch_token="${PLATFORM_GITHUB_DISPATCH_TOKEN}" \
             terraform -chdir="${TF_DIR}" apply -auto-approve -input=false

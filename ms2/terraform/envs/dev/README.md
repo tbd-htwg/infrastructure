@@ -7,3 +7,29 @@ Usage:
 1. Copy terraform.tfvars.example to terraform.tfvars and edit values.
 2. terraform init
 3. terraform apply
+
+## Frontend TLS migration
+
+The frontend load balancer uses Certificate Manager DNS authorization and one certificate for `k8s.tbd-htwg.de`, `*.k8s.tbd-htwg.de`, and `*.enterprise.k8s.tbd-htwg.de`. Tenant creation therefore does not modify the certificate.
+
+The canonical HTTPS proxy is `frontend-https-proxy-cm`. This name is retained from the initial Certificate Manager migration so Terraform state and the live `frontend-https-managed-rule` forwarding rule remain aligned. Do not rename it back to the legacy `frontend-https-proxy`; that proxy used the old Compute managed certificate.
+
+The infrastructure Terraform deployer requires `roles/certificatemanager.admin` to create, update, and renew the Certificate Manager resources. This role is managed by `local.infra_terraform_project_roles` and should not be removed while Terraform owns the certificate, DNS authorizations, certificate map, and map entries.
+
+On the first apply after migrating from the legacy Compute managed certificate:
+
+1. Review the plan and confirm it creates the Certificate Manager API, two DNS authorizations and CNAME records, the wildcard certificate, certificate map, and three map entries.
+2. Apply only the new certificate and its dependencies:
+
+   ```bash
+   terraform apply -target=module.frontend_lb.google_certificate_manager_certificate.frontend
+   ```
+
+3. Wait until `frontend-wildcard-cert` is `ACTIVE`. Initial issuance can take time while the DNS authorization CNAMEs propagate.
+4. Run a normal full `terraform apply`. The certificate-map entries deliberately reject the switch while the wildcard certificate is not active, preserving the legacy certificate on the HTTPS proxy.
+5. Test HTTPS for the base, Standard, and Enterprise host patterns.
+6. Delete legacy certificates such as `frontend-cert` or the orphaned `frontend-cert-v3` only after confirming that the HTTPS proxy uses `frontend-certificate-map`. A certificate that is still attached to a proxy cannot be deleted.
+
+`frontend-cert-v3` was a manual zero-downtime rotation setting and is no longer part of the Terraform configuration. If the failed apply created it outside this Terraform state, Terraform cannot remove that orphan automatically.
+
+The tenant provisioning workflow performs the targeted apply, waits up to 30 minutes for `ACTIVE`, and then runs the full apply automatically.

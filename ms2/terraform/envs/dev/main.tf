@@ -241,6 +241,11 @@ module "frontend_lb" {
   project_id                  = var.project_id
   frontend_domain             = var.frontend.domain
   additional_frontend_domains = flatten([for tenant in values(var.standard_tenants) : tenant.hostnames])
+  certificate_domains = [
+    var.frontend.domain,
+    "*.${var.frontend.domain}",
+    "*.enterprise.${var.frontend.domain}",
+  ]
   host_api_backend_internet_endpoints = {
     for tenant_id, tenant in var.enterprise_tenants : tenant_id => {
       hostnames = tenant.hostnames
@@ -248,18 +253,18 @@ module "frontend_lb" {
       port      = 8088
     }
   }
-  dns_zone_name                          = module.project_bootstrap.dns_zone_name
-  bucket_name                            = module.storage.bucket_names["frontend_assets"]
-  network_self_link                      = module.network.network_self_link
-  enable_cdn                             = var.frontend.enable_cdn
-  api_backend_neg_self_link              = try(var.frontend.api_backend_neg_self_link, null)
-  api_backend_neg_self_links             = coalesce(try(var.frontend.api_backend_neg_self_links, null), [])
-  api_backend_internet_endpoint_ip       = google_compute_address.standard_lb_ip.address
-  api_backend_internet_endpoint_port     = 8088
-  api_paths                              = coalesce(try(var.frontend.api_paths, null), ["/api/*"])
-  api_health_check_path                  = coalesce(try(var.frontend.api_health_check_path, null), "/actuator/health/readiness")
-  api_health_check_port                  = coalesce(try(var.frontend.api_health_check_port, null), 8080)
-  secondary_managed_ssl_certificate_name = try(var.frontend.secondary_managed_ssl_certificate_name, null)
+  dns_zone_name                      = module.project_bootstrap.dns_zone_name
+  bucket_name                        = module.storage.bucket_names["frontend_assets"]
+  network_self_link                  = module.network.network_self_link
+  enable_cdn                         = var.frontend.enable_cdn
+  api_backend_neg_self_links         = coalesce(try(var.frontend.api_backend_neg_self_links, null), [])
+  api_backend_internet_endpoint_ip   = google_compute_address.standard_lb_ip.address
+  api_backend_internet_endpoint_port = 8088
+  api_paths                          = coalesce(try(var.frontend.api_paths, null), ["/api/*"])
+  api_health_check_path              = coalesce(try(var.frontend.api_health_check_path, null), "/actuator/health/readiness")
+  api_health_check_port              = coalesce(try(var.frontend.api_health_check_port, null), 8080)
+
+  depends_on = [module.project_bootstrap]
 }
 
 resource "google_compute_address" "standard_lb_ip" {

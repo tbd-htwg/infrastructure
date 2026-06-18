@@ -10,8 +10,18 @@ variable "frontend_domain" {
 
 variable "additional_frontend_domains" {
   type        = list(string)
-  description = "Additional hostnames served by the frontend HTTPS load balancer."
+  description = "Additional hostnames routed by the frontend HTTPS load balancer."
   default     = []
+}
+
+variable "certificate_domains" {
+  type        = list(string)
+  description = "Domains covered by the Certificate Manager certificate and certificate map. Wildcards are supported."
+
+  validation {
+    condition     = length(var.certificate_domains) > 0
+    error_message = "certificate_domains must contain at least one domain."
+  }
 }
 
 variable "host_api_backend_internet_endpoints" {
@@ -51,12 +61,6 @@ variable "api_backend_neg_self_links" {
   default     = []
 }
 
-variable "api_backend_neg_self_link" {
-  type        = string
-  description = "Deprecated: single NEG self link. Use api_backend_neg_self_links instead."
-  default     = null
-}
-
 variable "api_backend_internet_endpoint_ip" {
   type        = string
   description = "Optional external IP for an internet NEG API backend, for example the Standard api-router LoadBalancer IP."
@@ -85,10 +89,4 @@ variable "api_health_check_port" {
   type        = number
   description = "HTTP health check port for the API backend."
   default     = 8080
-}
-
-variable "secondary_managed_ssl_certificate_name" {
-  type        = string
-  description = "Optional second managed SSL certificate name for zero-downtime rotation."
-  default     = null
 }

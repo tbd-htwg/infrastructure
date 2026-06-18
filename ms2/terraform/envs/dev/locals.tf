@@ -86,6 +86,7 @@ locals {
   ]))
 
   infra_terraform_project_roles = toset([
+    "roles/certificatemanager.admin",
     "roles/compute.admin",
     "roles/container.admin",
     "roles/dns.admin",

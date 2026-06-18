@@ -17,6 +17,8 @@ The provisioning flow is:
 7. If CI applied Terraform, the workflow waits for the tenant HelmRelease and calls platform-service back through `/internal/tenants/{slug}/provisioning-callback`.
 8. Run smoke tests for DNS, Identity Platform tenant matching, database routing, storage prefixes/buckets, and service health.
 
+Standard and Enterprise tenant hostnames are covered by the shared Certificate Manager wildcards (`*.k8s.tbd-htwg.de` and `*.enterprise.k8s.tbd-htwg.de`). Adding a tenant does not create or rotate a TLS certificate. Keep generated hostnames within the tier's documented pattern unless the frontend certificate map is extended deliberately.
+
 The renderer is still part of the platform-service pipeline. Run it manually only for debugging:
 
 ```bash

@@ -1,14 +1,12 @@
 locals {
-  api_backend_neg_self_links = length(var.api_backend_neg_self_links) > 0 ? var.api_backend_neg_self_links : (
-    var.api_backend_neg_self_link == null ? [] : [var.api_backend_neg_self_link]
-  )
+  api_backend_neg_self_links = var.api_backend_neg_self_links
   host_api_backend_internet_endpoints = {
     for key, endpoint in var.host_api_backend_internet_endpoints : key => endpoint
     if endpoint.ip != ""
   }
-  host_api_backend_domains    = flatten([for endpoint in values(local.host_api_backend_internet_endpoints) : endpoint.hostnames])
   frontend_domains            = distinct(concat([var.frontend_domain], var.additional_frontend_domains))
-  certificate_domains         = distinct(concat(local.frontend_domains, local.host_api_backend_domains))
+  certificate_domains         = distinct(var.certificate_domains)
+  certificate_auth_domains    = toset([for domain in local.certificate_domains : trimprefix(domain, "*.")])
   has_api_internet_endpoint   = var.api_backend_internet_endpoint_ip != null && var.api_backend_internet_endpoint_ip != ""
   api_backend_internet_groups = local.has_api_internet_endpoint ? [google_compute_global_network_endpoint_group.api_internet[0].id] : []
   api_backend_groups          = concat(local.api_backend_neg_self_links, local.api_backend_internet_groups)
@@ -217,31 +215,61 @@ resource "google_compute_url_map" "frontend" {
   }
 }
 
-resource "google_compute_managed_ssl_certificate" "frontend" {
-  count   = var.secondary_managed_ssl_certificate_name == null ? 1 : 0
-  project = var.project_id
-  name    = "frontend-cert"
+resource "google_certificate_manager_dns_authorization" "frontend" {
+  for_each = local.certificate_auth_domains
 
-  managed {
-    domains = local.certificate_domains
-  }
-
-  lifecycle {
-    create_before_destroy = true
-  }
+  project     = var.project_id
+  name        = "frontend-${replace(each.value, ".", "-")}-dns-auth"
+  description = "DNS authorization for ${each.value}"
+  domain      = each.value
+  type        = "FIXED_RECORD"
 }
 
-resource "google_compute_managed_ssl_certificate" "frontend_secondary" {
-  count   = var.secondary_managed_ssl_certificate_name == null ? 0 : 1
-  project = var.project_id
-  name    = var.secondary_managed_ssl_certificate_name
+resource "google_dns_record_set" "frontend_certificate_authorization" {
+  for_each = google_certificate_manager_dns_authorization.frontend
+
+  project      = var.project_id
+  managed_zone = var.dns_zone_name
+  name         = each.value.dns_resource_record[0].name
+  type         = each.value.dns_resource_record[0].type
+  ttl          = 300
+  rrdatas      = [each.value.dns_resource_record[0].data]
+}
+
+resource "google_certificate_manager_certificate" "frontend" {
+  project     = var.project_id
+  name        = "frontend-wildcard-cert"
+  description = "Wildcard certificate for the shared frontend load balancer"
 
   managed {
-    domains = local.certificate_domains
+    domains            = local.certificate_domains
+    dns_authorizations = [for authorization in google_certificate_manager_dns_authorization.frontend : authorization.id]
   }
 
+  depends_on = [google_dns_record_set.frontend_certificate_authorization]
+}
+
+resource "google_certificate_manager_certificate_map" "frontend" {
+  project     = var.project_id
+  name        = "frontend-certificate-map"
+  description = "Certificate map for the shared frontend load balancer"
+}
+
+resource "google_certificate_manager_certificate_map_entry" "frontend" {
+  for_each = toset(local.certificate_domains)
+
+  project      = var.project_id
+  name         = substr("frontend-${replace(replace(each.value, "*.", "wildcard-"), ".", "-")}", 0, 63)
+  description  = "TLS certificate mapping for ${each.value}"
+  map          = google_certificate_manager_certificate_map.frontend.name
+  certificates = [google_certificate_manager_certificate.frontend.id]
+  hostname     = each.value
+
   lifecycle {
-    create_before_destroy = true
+    precondition {
+      condition     = google_certificate_manager_certificate.frontend.managed[0].state == "ACTIVE"
+      error_message = "The frontend wildcard certificate must be ACTIVE before it can replace the legacy load-balancer certificate. Apply the certificate target first, wait for issuance, then apply the full configuration."
+    }
   }
 }
 
@@ -271,17 +299,19 @@ resource "google_compute_global_forwarding_rule" "frontend_http" {
   load_balancing_scheme = "EXTERNAL_MANAGED"
 }
 
-resource "google_compute_target_https_proxy" "frontend" {
-  project          = var.project_id
-  name             = "frontend-https-proxy"
-  url_map          = google_compute_url_map.frontend.id
-  ssl_certificates = var.secondary_managed_ssl_certificate_name == null ? [google_compute_managed_ssl_certificate.frontend[0].id] : [google_compute_managed_ssl_certificate.frontend_secondary[0].id]
+resource "google_compute_target_https_proxy" "frontend_certificate_manager" {
+  project         = var.project_id
+  name            = "frontend-https-proxy-cm"
+  url_map         = google_compute_url_map.frontend.id
+  certificate_map = "//certificatemanager.googleapis.com/${google_certificate_manager_certificate_map.frontend.id}"
+
+  depends_on = [google_certificate_manager_certificate_map_entry.frontend]
 }
 
 resource "google_compute_global_forwarding_rule" "frontend_https" {
   project               = var.project_id
   name                  = "frontend-https-managed-rule"
-  target                = google_compute_target_https_proxy.frontend.id
+  target                = google_compute_target_https_proxy.frontend_certificate_manager.id
   port_range            = "443"
   ip_address            = google_compute_global_address.frontend_ip.address
   load_balancing_scheme = "EXTERNAL_MANAGED"

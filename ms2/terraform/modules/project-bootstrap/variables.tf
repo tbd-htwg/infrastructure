@@ -8,6 +8,7 @@ variable "api_services" {
   description = "APIs to enable in the project."
   default = [
     "artifactregistry.googleapis.com",
+    "certificatemanager.googleapis.com",
     "cloudresourcemanager.googleapis.com",
     "compute.googleapis.com",
     "container.googleapis.com",
