@@ -399,21 +399,22 @@ jobs:
               cat "${port_forward_log}" >&2
               exit 1
             fi
-            if curl --connect-timeout 1 --max-time 2 -sS -o /dev/null \
+            if curl --connect-timeout 1 --max-time 2 -s -o /dev/null \
               "http://127.0.0.1:${callback_port}/actuator/health/readiness"; then
               break
             fi
             sleep 1
           done
 
-          if ! curl --connect-timeout 1 --max-time 2 -sS -o /dev/null \
+          if ! curl --connect-timeout 1 --max-time 2 -s -o /dev/null \
             "http://127.0.0.1:${callback_port}/actuator/health/readiness"; then
             cat "${port_forward_log}" >&2
             exit 1
           fi
 
           curl \
-            -fsS \
+            --fail-with-body \
+            -sS \
             --retry 5 \
             --retry-connrefused \
             --retry-delay 2 \
