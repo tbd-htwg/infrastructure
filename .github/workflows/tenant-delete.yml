@@ -506,6 +506,12 @@ jobs:
               --type=merge \
               --patch="${runtime_patch}"
             kubectl -n tripplanning-standard rollout restart deployment/trip-service
+          else
+            # The cleanup step already stopped the shared service. Keep it at
+            # zero so any stale in-flight Helm attempt can finish before the
+            # forced reconcile persists the empty-tenant desired state.
+            kubectl -n tripplanning-standard scale deployment trip-service \
+              --replicas=0
           fi
 
           # A new Git revision can make the Helm chart reconcile before the
