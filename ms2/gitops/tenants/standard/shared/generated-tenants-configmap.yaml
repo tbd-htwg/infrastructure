@@ -8,31 +8,9 @@ metadata:
 data:
   values.yaml: |
     apiRouter:
-      tenants:
-      - tenantId: bluex1
-        identityPlatformTenantId: bluex1-df3eh
-        hostnames:
-        - bluex1.k8s.tbd-htwg.de
+      tenants: []
       loadBalancer:
         ip: 34.52.217.31
-    global:
-      cloudSql:
-        enabled: true
-        connectionName: tbd-cloudappdev:europe-west1:tripplanning-standard
-        databaseName: tripplanning_std_bluex1
-        userName: tripplanning_app_bluex1
     services:
       trip:
-        secretRefs:
-        - trip-service-secrets
-        - trip-service-db-secrets
-        env:
-          CORS_ALLOWED_ORIGINS: https://k8s.tbd-htwg.de,https://bluex1.k8s.tbd-htwg.de
-          TRIPPLANNING_TENANT_DATASOURCE_ROUTING: 'false'
-          TRIPPLANNING_PLATFORM_BASE_URL: http://platform-service.tripplanning-system:8083
-      social:
-        env:
-          CORS_ALLOWED_ORIGINS: https://k8s.tbd-htwg.de,https://bluex1.k8s.tbd-htwg.de
-      externalInfo:
-        env:
-          CORS_ALLOWED_ORIGINS: https://k8s.tbd-htwg.de,https://bluex1.k8s.tbd-htwg.de
+        replicas: 0
