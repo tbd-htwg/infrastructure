@@ -98,9 +98,12 @@ This is a deliberate data-preserving migration; do not remove the
 ## Starting and Stopping Tenant Runtimes
 
 The `.github/workflows/tenant-runtime-control.yml` workflow suspends and scales
-down a runtime on `STOP`. On `START`, it resumes the HelmRelease and forces a
-Flux reconciliation, which restores the chart's StatefulSet, Deployment, and
-HPA replica counts.
+down a runtime on `STOP`. It also sets
+`kustomize.toolkit.fluxcd.io/reconcile: disabled` on that HelmRelease so the
+parent tenant Kustomization does not remove the suspension on its next sync.
+On `START`, the workflow resumes the HelmRelease, removes that annotation, and
+forces a Flux reconciliation, which restores the chart's StatefulSet,
+Deployment, and HPA replica counts.
 
 For Free, the expected startup order is:
 

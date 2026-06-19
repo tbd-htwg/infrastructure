@@ -144,6 +144,9 @@ jobs:
         run: |
           set -euo pipefail
 
+          kubectl -n "${NAMESPACE}" annotate "helmrelease/${RELEASE}" \
+            kustomize.toolkit.fluxcd.io/reconcile=disabled \
+            --overwrite
           kubectl -n "${NAMESPACE}" patch "helmrelease/${RELEASE}" \
             --type=merge \
             -p '{"spec":{"suspend":true}}'
@@ -174,6 +177,9 @@ jobs:
           kubectl -n "${NAMESPACE}" patch "helmrelease/${RELEASE}" \
             --type=merge \
             -p '{"spec":{"suspend":false}}'
+          kubectl -n "${NAMESPACE}" annotate "helmrelease/${RELEASE}" \
+            kustomize.toolkit.fluxcd.io/reconcile- \
+            --overwrite
           kubectl -n "${NAMESPACE}" annotate "helmrelease/${RELEASE}" \
             "reconcile.fluxcd.io/requestedAt=${token}" \
             "reconcile.fluxcd.io/forceAt=${token}" \
