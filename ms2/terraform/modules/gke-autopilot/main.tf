@@ -21,6 +21,14 @@ resource "google_container_cluster" "autopilot" {
     workload_pool = "${var.project_id}.svc.id.goog"
   }
 
+  # Managed collection is built into current Autopilot clusters. Keeping this
+  # explicit makes the monitoring intent reproducible in new projects.
+  monitoring_config {
+    managed_prometheus {
+      enabled = true
+    }
+  }
+
   # Autopilot currently only accepts STANDARD here. The app still does not use
   # Gateway API resources; tenant traffic is routed through LoadBalancer Services.
   gateway_api_config {

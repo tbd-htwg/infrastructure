@@ -4,7 +4,9 @@ metadata:
   name: tripplanning-standard
   labels:
     app.kubernetes.io/name: tripplanning
+    istio-injection: enabled
     tier: standard
+    tripplanning.htwg.dev/tier: standard
 ---
 apiVersion: v1
 kind: ResourceQuota

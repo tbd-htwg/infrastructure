@@ -15,6 +15,8 @@ spec:
       app.kubernetes.io/component: platform-service
   template:
     metadata:
+      annotations:
+        traffic.sidecar.istio.io/excludeOutboundIPRanges: 169.254.169.254/32
       labels:
         app.kubernetes.io/name: platform-service
         app.kubernetes.io/component: platform-service

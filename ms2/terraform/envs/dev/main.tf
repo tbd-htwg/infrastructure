@@ -147,6 +147,18 @@ module "gke_autopilot" {
   services_secondary_range_name = module.network.services_secondary_range_name
 }
 
+module "cloud_service_mesh" {
+  source = "../../modules/cloud-service-mesh"
+
+  project_id    = var.project_id
+  cluster_id    = module.gke_autopilot.cluster_id
+  membership_id = var.gke.cluster_name
+
+  depends_on = [
+    module.project_bootstrap,
+  ]
+}
+
 module "storage" {
   source     = "../../modules/storage"
   project_id = var.project_id
@@ -649,5 +661,6 @@ resource "terraform_data" "flux_bootstrap" {
 
   depends_on = [
     module.gke_autopilot,
+    module.cloud_service_mesh,
   ]
 }

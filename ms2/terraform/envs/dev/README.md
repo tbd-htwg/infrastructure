@@ -1,12 +1,21 @@
 # Terraform Bootstrap (dev)
 
-This environment bootstraps a new GCP project with core APIs, service accounts, IAM bindings, Artifact Registry, Secret Manager, Cloud DNS, a log sink, networking, a GKE Autopilot cluster, and storage buckets.
+This environment bootstraps a new GCP project with core APIs, service accounts, IAM bindings, Artifact Registry, Secret Manager, Cloud DNS, a log sink, networking, a GKE Autopilot cluster, Google-managed Cloud Service Mesh, Managed Prometheus, and storage buckets.
 
 Usage:
 
 1. Copy terraform.tfvars.example to terraform.tfvars and edit values.
 2. terraform init
 3. terraform apply
+
+The cluster is registered in a GKE fleet and the `servicemesh` feature uses
+automatic management. Managed Prometheus collection is explicit in the GKE
+module; Flux owns the `ClusterPodMonitoring` scrape configuration.
+
+Before a full plan/apply, provide existing sensitive values through
+`TF_VAR_flux_bootstrap_git_password` and
+`TF_VAR_platform_github_dispatch_token`. Do not apply a plan that deletes a
+Secret Manager version merely because its input variable was omitted.
 
 ## Frontend TLS migration
 

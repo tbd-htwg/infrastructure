@@ -14,6 +14,8 @@ spec:
       labels:
         app.kubernetes.io/component: seed-job
         {{- include "tripplanning.selectorLabels" . | nindent 8 }}
+      annotations:
+        sidecar.istio.io/inject: "false"
     spec:
       restartPolicy: Never
       serviceAccountName: {{ .Values.seedJob.serviceAccountName | default "default" }}

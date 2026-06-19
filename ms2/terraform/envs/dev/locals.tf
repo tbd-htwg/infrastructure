@@ -90,6 +90,7 @@ locals {
     "roles/compute.admin",
     "roles/container.admin",
     "roles/dns.admin",
+    "roles/gkehub.admin",
     "roles/iam.serviceAccountAdmin",
     "roles/iam.serviceAccountUser",
     "roles/iam.workloadIdentityPoolAdmin",

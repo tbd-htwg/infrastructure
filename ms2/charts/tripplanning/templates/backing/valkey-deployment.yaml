@@ -23,6 +23,8 @@ spec:
       labels:
         app.kubernetes.io/component: valkey
         {{- include "tripplanning.selectorLabels" . | nindent 8 }}
+      annotations:
+        sidecar.istio.io/inject: "false"
     spec:
       containers:
         - name: valkey

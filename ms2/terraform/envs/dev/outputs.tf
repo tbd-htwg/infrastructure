@@ -48,6 +48,16 @@ output "gke_cluster_location" {
   value       = module.gke_autopilot.cluster_location
 }
 
+output "cloud_service_mesh" {
+  description = "Fleet membership and managed Cloud Service Mesh feature."
+  value = {
+    membership_id         = module.cloud_service_mesh.membership_id
+    membership_name       = module.cloud_service_mesh.membership_name
+    feature_id            = module.cloud_service_mesh.feature_id
+    feature_membership_id = module.cloud_service_mesh.feature_membership_id
+  }
+}
+
 
 output "storage_buckets" {
   description = "Storage bucket names."

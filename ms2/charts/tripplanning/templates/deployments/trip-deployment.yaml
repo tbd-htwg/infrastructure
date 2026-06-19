@@ -19,6 +19,9 @@ spec:
       {{- include "tripplanning.selectorLabels" . | nindent 6 }}
   template:
     metadata:
+      annotations:
+        traffic.sidecar.istio.io/excludeOutboundIPRanges: 169.254.169.254/32
+        traffic.sidecar.istio.io/excludeOutboundPorts: "5432,6379,9200"
       labels:
         app.kubernetes.io/component: trip-service
         {{- include "tripplanning.selectorLabels" . | nindent 8 }}

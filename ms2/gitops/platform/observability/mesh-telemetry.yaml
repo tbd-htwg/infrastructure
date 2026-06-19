@@ -1,0 +1,25 @@
+apiVersion: telemetry.istio.io/v1alpha1
+kind: Telemetry
+metadata:
+  name: tripplanning-mesh-default
+  namespace: istio-system
+  labels:
+    app.kubernetes.io/name: tripplanning-mesh-telemetry
+    app.kubernetes.io/part-of: tripplanning
+spec:
+  metrics:
+    - providers:
+        - name: prometheus
+      overrides:
+        - match:
+            metric: ALL_METRICS
+          tagOverrides:
+            tenant_id:
+              value: request.headers['x-tenant-id']
+  tracing:
+    - providers:
+        - name: stackdriver
+      randomSamplingPercentage: 1
+  accessLogging:
+    - providers:
+        - name: envoy

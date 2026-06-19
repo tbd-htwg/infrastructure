@@ -4,5 +4,5 @@ resources:
   - sources/helm-repositories.yaml
   - external-secrets
   - platform-service
-  # - observability
+  - observability
   - network-policies

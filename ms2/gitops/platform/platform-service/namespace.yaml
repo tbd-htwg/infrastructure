@@ -5,4 +5,5 @@ metadata:
   labels:
     app.kubernetes.io/name: tripplanning-platform
     app.kubernetes.io/part-of: tripplanning
+    istio-injection: enabled
     tripplanning.htwg.dev/tier: platform

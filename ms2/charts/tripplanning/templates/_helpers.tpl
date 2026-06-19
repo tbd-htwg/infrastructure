@@ -14,6 +14,11 @@
 app.kubernetes.io/name: {{ include "tripplanning.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 app.kubernetes.io/managed-by: Helm
+app.kubernetes.io/part-of: tripplanning
+tripplanning.htwg.dev/tier: {{ .Values.global.tier }}
+{{- if .Values.global.tenantId }}
+tripplanning.htwg.dev/tenant-id: {{ .Values.global.tenantId }}
+{{- end }}
 {{- end -}}
 
 {{- define "tripplanning.selectorLabels" -}}

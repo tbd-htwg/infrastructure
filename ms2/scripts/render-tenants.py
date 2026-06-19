@@ -402,8 +402,11 @@ metadata:
   name: {tenant["namespace"]}
   labels:
     app.kubernetes.io/name: tripplanning
+    istio-injection: enabled
     tier: enterprise
     tenant_id: {tenant_id}
+    tripplanning.htwg.dev/tier: enterprise
+    tripplanning.htwg.dev/tenant-id: {tenant_id}
 ---
 apiVersion: v1
 kind: ResourceQuota

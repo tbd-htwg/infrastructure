@@ -8,6 +8,8 @@ Terraform in `infrastructure/ms2/terraform/envs/dev` creates the cloud foundatio
 
 - GCP APIs, service accounts, IAM, Secret Manager, DNS, logging.
 - VPC and GKE Autopilot cluster.
+- Google-managed Cloud Service Mesh through GKE fleet membership.
+- Google Cloud Managed Service for Prometheus collection.
 - Cloud Storage buckets for frontend assets and shared images.
 - Frontend HTTPS load balancer for the shared frontend.
 - Static IPs and DNS records for tenant browser/API subdomains.
@@ -35,6 +37,11 @@ It deploys:
 - optional in-cluster backing services for Free/dev
 - tenant LoadBalancer entrypoints
 - ConfigMaps, ExternalSecrets, HPAs, resource requests/limits
+- namespace labels for Envoy sidecar injection
+- managed Prometheus scraping for Envoy sidecar metrics
+
+See [Cloud Service Mesh and Managed Prometheus](service_mesh_monitoring.md)
+for setup, verification, PromQL examples, tenant boundaries, and rollback.
 
 ## Setup Plan for a New GCP Project
 
@@ -65,6 +72,11 @@ terraform -chdir=infrastructure/ms2/terraform/envs/dev init
 terraform -chdir=infrastructure/ms2/terraform/envs/dev apply
 ```
 
+Provide both `TF_VAR_flux_bootstrap_git_password` and
+`TF_VAR_platform_github_dispatch_token` when Terraform already manages those
+values. An omitted dispatch token otherwise appears as a Secret Manager
+version deletion in the plan.
+
 10. Terraform creates the cluster and bootstraps Flux by applying `gitops/clusters/dev/flux-system`.
 11. Flux then installs platform and tenant Kubernetes resources from Git.
 12. Run smoke tests for frontend, tenant API routing, Identity Platform login, and service health.
@@ -80,7 +92,19 @@ gcloud compute project-info describe --project tbd-cloudappdev \
   --format="table(quotas.metric,quotas.limit,quotas.usage)"
 ```
 
-The quota to watch is `CPUS_ALL_REGIONS`. This project currently has a low default limit, so running Free, Standard, and Enterprise at the same time can exceed quota or pod density during rollouts. For development, either run one shared tier at a time or request a quota increase in Google Cloud Console: **IAM & Admin -> Quotas -> CPUS_ALL_REGIONS**. A practical dev target is at least 32 CPUs; more is useful when adding Enterprise tenants with dedicated OpenSearch.
+The quotas to watch are `CPUS_ALL_REGIONS` and the regional
+`SSD_TOTAL_GB`. Autopilot nodes consume regional SSD quota for their boot
+disks, so a node scale-up can report the generic `GCE quota exceeded` event
+even when CPU quota is available. Check both:
+
+```bash
+gcloud compute project-info describe --project "$PROJECT_ID"
+gcloud compute regions describe europe-west1 --project "$PROJECT_ID"
+```
+
+For this development project, 64 all-regions CPUs is sufficient for current
+growth. Keep enough `SSD_TOTAL_GB` headroom for at least one additional
+Autopilot node; 500 GB is a practical minimum with the current 216 GB usage.
 
 The Helm chart uses no-surge rolling updates for shared services so upgrades do not temporarily double pod count. Standard also uses reduced dev resources for OpenSearch and waits for Valkey/OpenSearch before starting trip-service.
 
@@ -198,6 +222,11 @@ The platform-service is intentionally outside tenant namespaces in `tripplanning
 | Free | Shared runtime, shared namespace, shared backing services, best effort. | `tripplanning-free`, in-cluster Postgres/OpenSearch/Valkey, shared image bucket prefix. |
 | Standard | Shared runtime, tenant-isolated data. | One `tripplanning-standard` namespace, one Standard API router behind one Standard LoadBalancer, shared Standard Cloud SQL instance with database per tenant, shared frontend bucket, shared image bucket prefixes. |
 | Enterprise | Dedicated runtime and stronger isolation. | Namespace per tenant, API router behind a tenant LoadBalancer, Cloud SQL instance per tenant, shared frontend bucket with tenant prefix, dedicated image bucket, dedicated OpenSearch, dedicated Valkey. |
+
+Enterprise mesh and Prometheus metrics can be filtered independently by their
+dedicated namespace. Standard tenants share one namespace and runtime, so
+infrastructure metrics are tier-level unless application metrics add a
+validated tenant label.
 
 ## How Tenants Are Created Right Now
 

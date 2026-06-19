@@ -9,6 +9,7 @@ variable "api_services" {
   default = [
     "artifactregistry.googleapis.com",
     "certificatemanager.googleapis.com",
+    "cloudtrace.googleapis.com",
     "cloudresourcemanager.googleapis.com",
     "compute.googleapis.com",
     "container.googleapis.com",
@@ -17,6 +18,10 @@ variable "api_services" {
     "iam.googleapis.com",
     "identitytoolkit.googleapis.com",
     "logging.googleapis.com",
+    "gkehub.googleapis.com",
+    "mesh.googleapis.com",
+    "meshca.googleapis.com",
+    "meshconfig.googleapis.com",
     "monitoring.googleapis.com",
     "servicenetworking.googleapis.com",
     "secretmanager.googleapis.com",
@@ -24,6 +29,7 @@ variable "api_services" {
     "places.googleapis.com",
     "sqladmin.googleapis.com",
     "storage.googleapis.com",
+    "trafficdirector.googleapis.com",
   ]
 }
 
