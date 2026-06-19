@@ -369,7 +369,7 @@ def render_enterprise_values(
         "services": merged_services,
         "backingServices": {
             "postgres": {"enabled": False},
-            "elasticsearch": {
+            "opensearch": {
                 "enabled": True,
                 "serviceName": tenant["search"]["releaseName"],
             },

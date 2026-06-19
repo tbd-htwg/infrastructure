@@ -91,7 +91,7 @@ flowchart TB
 
   subgraph InCluster [In-cluster persistence]
     PG[(Postgres 15)]
-    OS[(OpenSearch elasticsearch svc)]
+    OS[(OpenSearch opensearch svc)]
     VK[(Valkey)]
   end
 
@@ -137,7 +137,7 @@ flowchart TB
 | **social-service** | Spring Boot | Firestore, Valkey |
 | **external-info-service** | Spring Boot WebFlux | Valkey; external HTTP APIs |
 | **Postgres** | StatefulSet 15-alpine | Trip relational data + `google_places` cache table |
-| **OpenSearch** | StatefulSet 2.19 (`elasticsearch` svc) | Hibernate Search index `tripentity` |
+| **OpenSearch** | StatefulSet 2.19 (`opensearch` svc) | Hibernate Search index `tripentity` |
 | **Valkey** | Deployment 8-alpine | Feed/search coordination + API response cache |
 
 ---
@@ -221,7 +221,7 @@ Flux paths: [gitops/clusters/dev](../gitops/clusters/dev/), [gitops/tenants/free
 | **external-info-service** | Spring Boot WebFlux | same |
 | **PostgreSQL** | Postgres 15 StatefulSet + PVC | chart `backingServices.postgres` |
 | **Valkey** | Deployment | chart `backingServices.valkey` |
-| **OpenSearch** | StatefulSet 2.19 (svc name `elasticsearch`) | chart `backingServices.elasticsearch` |
+| **OpenSearch** | StatefulSet 2.19 (svc name `opensearch`) | chart `backingServices.opensearch` |
 | **seed-job** | Optional perf seed Job | chart `seedJob` (disabled by default) |
 
 Installed by Flux `HelmRelease tripplanning-free` reconciling chart + tenant values ConfigMap.
@@ -385,7 +385,7 @@ flowchart TB
 **In-cluster DNS:**
 
 - `postgres.tripplanning-free.svc.cluster.local:5432`
-- `elasticsearch.tripplanning-free.svc.cluster.local:9200`
+- `opensearch.tripplanning-free.svc.cluster.local:9200`
 - `valkey.tripplanning-free.svc.cluster.local:6379`
 - `trip-service.tripplanning-free.svc.cluster.local:8080`
 - `social-service.tripplanning-free.svc.cluster.local:8081`
@@ -418,7 +418,7 @@ flowchart LR
 
 | System | Used by | Purpose |
 |--------|---------|---------|
-| **OpenSearch** | trip-service (`k8s` profile) | Index `tripentity`; `HIBERNATE_SEARCH_BACKEND_VERSION=opensearch:2.19`; service DNS `elasticsearch:9200` |
+| **OpenSearch** | trip-service (`k8s` profile) | Index `tripentity`; `HIBERNATE_SEARCH_BACKEND_VERSION=opensearch:2.19`; service DNS `opensearch:9200` |
 | **Valkey** | trip-service, social-service, external-info-service | Trip feed cache; social community bundle; external-info reactive cache; **SearchIndexCoordinationService** lock (`tripplanning:search:index:*`) |
 
 **SearchIndexCoordinationService:** pods may stay **Not Ready** for 1–3+ minutes on cold start until mass indexing completes. Readiness includes `searchIndex` health.
@@ -462,7 +462,7 @@ images bucket:    tbd-cloudappdev-images-bucket
 frontend bucket:  tbd-cloudappdev-frontend-bucket
 Firestore DB:     tbd-firestore
 Postgres:         postgres:5432 (db tripplanning, user tripplanning_app)
-search svc:       elasticsearch:9200 (OpenSearch 2.19 image)
+search svc:       opensearch:9200 (OpenSearch 2.19 image)
 signer SA:        tripplanning-image-url-sig@tbd-cloudappdev.iam.gserviceaccount.com
 workload SA:      workload@tbd-cloudappdev.iam.gserviceaccount.com
 trip-service:     ghcr.io/tbd-htwg/backend/tripplanning-trip-service:latest
@@ -514,7 +514,7 @@ Full local inventory: [backend/docs/gettingstarted/STATE.md](../../../backend/do
 | **api-router** | No — Ingress routes directly | Yes |
 | **Firestore** | In-cluster emulator | Managed `tbd-firestore` |
 | **Postgres** | In-cluster Postgres 16 | In-cluster Postgres 15 |
-| **Search DNS** | `opensearch:9200`, index `tripentity-local` | `elasticsearch:9200`, index `tripentity` |
+| **Search DNS** | `opensearch:9200`, index `tripentity-local` | `opensearch:9200`, index `tripentity` |
 | **Secrets** | `docs/gettingstarted/.env` | GCP Secret Manager → External Secrets |
 | **Images** | `tripplanning-*-service:local` | `ghcr.io/tbd-htwg/backend/...:latest` |
 | **Auth** | dev-login + optional Firebase | Firebase + optional test bearer (perf) |

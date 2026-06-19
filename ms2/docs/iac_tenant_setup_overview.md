@@ -84,6 +84,38 @@ The quota to watch is `CPUS_ALL_REGIONS`. This project currently has a low defau
 
 The Helm chart uses no-surge rolling updates for shared services so upgrades do not temporarily double pod count. Standard also uses reduced dev resources for OpenSearch and waits for Valkey/OpenSearch before starting trip-service.
 
+The Free runtime also waits for Valkey and OpenSearch before starting
+`trip-service`. Kubernetes resources use the `opensearch` name consistently:
+the Service, StatefulSet, pod/container, and component label are all
+`opensearch`.
+
+The existing Free and Standard installations predate that rename, so their
+values attach the renamed StatefulSet to the retained
+`data-elasticsearch-0` PVC. New runtimes create a `data-opensearch-0` PVC.
+This is a deliberate data-preserving migration; do not remove the
+`existingClaim` override until the data has been copied to a newly named PVC.
+
+## Starting and Stopping Tenant Runtimes
+
+The `.github/workflows/tenant-runtime-control.yml` workflow suspends and scales
+down a runtime on `STOP`. On `START`, it resumes the HelmRelease and forces a
+Flux reconciliation, which restores the chart's StatefulSet, Deployment, and
+HPA replica counts.
+
+For Free, the expected startup order is:
+
+1. PostgreSQL, Valkey, and the `opensearch` StatefulSet are restored by Helm.
+2. The `trip-service` init containers wait for Valkey and OpenSearch.
+3. `trip-service` starts and connects to the existing OpenSearch PVC through
+   `opensearch:9200`.
+4. The workflow succeeds only after the HelmRelease becomes Ready.
+
+If START reports an immutable StatefulSet update, compare the live
+`spec.serviceName` with the tier values before deleting anything. During the
+one-time rename, scale the old StatefulSet to zero and delete only the
+StatefulSet object before reconciliation; retain its PVC. The runtime controls
+intentionally retain tenant data while stopped.
+
 ## Terraform State
 
 Tenant automation requires shared Terraform state. The dev environment uses this GCS backend:

@@ -24,6 +24,6 @@ resources:
   command:
     - sh
     - -c
-    - until wget -qO- http://{{ .Values.backingServices.elasticsearch.serviceName }}:9200/_cluster/health?wait_for_status=yellow\&timeout=1s >/dev/null 2>&1; do echo "waiting for search..."; sleep 3; done
+    - until wget -qO- http://{{ .Values.backingServices.opensearch.serviceName }}:9200/_cluster/health?wait_for_status=yellow\&timeout=1s >/dev/null 2>&1; do echo "waiting for search..."; sleep 3; done
   {{- include "tripplanning.initContainerResources" . | nindent 2 }}
 {{- end -}}

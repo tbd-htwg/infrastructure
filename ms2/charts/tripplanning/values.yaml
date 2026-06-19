@@ -260,10 +260,11 @@ backingServices:
       limits:
         cpu: "150m"
         memory: "256Mi"
-  elasticsearch:
+  opensearch:
     enabled: true
+    resourceName: opensearch
     serviceName: opensearch
-    legacyServiceName: elasticsearch
+    existingClaim: ""
     image: opensearchproject/opensearch:2.19.0
     javaOpts: "-Xms512m -Xmx512m"
     storageClassName: "standard"

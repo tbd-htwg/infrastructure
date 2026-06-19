@@ -106,8 +106,9 @@ data:
           limits:
             cpu: "100m"
             memory: "128Mi"
-      elasticsearch:
+      opensearch:
         enabled: true
+        existingClaim: data-elasticsearch-0
         image: opensearchproject/opensearch:2.19.0
         javaOpts: "-Xms192m -Xmx192m"
         storageClassName: "standard-hdd-wffc"

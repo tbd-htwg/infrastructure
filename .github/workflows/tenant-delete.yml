@@ -293,7 +293,7 @@ jobs:
           images_prefix="${{ steps.tenant_config.outputs.images_prefix }}"
 
           if [[ -n "${search_index}" ]]; then
-            kubectl -n tripplanning-standard exec statefulset/elasticsearch -- \
+            kubectl -n tripplanning-standard exec statefulset/opensearch -- \
               curl -fsS -X DELETE "http://127.0.0.1:9200/${search_index}" \
               >/dev/null 2>&1 || true
           fi
@@ -614,7 +614,7 @@ jobs:
 
             if [[ -n "${search_index}" ]]; then
               search_status="$(
-                kubectl -n tripplanning-standard exec statefulset/elasticsearch -- \
+                kubectl -n tripplanning-standard exec statefulset/opensearch -- \
                   curl -s -o /dev/null -w '%{http_code}' \
                   "http://127.0.0.1:9200/${search_index}"
               )"

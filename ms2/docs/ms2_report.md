@@ -52,7 +52,7 @@ Running links:
 ## 2.3 Datastores
 
 - PostgreSQL: in-cluster `StatefulSet postgres`, database `tripplanning`, user `tripplanning_app`, password from `trip-service-secrets`, 1 Gi PVC using `standard-hdd-wffc`.
-- OpenSearch: in-cluster `StatefulSet elasticsearch`, image `opensearchproject/opensearch:2.19.0`, single node, security plugin disabled, 1 Gi PVC using `standard-hdd-wffc`.
+- OpenSearch: in-cluster `StatefulSet opensearch`, image `opensearchproject/opensearch:2.19.0`, single node, security plugin disabled, 1 Gi PVC using `standard-hdd-wffc`.
 - Valkey: in-cluster cache deployment, no persistent volume.
 - Firestore: native database `tbd-firestore` in `europe-west1`; used by `social-service`; composite index on `comments(tripId ASC, createdAt DESC, __name__ DESC)`.
 - Cloud Storage:

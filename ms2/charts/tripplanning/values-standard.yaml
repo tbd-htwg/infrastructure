@@ -69,7 +69,7 @@ autoscaling:
 backingServices:
   postgres:
     enabled: false
-  elasticsearch:
+  opensearch:
     enabled: true
   valkey:
     enabled: true
