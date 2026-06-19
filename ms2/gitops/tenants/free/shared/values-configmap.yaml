@@ -10,7 +10,7 @@ data:
         - ghcr-pull
     services:
       apiRouter:
-        replicas: 2
+        replicas: 1
       trip:
         replicas: 1
         image:
@@ -19,11 +19,11 @@ data:
           pullPolicy: Always
         resources:
           requests:
-            cpu: "250m"
-            memory: "512Mi"
+            cpu: "150m"
+            memory: "256Mi"
           limits:
-            cpu: "1000m"
-            memory: "1024Mi"
+            cpu: "400m"
+            memory: "512Mi"
         terminationGracePeriodSeconds: 60
         rollingUpdate:
           maxSurge: 0
@@ -45,11 +45,11 @@ data:
           pullPolicy: Always
         resources:
           requests:
-            cpu: "250m"
-            memory: "384Mi"
+            cpu: "150m"
+            memory: "256Mi"
           limits:
-            cpu: "750m"
-            memory: "768Mi"
+            cpu: "400m"
+            memory: "512Mi"
         env:
           SPRING_DATA_REDIS_HOST: "valkey"
           JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError"
@@ -62,11 +62,11 @@ data:
           pullPolicy: Always
         resources:
           requests:
-            cpu: "250m"
-            memory: "384Mi"
+            cpu: "100m"
+            memory: "128Mi"
           limits:
-            cpu: "750m"
-            memory: "768Mi"
+            cpu: "300m"
+            memory: "256Mi"
         bootstrap:
           waitForValkey: false
         env:
@@ -89,7 +89,7 @@ data:
             cpu: "100m"
             memory: "256Mi"
           limits:
-            cpu: "500m"
+            cpu: "250m"
             memory: "512Mi"
         extraConfigArgs:
           - max_connections=50
@@ -103,7 +103,7 @@ data:
             cpu: "50m"
             memory: "256Mi"
           limits:
-            cpu: "250m"
+            cpu: "100m"
             memory: "512Mi"
       opensearch:
         existingClaim: data-elasticsearch-0
@@ -113,27 +113,10 @@ data:
         storageSize: 1Gi
         resources:
           requests:
-            cpu: "250m"
+            cpu: "200m"
             memory: "768Mi"
           limits:
-            cpu: "1000m"
+            cpu: "500m"
             memory: "1280Mi"
     autoscaling:
-      enabled: true
-      minReplicas: 1
-      maxReplicas: 8
-      targetCPUUtilizationPercentage: 80
-      targetMemoryUtilizationPercentage: 75
-      scaleUpStabilizationSeconds: 60
-      scaleDownStabilizationSeconds: 300
-      trip:
-        minReplicas: 1
-        maxReplicas: 2
-        targetCPUUtilizationPercentage: 70
-        targetMemoryUtilizationPercentage: 0
-      social:
-        minReplicas: 1
-        maxReplicas: 4
-      externalInfo:
-        minReplicas: 1
-        maxReplicas: 4
+      enabled: false

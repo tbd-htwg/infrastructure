@@ -367,6 +367,18 @@ def render_enterprise_values(
             },
         },
         "services": merged_services,
+        "autoscaling": deep_merge(
+            {
+                "enabled": True,
+                "minReplicas": 2,
+                "maxReplicas": 4,
+                "targetCPUUtilizationPercentage": 70,
+                "trip": {"minReplicas": 2, "maxReplicas": 4},
+                "social": {"minReplicas": 2, "maxReplicas": 4},
+                "externalInfo": {"minReplicas": 1, "maxReplicas": 2},
+            },
+            tenant.get("autoscaling", {}),
+        ),
         "backingServices": {
             "postgres": {"enabled": False},
             "opensearch": {

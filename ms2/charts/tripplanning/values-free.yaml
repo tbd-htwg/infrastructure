@@ -17,6 +17,8 @@ apiRouter:
     enabled: false
 
 services:
+  apiRouter:
+    replicas: 1
   trip:
     replicas: 1
     resources:

@@ -158,6 +158,8 @@ Cluster **`tripplanning-gke`** is **GKE Autopilot** — Google manages node sizi
 
 If trip-service replicas stay **Pending** while HPA scales (`Insufficient cpu/memory` in `kubectl describe pod`), the cluster is out of schedulable capacity — often because **CPU quota** (~16 vCPUs) blocks adding nodes. Tune **Kubernetes only**: HPA min/max, pod requests, or reduce competing replicas during a run. Autopilot will add capacity when quota and scheduling allow.
 
+For steady-state dev sizing vs load-test HPA profiles, see [cpu-and-replicas-after.md](cpu-and-replicas-after.md) (recommended: Free HPA off, Standard max 2). This checklist’s HPA 1–8 targets remain valid for **temporary** Locust runs.
+
 ```bash
 kubectl describe pod -n tripplanning-free -l app.kubernetes.io/component=trip-service | grep -A3 Events:
 kubectl get hpa -n tripplanning-free

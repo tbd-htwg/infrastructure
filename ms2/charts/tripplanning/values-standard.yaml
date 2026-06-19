@@ -29,47 +29,61 @@ apiRouter:
 
 services:
   apiRouter:
-    replicas: 2
+    replicas: 1
   trip:
-    replicas: 2
-    resources:
-      requests:
-        cpu: "500m"
-        memory: "768Mi"
-      limits:
-        cpu: "2000m"
-        memory: "2Gi"
-  social:
-    replicas: 2
-    resources:
-      requests:
-        cpu: "300m"
-        memory: "512Mi"
-      limits:
-        cpu: "1000m"
-        memory: "1Gi"
-  externalInfo:
-    replicas: 2
+    replicas: 1
     resources:
       requests:
         cpu: "250m"
         memory: "384Mi"
       limits:
-        cpu: "1000m"
-        memory: "1Gi"
+        cpu: "750m"
+        memory: "768Mi"
+  social:
+    replicas: 1
+    resources:
+      requests:
+        cpu: "150m"
+        memory: "256Mi"
+      limits:
+        cpu: "500m"
+        memory: "512Mi"
+  externalInfo:
+    replicas: 1
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "192Mi"
+      limits:
+        cpu: "500m"
+        memory: "384Mi"
 
 autoscaling:
   enabled: true
-  minReplicas: 2
-  maxReplicas: 8
+  minReplicas: 1
+  maxReplicas: 2
   targetCPUUtilizationPercentage: 70
   scaleUpStabilizationSeconds: 60
   scaleDownStabilizationSeconds: 300
+  trip:
+    minReplicas: 1
+    maxReplicas: 2
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 0
+  social:
+    minReplicas: 1
+    maxReplicas: 2
+  externalInfo:
+    minReplicas: 1
+    maxReplicas: 2
 
 backingServices:
   postgres:
     enabled: false
   opensearch:
     enabled: true
+    resources:
+      limits:
+        cpu: "400m"
   valkey:
     enabled: true
