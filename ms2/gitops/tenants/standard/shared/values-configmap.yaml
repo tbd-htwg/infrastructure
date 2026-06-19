@@ -47,10 +47,10 @@ data:
         resources:
           requests:
             cpu: "250m"
-            memory: "384Mi"
+            memory: "768Mi"
           limits:
             cpu: "750m"
-            memory: "768Mi"
+            memory: "1024Mi"
         env:
           SPRING_DATA_REDIS_HOST: valkey
           SPRING_AUTOCONFIGURE_EXCLUDE: "org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchRestClientAutoConfiguration"
@@ -67,10 +67,10 @@ data:
         resources:
           requests:
             cpu: "150m"
-            memory: "256Mi"
+            memory: "768Mi"
           limits:
             cpu: "500m"
-            memory: "512Mi"
+            memory: "768Mi"
         env:
           SPRING_DATA_REDIS_HOST: valkey
           JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError"
@@ -82,10 +82,10 @@ data:
         resources:
           requests:
             cpu: "100m"
-            memory: "192Mi"
+            memory: "768Mi"
           limits:
             cpu: "500m"
-            memory: "384Mi"
+            memory: "768Mi"
         env:
           SPRING_DATA_REDIS_HOST: valkey
           JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError"

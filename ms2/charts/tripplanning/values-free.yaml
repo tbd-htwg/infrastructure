@@ -24,28 +24,28 @@ services:
     resources:
       requests:
         cpu: "150m"
-        memory: "256Mi"
+        memory: "768Mi"
       limits:
         cpu: "400m"
-        memory: "512Mi"
+        memory: "1024Mi"
   social:
     replicas: 1
     resources:
       requests:
         cpu: "150m"
-        memory: "256Mi"
+        memory: "768Mi"
       limits:
         cpu: "400m"
-        memory: "512Mi"
+        memory: "768Mi"
   externalInfo:
     replicas: 1
     resources:
       requests:
         cpu: "100m"
-        memory: "128Mi"
+        memory: "768Mi"
       limits:
         cpu: "300m"
-        memory: "256Mi"
+        memory: "768Mi"
 
 autoscaling:
   enabled: false

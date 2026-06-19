@@ -20,10 +20,10 @@ data:
         resources:
           requests:
             cpu: "150m"
-            memory: "256Mi"
+            memory: "768Mi"
           limits:
             cpu: "400m"
-            memory: "512Mi"
+            memory: "1024Mi"
         terminationGracePeriodSeconds: 60
         rollingUpdate:
           maxSurge: 0
@@ -46,10 +46,10 @@ data:
         resources:
           requests:
             cpu: "150m"
-            memory: "256Mi"
+            memory: "768Mi"
           limits:
             cpu: "400m"
-            memory: "512Mi"
+            memory: "768Mi"
         env:
           SPRING_DATA_REDIS_HOST: "valkey"
           JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError"
@@ -63,10 +63,10 @@ data:
         resources:
           requests:
             cpu: "100m"
-            memory: "128Mi"
+            memory: "768Mi"
           limits:
             cpu: "300m"
-            memory: "256Mi"
+            memory: "768Mi"
         bootstrap:
           waitForValkey: false
         env:

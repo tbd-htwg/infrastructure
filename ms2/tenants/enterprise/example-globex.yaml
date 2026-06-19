@@ -36,7 +36,7 @@ services:
         memory: "768Mi"
       limits:
         cpu: "1000m"
-        memory: "2Gi"
+        memory: "1024Mi"
   social:
     image:
       repository: ghcr.io/tbd-htwg/backend/tripplanning-social-service
@@ -44,11 +44,19 @@ services:
       pullPolicy: IfNotPresent
     replicas: 2
     resources:
+      requests:
+        memory: "768Mi"
       limits:
         cpu: "500m"
+        memory: "768Mi"
   externalInfo:
     image:
       repository: ghcr.io/tbd-htwg/backend/tripplanning-external-info-service
       tag: stable
       pullPolicy: IfNotPresent
     replicas: 1
+    resources:
+      requests:
+        memory: "768Mi"
+      limits:
+        memory: "768Mi"
