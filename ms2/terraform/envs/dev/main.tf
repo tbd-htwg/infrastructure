@@ -47,7 +47,6 @@ module "project_bootstrap" {
     "roles/identityplatform.admin" = [
       "serviceAccount:${local.service_account_emails["platform-admin"]}",
       "serviceAccount:${local.service_account_emails["secrets_deployer"]}",
-      "serviceAccount:${local.infra_terraform_service_account_email}",
     ]
     "roles/datastore.user" = [
       "serviceAccount:${local.service_account_emails["workload"]}",
@@ -58,7 +57,6 @@ module "project_bootstrap" {
     ]
     "roles/secretmanager.admin" = [
       "serviceAccount:${local.service_account_emails["secrets_deployer"]}",
-      "serviceAccount:${local.infra_terraform_service_account_email}",
     ]
     "roles/artifactregistry.reader" = [
       "serviceAccount:${local.service_account_emails["workload"]}",
@@ -207,13 +205,13 @@ module "storage" {
 resource "google_storage_bucket_iam_member" "images_bucket_signer_viewer" {
   bucket = module.storage.bucket_names["images"]
   role   = "roles/storage.objectViewer"
-  member = "serviceAccount:${local.service_account_emails["image_url_sig"]}"
+  member = "serviceAccount:${module.project_bootstrap.service_account_emails["image_url_sig"]}"
 }
 
 resource "google_storage_bucket_iam_member" "images_bucket_signer_creator" {
   bucket = module.storage.bucket_names["images"]
   role   = "roles/storage.objectCreator"
-  member = "serviceAccount:${local.service_account_emails["image_url_sig"]}"
+  member = "serviceAccount:${module.project_bootstrap.service_account_emails["image_url_sig"]}"
 }
 
 resource "google_storage_bucket_iam_member" "enterprise_images_bucket_signer_viewer" {
@@ -221,7 +219,7 @@ resource "google_storage_bucket_iam_member" "enterprise_images_bucket_signer_vie
 
   bucket = module.storage.bucket_names[each.key]
   role   = "roles/storage.objectViewer"
-  member = "serviceAccount:${local.service_account_emails["image_url_sig"]}"
+  member = "serviceAccount:${module.project_bootstrap.service_account_emails["image_url_sig"]}"
 }
 
 resource "google_storage_bucket_iam_member" "enterprise_images_bucket_signer_creator" {
@@ -229,13 +227,13 @@ resource "google_storage_bucket_iam_member" "enterprise_images_bucket_signer_cre
 
   bucket = module.storage.bucket_names[each.key]
   role   = "roles/storage.objectCreator"
-  member = "serviceAccount:${local.service_account_emails["image_url_sig"]}"
+  member = "serviceAccount:${module.project_bootstrap.service_account_emails["image_url_sig"]}"
 }
 
 resource "google_service_account_iam_member" "image_url_sig_token_creator" {
-  service_account_id = "projects/${var.project_id}/serviceAccounts/${local.service_account_emails["image_url_sig"]}"
+  service_account_id = "projects/${var.project_id}/serviceAccounts/${module.project_bootstrap.service_account_emails["image_url_sig"]}"
   role               = "roles/iam.serviceAccountTokenCreator"
-  member             = "serviceAccount:${local.service_account_emails["workload"]}"
+  member             = "serviceAccount:${module.project_bootstrap.service_account_emails["workload"]}"
 }
 
 module "kms" {
@@ -475,15 +473,19 @@ resource "google_iam_workload_identity_pool_provider" "backend" {
 }
 
 resource "google_service_account_iam_member" "backend_wif_binding" {
-  service_account_id = "projects/${var.project_id}/serviceAccounts/${local.service_account_emails["secrets_deployer"]}"
+  service_account_id = "projects/${var.project_id}/serviceAccounts/${module.project_bootstrap.service_account_emails["secrets_deployer"]}"
   role               = "roles/iam.workloadIdentityUser"
   member             = "principalSet://iam.googleapis.com/projects/${data.google_project.current.number}/locations/global/workloadIdentityPools/${var.github_wif.pool_id}/attribute.repository/${var.backend_wif.owner}/${var.backend_wif.repo}"
+
+  depends_on = [
+    google_iam_workload_identity_pool_provider.backend,
+  ]
 }
 
 resource "google_project_iam_member" "backend_gke_deployer" {
   project = var.project_id
   role    = "roles/container.developer"
-  member  = "serviceAccount:${local.service_account_emails["secrets_deployer"]}"
+  member  = "serviceAccount:${module.project_bootstrap.service_account_emails["secrets_deployer"]}"
 }
 
 resource "google_project_iam_member" "backend_wif_gke_developer" {
@@ -537,67 +539,87 @@ resource "google_project_iam_member" "infra_terraform_project_roles" {
 }
 
 resource "google_service_account_iam_member" "external_secrets_wi" {
-  service_account_id = "projects/${var.project_id}/serviceAccounts/${local.service_account_emails["workload"]}"
+  service_account_id = "projects/${var.project_id}/serviceAccounts/${module.project_bootstrap.service_account_emails["workload"]}"
   role               = "roles/iam.workloadIdentityUser"
   member             = "serviceAccount:${var.project_id}.svc.id.goog[external-secrets/external-secrets]"
+
+  depends_on = [module.gke_autopilot]
 }
 
 resource "google_service_account_iam_member" "cert_manager_wi" {
-  service_account_id = "projects/${var.project_id}/serviceAccounts/${local.service_account_emails["workload"]}"
+  service_account_id = "projects/${var.project_id}/serviceAccounts/${module.project_bootstrap.service_account_emails["workload"]}"
   role               = "roles/iam.workloadIdentityUser"
   member             = "serviceAccount:${var.project_id}.svc.id.goog[cert-manager/cert-manager]"
+
+  depends_on = [module.gke_autopilot]
 }
 
 # Allow the trip-service Kubernetes service account to act as the GCP workload service account
 resource "google_service_account_iam_member" "trip_service_wi" {
-  service_account_id = "projects/${var.project_id}/serviceAccounts/${local.service_account_emails["workload"]}"
+  service_account_id = "projects/${var.project_id}/serviceAccounts/${module.project_bootstrap.service_account_emails["workload"]}"
   role               = "roles/iam.workloadIdentityUser"
   member             = "serviceAccount:${var.project_id}.svc.id.goog[tripplanning-free/trip-service]"
+
+  depends_on = [module.gke_autopilot]
 }
 
 # Also allow pods running with the namespace default service account to use the workload identity
 resource "google_service_account_iam_member" "trip_namespace_default_wi" {
-  service_account_id = "projects/${var.project_id}/serviceAccounts/${local.service_account_emails["workload"]}"
+  service_account_id = "projects/${var.project_id}/serviceAccounts/${module.project_bootstrap.service_account_emails["workload"]}"
   role               = "roles/iam.workloadIdentityUser"
   member             = "serviceAccount:${var.project_id}.svc.id.goog[tripplanning-free/default]"
+
+  depends_on = [module.gke_autopilot]
 }
 
 resource "google_service_account_iam_member" "standard_namespace_default_wi" {
-  service_account_id = "projects/${var.project_id}/serviceAccounts/${local.service_account_emails["workload"]}"
+  service_account_id = "projects/${var.project_id}/serviceAccounts/${module.project_bootstrap.service_account_emails["workload"]}"
   role               = "roles/iam.workloadIdentityUser"
   member             = "serviceAccount:${var.project_id}.svc.id.goog[tripplanning-standard/default]"
+
+  depends_on = [module.gke_autopilot]
 }
 
 resource "google_service_account_iam_member" "enterprise_namespace_default_wi" {
   for_each = var.enterprise_tenants
 
-  service_account_id = "projects/${var.project_id}/serviceAccounts/${local.service_account_emails["workload"]}"
+  service_account_id = "projects/${var.project_id}/serviceAccounts/${module.project_bootstrap.service_account_emails["workload"]}"
   role               = "roles/iam.workloadIdentityUser"
   member             = "serviceAccount:${var.project_id}.svc.id.goog[${each.value.namespace}/default]"
+
+  depends_on = [module.gke_autopilot]
 }
 
 resource "google_service_account_iam_member" "platform_service_wi" {
-  service_account_id = "projects/${var.project_id}/serviceAccounts/${local.service_account_emails["platform-admin"]}"
+  service_account_id = "projects/${var.project_id}/serviceAccounts/${module.project_bootstrap.service_account_emails["platform-admin"]}"
   role               = "roles/iam.workloadIdentityUser"
   member             = "serviceAccount:${var.project_id}.svc.id.goog[tripplanning-system/platform-service]"
+
+  depends_on = [module.gke_autopilot]
 }
 
 resource "google_project_iam_member" "platform_cloudsql_client" {
   project = var.project_id
   role    = "roles/cloudsql.client"
   member  = "serviceAccount:${local.service_account_emails["platform-admin"]}"
+
+  depends_on = [module.project_bootstrap]
 }
 
 resource "google_project_iam_member" "workload_cloudsql_client" {
   project = var.project_id
   role    = "roles/cloudsql.client"
   member  = "serviceAccount:${local.service_account_emails["workload"]}"
+
+  depends_on = [module.project_bootstrap]
 }
 
 resource "google_project_iam_member" "cert_manager_dns_admin" {
   project = var.project_id
   role    = "roles/dns.admin"
   member  = "serviceAccount:${local.service_account_emails["workload"]}"
+
+  depends_on = [module.project_bootstrap]
 }
 
 moved {

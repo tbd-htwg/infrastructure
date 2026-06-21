@@ -6,8 +6,6 @@ locals {
     gitops           = "gitops@${var.project_id}.iam.gserviceaccount.com"
     workload         = "workload@${var.project_id}.iam.gserviceaccount.com"
   }
-  infra_terraform_service_account_email = "${var.infra_wif.service_account_name}@${var.project_id}.iam.gserviceaccount.com"
-
   standard_tenant_databases = {
     for tenant_id, tenant in var.standard_tenants : tenant_id => {
       name               = tenant.database.name

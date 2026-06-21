@@ -24,6 +24,8 @@ resource "google_container_cluster" "autopilot" {
   # Managed collection is built into current Autopilot clusters. Keeping this
   # explicit makes the monitoring intent reproducible in new projects.
   monitoring_config {
+    enable_components = ["SYSTEM_COMPONENTS"]
+
     managed_prometheus {
       enabled = true
     }
