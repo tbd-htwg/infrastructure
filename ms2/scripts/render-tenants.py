@@ -22,6 +22,7 @@ TERRAFORM_OUT = ROOT / "terraform/envs/dev/generated-tenants.auto.tfvars.json"
 STANDARD_GITOPS_OUT = ROOT / "gitops/tenants/standard/shared/generated-tenants-configmap.yaml"
 STANDARD_DB_SECRET_OUT = ROOT / "gitops/tenants/standard/shared/generated-db-external-secret.yaml"
 ENTERPRISE_GITOPS_DIR = ROOT / "gitops/tenants/enterprise"
+TENANTS_KUSTOMIZATION = ROOT / "gitops/tenants/kustomization.yaml"
 
 
 def tenant_project_id(tenant: dict[str, Any]) -> str:
@@ -589,6 +590,24 @@ resources:
         (ENTERPRISE_GITOPS_DIR / "kustomization.yaml").write_text(enterprise_kustomization, encoding="utf-8")
 
 
+def render_tenants_kustomization(standard: dict[str, dict[str, Any]], check: bool) -> None:
+    resources = ["free/shared"]
+    if standard:
+        resources.append("standard/shared")
+    resources.append("enterprise")
+    content = (
+        "apiVersion: kustomize.config.k8s.io/v1beta1\n"
+        "kind: Kustomization\n"
+        "resources:\n"
+        + "\n".join(f"  - {resource}" for resource in resources)
+        + "\n"
+    )
+    if check:
+        print(f"would write: {TENANTS_KUSTOMIZATION}")
+        return
+    TENANTS_KUSTOMIZATION.write_text(content, encoding="utf-8")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true", help="Validate and print generated paths without writing files.")
@@ -618,6 +637,7 @@ def main() -> None:
             print(f"would write: {STANDARD_GITOPS_OUT}")
             print(f"would write: {STANDARD_DB_SECRET_OUT}")
             render_enterprise_gitops(enterprise, terraform_outputs, check=True)
+            render_tenants_kustomization(standard, check=True)
         return
 
     TERRAFORM_OUT.write_text(json.dumps(tfvars, indent=2, sort_keys=True) + "\n", encoding="utf-8")
@@ -625,6 +645,7 @@ def main() -> None:
         STANDARD_GITOPS_OUT.write_text(standard_configmap, encoding="utf-8")
         STANDARD_DB_SECRET_OUT.write_text(render_standard_db_external_secret(standard), encoding="utf-8")
         render_enterprise_gitops(enterprise, terraform_outputs, check=False)
+        render_tenants_kustomization(standard, check=False)
     print(f"wrote {TERRAFORM_OUT}")
     if not args.terraform_only:
         print(f"wrote {STANDARD_GITOPS_OUT}")
