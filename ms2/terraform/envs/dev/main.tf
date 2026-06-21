@@ -47,6 +47,7 @@ module "project_bootstrap" {
     "roles/identityplatform.admin" = [
       "serviceAccount:${local.service_account_emails["platform-admin"]}",
       "serviceAccount:${local.service_account_emails["secrets_deployer"]}",
+      "serviceAccount:${local.infra_terraform_service_account_email}",
     ]
     "roles/datastore.user" = [
       "serviceAccount:${local.service_account_emails["workload"]}",
@@ -57,6 +58,7 @@ module "project_bootstrap" {
     ]
     "roles/secretmanager.admin" = [
       "serviceAccount:${local.service_account_emails["secrets_deployer"]}",
+      "serviceAccount:${local.infra_terraform_service_account_email}",
     ]
     "roles/artifactregistry.reader" = [
       "serviceAccount:${local.service_account_emails["workload"]}",
@@ -95,6 +97,10 @@ module "project_bootstrap" {
       }
     }
   }
+
+  depends_on = [
+    google_service_account.infra_terraform_deployer,
+  ]
 }
 
 resource "google_secret_manager_secret_version" "platform_github_dispatch_token" {
