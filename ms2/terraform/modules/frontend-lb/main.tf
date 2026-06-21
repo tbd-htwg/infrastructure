@@ -261,13 +261,6 @@ resource "google_certificate_manager_certificate_map_entry" "frontend" {
   map          = google_certificate_manager_certificate_map.frontend.name
   certificates = [google_certificate_manager_certificate.frontend.id]
   hostname     = each.value
-
-  lifecycle {
-    precondition {
-      condition     = google_certificate_manager_certificate.frontend.managed[0].state == "ACTIVE"
-      error_message = "The frontend wildcard certificate must be ACTIVE before it can replace the legacy load-balancer certificate. Apply the certificate target first, wait for issuance, then apply the full configuration."
-    }
-  }
 }
 
 resource "google_compute_url_map" "frontend_http_redirect" {

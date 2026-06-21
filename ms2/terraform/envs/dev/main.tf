@@ -640,7 +640,7 @@ resource "terraform_data" "flux_bootstrap" {
     interpreter = ["/bin/bash", "-c"]
     environment = {
       FLUX_GIT_USERNAME = var.flux_bootstrap.git_username
-      FLUX_GIT_PASSWORD = coalesce(var.flux_bootstrap_git_password, "")
+      FLUX_GIT_PASSWORD = var.flux_bootstrap_git_password == null ? "" : var.flux_bootstrap_git_password
     }
     command = <<-EOT
       set -euo pipefail

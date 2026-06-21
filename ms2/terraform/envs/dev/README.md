@@ -24,14 +24,10 @@ The canonical HTTPS proxy is `frontend-https-proxy-cm`. This name is retained fr
 
 The infrastructure Terraform deployer requires `roles/certificatemanager.admin` to create, update, and renew the Certificate Manager resources. This role is managed by `local.infra_terraform_project_roles` and should not be removed while Terraform owns the certificate, DNS authorizations, certificate map, and map entries.
 
-On the first apply after migrating from the legacy Compute managed certificate:
-
-1. Review the plan and confirm it creates the Certificate Manager API, two DNS authorizations and CNAME records, the wildcard certificate, certificate map, and three map entries.
-2. Apply only the new certificate and its dependencies:
-
-   ```bash
-   terraform apply -target=module.frontend_lb.google_certificate_manager_certificate.frontend
-   ```
+On a first apply, Certificate Manager may report the certificate as
+`PROVISIONING` while DNS authorization propagates. The certificate map can be
+created immediately; HTTPS becomes ready when the managed certificate reaches
+`ACTIVE`.
 
 3. Wait until `frontend-wildcard-cert` is `ACTIVE`. Initial issuance can take time while the DNS authorization CNAMEs propagate.
 4. Run a normal full `terraform apply`. The certificate-map entries deliberately reject the switch while the wildcard certificate is not active, preserving the legacy certificate on the HTTPS proxy.
