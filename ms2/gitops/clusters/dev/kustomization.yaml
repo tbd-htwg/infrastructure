@@ -4,4 +4,5 @@ resources:
   - environment-config.yaml
   - platform-kustomization.yaml
   - platform-config-kustomization.yaml
+  - platform-workloads-kustomization.yaml
   - tenants-kustomization.yaml

@@ -15,4 +15,4 @@ spec:
       - kind: ConfigMap
         name: environment-config
   dependsOn:
-    - name: platform-config
+    - name: platform-workloads
