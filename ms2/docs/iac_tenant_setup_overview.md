@@ -142,6 +142,33 @@ one-time rename, scale the old StatefulSet to zero and delete only the
 StatefulSet object before reconciliation; retain its PVC. The runtime controls
 intentionally retain tenant data while stopped.
 
+## Temporarily Reducing Development Cost
+
+Use `scripts/cost-control.sh` from `infrastructure/ms2` to stop or restore the
+whole MS2 application environment while preserving data:
+
+```bash
+cd infrastructure/ms2
+./scripts/cost-control.sh stop
+./scripts/cost-control.sh status
+./scripts/cost-control.sh start
+```
+
+`stop` suspends workload and tenant reconciliation, suspends HelmReleases,
+scales application Deployments and StatefulSets to zero, and sets every
+`tripplanning-*` Cloud SQL instance to activation policy `NEVER`. Buckets,
+disks, databases, load balancers, DNS, the GKE control plane, and Terraform
+state remain intact.
+
+`start` sets Cloud SQL back to `ALWAYS`, resumes Flux and Helm reconciliation,
+and restores declared replica counts. Cloud SQL and Autopilot startup can take
+several minutes.
+
+This is the safe reversible option. It does not eliminate the GKE management
+fee or small baseline costs for retained resources. Deleting the cluster saves
+more, but creates Terraform drift and requires a full Terraform apply to
+recreate GKE and Flux, so it is deliberately outside this script.
+
 ## Terraform State
 
 Tenant automation requires shared Terraform state. The dev environment uses this GCS backend:
