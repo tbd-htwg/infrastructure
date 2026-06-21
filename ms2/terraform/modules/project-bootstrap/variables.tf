@@ -60,6 +60,7 @@ variable "firestore" {
 
 variable "service_accounts" {
   type = map(object({
+    account_id   = optional(string)
     display_name = string
     description  = string
   }))
@@ -70,6 +71,7 @@ variable "service_accounts" {
       description  = "Platform automation and cluster bootstrap."
     }
     image_url_sig = {
+      account_id   = "tripplanning-image-url-sig"
       display_name = "tripplanning-image-url-sig"
       description  = "Signer service account for GCS upload URLs."
     }

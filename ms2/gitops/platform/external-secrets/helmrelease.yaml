@@ -44,4 +44,4 @@ spec:
       create: true
       name: external-secrets
       annotations:
-        iam.gke.io/gcp-service-account: workload@tbd-cloudappdev.iam.gserviceaccount.com
+        iam.gke.io/gcp-service-account: workload@${GCP_PROJECT_ID}.iam.gserviceaccount.com

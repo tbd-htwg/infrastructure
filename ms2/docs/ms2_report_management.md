@@ -67,7 +67,7 @@ Running links:
 - Frontend: `https://k8s.tbd-htwg.de`
 - Standard tenant API: `<tenant>.k8s.tbd-htwg.de`
 - Enterprise tenant API: `<tenant>.enterprise.k8s.tbd-htwg.de`
-- GCP project: `tbd-cloudappdev`
+- GCP project: `project-f7f74d87-072b-4e92-9c6`
 
 ## 2.2 Microservices
 

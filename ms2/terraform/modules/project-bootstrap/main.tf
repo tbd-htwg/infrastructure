@@ -44,7 +44,7 @@ resource "google_firestore_index" "indexes" {
 resource "google_service_account" "service_accounts" {
   for_each     = var.service_accounts
   project      = var.project_id
-  account_id   = replace(each.key, "_", "-")
+  account_id   = coalesce(each.value.account_id, replace(each.key, "_", "-"))
   display_name = each.value.display_name
   description  = each.value.description
 }

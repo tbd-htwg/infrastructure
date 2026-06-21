@@ -12,10 +12,9 @@ The cluster is registered in a GKE fleet and the `servicemesh` feature uses
 automatic management. Managed Prometheus collection is explicit in the GKE
 module; Flux owns the `ClusterPodMonitoring` scrape configuration.
 
-Before a full plan/apply, provide existing sensitive values through
-`TF_VAR_flux_bootstrap_git_password` and
-`TF_VAR_platform_github_dispatch_token`. Do not apply a plan that deletes a
-Secret Manager version merely because its input variable was omitted.
+Before a full plan/apply, provide `TF_VAR_platform_github_dispatch_token` if
+Terraform should create that Secret Manager version. The public infrastructure
+repository does not require `TF_VAR_flux_bootstrap_git_password`.
 
 ## Frontend TLS migration
 

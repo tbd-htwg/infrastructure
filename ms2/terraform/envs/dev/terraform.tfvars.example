@@ -2,7 +2,7 @@ project_id = "project-1234567890"
 region     = "europe-west1"
 
 dns_zone = {
-  name        = "tbd-dns-zone"
+  name        = "tbd-htwg-zone"
   domain      = "tbd-htwg.de."
   description = "Tenant domains for GKE."
 }
@@ -163,9 +163,9 @@ flux_bootstrap = {
   git_username = "git"
 }
 
-# Use a GitHub token for private repositories. Prefer passing this via
+# Only needed for a private Git repository. Prefer passing it via
 # TF_VAR_flux_bootstrap_git_password or a local uncommitted tfvars file.
-flux_bootstrap_git_password = "REPLACE_WITH_GITHUB_TOKEN"
+# flux_bootstrap_git_password = "REPLACE_WITH_GITHUB_TOKEN"
 
 # Optional: if set, Terraform writes this token into Secret Manager as
 # tripplanning-platform-github-dispatch-token for platform-service tenant creation.

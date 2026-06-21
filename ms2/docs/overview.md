@@ -121,7 +121,7 @@ Purpose of each secret:
 - `tripplanning-ghcr-pull-dockerconfigjson`: Docker auth JSON for the private GHCR image pull secret.
 - `tripplanning-auth-test-bearer-token`: Shared test bearer for `TRIPPLANNING_AUTH_TEST_BEARER_TOKEN` on trip-, social-, and external-info services (Locust `PERF_TEST_BEARER` must match).
 
-These are new secrets that you choose per project. Generate strong values on first setup. Terraform also creates the signer service account `tripplanning-image-url-sig@tbd-cloudappdev.iam.gserviceaccount.com`; the trip-service uses it through `GCP_IMPERSONATE_SERVICE_ACCOUNT`.
+These are new secrets that you choose per project. Generate strong values on first setup. Terraform also creates the signer service account `tripplanning-image-url-sig@project-f7f74d87-072b-4e92-9c6.iam.gserviceaccount.com`; the trip-service uses it through `GCP_IMPERSONATE_SERVICE_ACCOUNT`.
 
 Example script:
 
@@ -129,7 +129,7 @@ Example script:
 #!/usr/bin/env bash
 set -euo pipefail
 
-PROJECT_ID="tbd-cloudappdev"
+PROJECT_ID="project-f7f74d87-072b-4e92-9c6"
 GHCR_USERNAME="myname"
 GHCR_TOKEN="ghp_mytoken"
 GOOGLE_MAPS_API_KEY="ADD_YOUR_GOOGLE_MAPS_API_KEY_HERE"
@@ -180,7 +180,7 @@ printf '%s' "${ghcr_config_json}" | gcloud secrets versions add tripplanning-ghc
 
 ```bash
 gcloud container clusters get-credentials tripplanning-gke \
-  --region europe-west1 --project tbd-cloudappdev
+  --region europe-west1 --project project-f7f74d87-072b-4e92-9c6
 
 flux reconcile source git flux-system -n flux-system
 flux reconcile kustomization tenants -n flux-system
@@ -213,7 +213,7 @@ services:
 **Test bearer (Locust / seeder):** set a strong random value in Secret Manager, then let External Secrets sync into `trip-service-secrets` as `TRIPPLANNING_AUTH_TEST_BEARER_TOKEN`:
 
 ```bash
-PROJECT_ID="tbd-cloudappdev"
+PROJECT_ID="project-f7f74d87-072b-4e92-9c6"
 printf '%s' "$(openssl rand -base64 32 | tr -d '\n')" | gcloud secrets versions add tripplanning-auth-test-bearer-token \
   --project "$PROJECT_ID" --data-file=-
 ```

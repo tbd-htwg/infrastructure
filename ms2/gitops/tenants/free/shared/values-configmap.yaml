@@ -6,6 +6,10 @@ metadata:
 data:
   values.yaml: |
     global:
+      frontend:
+        bucketName: "${FRONTEND_BUCKET}"
+      storage:
+        imagesBucketName: "${IMAGES_BUCKET}"
       imagePullSecrets:
         - ghcr-pull
     services:
@@ -36,7 +40,8 @@ data:
           SPRING_DATA_REDIS_HOST: "valkey"
           JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError"
           TRIPPLANNING_CACHE_REDIS_TTL_SECONDS: "30"
-          GCP_IMPERSONATE_SERVICE_ACCOUNT: "tripplanning-image-url-sig@tbd-cloudappdev.iam.gserviceaccount.com"
+          TRIPPLANNING_AUTH_FIREBASE_PROJECT_ID: "${GCP_PROJECT_ID}"
+          GCP_IMPERSONATE_SERVICE_ACCOUNT: "tripplanning-image-url-sig@${GCP_PROJECT_ID}.iam.gserviceaccount.com"
       social:
         replicas: 1
         image:
@@ -51,6 +56,8 @@ data:
             cpu: "750m"
             memory: "768Mi"
         env:
+          TRIPPLANNING_AUTH_FIREBASE_PROJECT_ID: "${GCP_PROJECT_ID}"
+          GCP_FIRESTORE_DATABASE_ID: "${FIRESTORE_DATABASE_ID}"
           SPRING_DATA_REDIS_HOST: "valkey"
           JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError"
           TRIPPLANNING_CACHE_REDIS_TTL_SECONDS: "30"
@@ -76,6 +83,9 @@ data:
       loadBalancer:
         annotations:
           cloud.google.com/neg: '{"exposed_ports":{"8088":{}}}'
+    seedJob:
+      googleCloudProject: "${GCP_PROJECT_ID}"
+      firestoreDatabaseId: "${FIRESTORE_DATABASE_ID}"
     backingServices:
       postgres:
         auth:

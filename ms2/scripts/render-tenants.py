@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shutil
 from pathlib import Path
 from typing import Any
@@ -21,6 +22,16 @@ TERRAFORM_OUT = ROOT / "terraform/envs/dev/generated-tenants.auto.tfvars.json"
 STANDARD_GITOPS_OUT = ROOT / "gitops/tenants/standard/shared/generated-tenants-configmap.yaml"
 STANDARD_DB_SECRET_OUT = ROOT / "gitops/tenants/standard/shared/generated-db-external-secret.yaml"
 ENTERPRISE_GITOPS_DIR = ROOT / "gitops/tenants/enterprise"
+
+
+def tenant_project_id(tenant: dict[str, Any]) -> str:
+    project_id = tenant.get("projectId") or os.environ.get("GCP_PROJECT_ID")
+    if not project_id or project_id == "PROJECT_ID":
+        raise ValueError(
+            "Enterprise tenants require projectId in their tenant YAML or "
+            "the GCP_PROJECT_ID environment variable"
+        )
+    return project_id
 
 
 def load_tenants(tier: str) -> dict[str, dict[str, Any]]:
@@ -279,7 +290,7 @@ def render_enterprise_values(
     tenant: dict[str, Any],
     terraform_outputs: dict[str, Any],
 ) -> str:
-    project_id = tenant.get("projectId", "tbd-cloudappdev")
+    project_id = tenant_project_id(tenant)
     frontend_bucket_name = tenant["frontend"].get("bucketName", f"{project_id}-frontend-bucket")
     cors_origins = ",".join(f"https://{hostname}" for hostname in tenant["hostnames"])
     services = tenant.get("services", {})
@@ -392,7 +403,7 @@ def render_enterprise_gitops(
 
     resources: list[str] = []
     for tenant_id, tenant in tenants.items():
-        project_id = tenant.get("projectId", "tbd-cloudappdev")
+        project_id = tenant_project_id(tenant)
         tenant_dir = ENTERPRISE_GITOPS_DIR / tenant_id
         resources.append(tenant_id)
         files = {

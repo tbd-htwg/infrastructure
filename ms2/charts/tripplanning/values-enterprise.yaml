@@ -5,7 +5,7 @@ global:
   identityPlatform:
     tenantId: ""
   frontend:
-    bucketName: "tbd-cloudappdev-frontend-bucket"
+    bucketName: ""
     bucketPrefix: ""
     brandName: "TripPlanning Enterprise"
     colorScheme: "default"

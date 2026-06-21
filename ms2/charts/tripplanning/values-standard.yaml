@@ -5,13 +5,13 @@ global:
   identityPlatform:
     tenantId: ""
   frontend:
-    bucketName: "tbd-cloudappdev-frontend-bucket"
+    bucketName: ""
     bucketPrefix: standard
     brandName: "TripPlanning"
     colorScheme: "default"
     brandIcon: ""
   storage:
-    imagesBucketName: "tbd-cloudappdev-images-bucket"
+    imagesBucketName: ""
     imagesPrefix: standard
   search:
     indexName: tripentity-standard

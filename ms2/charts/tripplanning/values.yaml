@@ -12,13 +12,13 @@ global:
   identityPlatform:
     tenantId: ""
   frontend:
-    bucketName: "tbd-cloudappdev-frontend-bucket"
+    bucketName: ""
     bucketPrefix: ""
     brandName: "TripPlanning"
     colorScheme: "default"
     brandIcon: ""
   storage:
-    imagesBucketName: "tbd-cloudappdev-images-bucket"
+    imagesBucketName: ""
     imagesPrefix: ""
   search:
     indexName: "tripentity"
@@ -98,9 +98,9 @@ services:
       SPRING_DATA_REDIS_PORT: "6379"
       TRIPPLANNING_SOCIAL_SERVICE_URL: "http://social-service:8081"
       TRIPPLANNING_EXTERNAL_INFO_SERVICE_URL: "http://external-info-service:8082"
-      TRIPPLANNING_AUTH_FIREBASE_PROJECT_ID: "tbd-cloudappdev"
+      TRIPPLANNING_AUTH_FIREBASE_PROJECT_ID: ""
       CORS_ALLOWED_ORIGINS: "https://k8s.tbd-htwg.de"
-      GCP_IMPERSONATE_SERVICE_ACCOUNT: "tripplanning-image-url-sig@tbd-cloudappdev.iam.gserviceaccount.com"
+      GCP_IMPERSONATE_SERVICE_ACCOUNT: ""
     secretRefs:
       - trip-service-secrets
     livenessPath: /actuator/health/liveness
@@ -130,7 +130,7 @@ services:
       SPRING_PROFILES_ACTIVE: "cloud"
       SERVER_PORT: "8081"
       CORS_ALLOWED_ORIGINS: "https://k8s.tbd-htwg.de"
-      TRIPPLANNING_AUTH_FIREBASE_PROJECT_ID: "tbd-cloudappdev"
+      TRIPPLANNING_AUTH_FIREBASE_PROJECT_ID: ""
       TRIPPLANNING_TRIP_SERVICE_URL: "http://trip-service:8080"
       GCP_FIRESTORE_DATABASE_ID: "tbd-firestore"
       SPRING_DATA_REDIS_HOST: "valkey"
@@ -287,7 +287,7 @@ seedJob:
   manifestCopyTo: ""
   waitForFirestoreEmulator: false
   firestoreHostPort: ""
-  googleCloudProject: "tbd-cloudappdev"
+  googleCloudProject: ""
   firestoreDatabaseId: "tbd-firestore"
   image:
     repository: ghcr.io/tbd-htwg/backend/tripplanning-seed-job

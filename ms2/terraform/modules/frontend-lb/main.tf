@@ -1,13 +1,10 @@
 locals {
   api_backend_neg_self_links = var.api_backend_neg_self_links
-  host_api_backend_internet_endpoints = {
-    for key, endpoint in var.host_api_backend_internet_endpoints : key => endpoint
-    if endpoint.ip != ""
-  }
+  host_api_backend_internet_endpoints = var.host_api_backend_internet_endpoints
   frontend_domains            = distinct(concat([var.frontend_domain], var.additional_frontend_domains))
   certificate_domains         = distinct(var.certificate_domains)
   certificate_auth_domains    = toset([for domain in local.certificate_domains : trimprefix(domain, "*.")])
-  has_api_internet_endpoint   = var.api_backend_internet_endpoint_ip != null && var.api_backend_internet_endpoint_ip != ""
+  has_api_internet_endpoint   = var.enable_api_backend_internet_endpoint
   api_backend_internet_groups = local.has_api_internet_endpoint ? [google_compute_global_network_endpoint_group.api_internet[0].id] : []
   api_backend_groups          = concat(local.api_backend_neg_self_links, local.api_backend_internet_groups)
   has_api_backend             = length(local.api_backend_groups) > 0

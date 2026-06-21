@@ -72,10 +72,9 @@ terraform -chdir=infrastructure/ms2/terraform/envs/dev init
 terraform -chdir=infrastructure/ms2/terraform/envs/dev apply
 ```
 
-Provide both `TF_VAR_flux_bootstrap_git_password` and
-`TF_VAR_platform_github_dispatch_token` when Terraform already manages those
-values. An omitted dispatch token otherwise appears as a Secret Manager
-version deletion in the plan.
+Provide `TF_VAR_platform_github_dispatch_token` when Terraform should manage
+that value. The current public infrastructure repository does not require a
+Flux Git password.
 
 10. Terraform creates the cluster and bootstraps Flux by applying `gitops/clusters/dev/flux-system`.
 11. Flux then installs platform and tenant Kubernetes resources from Git.
@@ -88,7 +87,7 @@ version deletion in the plan.
 This environment is intentionally small, but GKE Autopilot still needs enough Compute Engine CPU quota to add nodes during rollouts. If pods stay `Pending` with `GCE quota exceeded`, check:
 
 ```bash
-gcloud compute project-info describe --project tbd-cloudappdev \
+gcloud compute project-info describe --project project-f7f74d87-072b-4e92-9c6 \
   --format="table(quotas.metric,quotas.limit,quotas.usage)"
 ```
 
@@ -148,7 +147,7 @@ intentionally retain tenant data while stopped.
 Tenant automation requires shared Terraform state. The dev environment uses this GCS backend:
 
 ```text
-bucket: tbd-cloudappdev-tfstate
+bucket: project-f7f74d87-072b-4e92-9c6-tfstate
 prefix: ms2/dev
 ```
 
@@ -298,7 +297,7 @@ If `tripplanning-platform-github-dispatch-token` is missing, platform-service ca
 Required GitHub configuration for workflow-based provisioning:
 
 - Environment: `gke-dev` if environment protection is enabled.
-- Secrets in the infrastructure repo: `GCP_WORKLOAD_IDENTITY_PROVIDER`, `GCP_TERRAFORM_SERVICE_ACCOUNT`, `FLUX_BOOTSTRAP_GIT_PASSWORD`, and `BACKEND_REPOSITORY_DISPATCH_TOKEN`.
+- Secrets in the infrastructure repo: `GCP_WORKLOAD_IDENTITY_PROVIDER`, `GCP_TERRAFORM_SERVICE_ACCOUNT`, and `BACKEND_REPOSITORY_DISPATCH_TOKEN`.
 - Variables in the infrastructure repo: `GCP_PROJECT_ID`, `BACKEND_REPOSITORY`, and optional `TENANT_PROVISION_APPLY_TERRAFORM=true`.
 - Repository permissions: GitHub Actions must allow `contents: write` and `id-token: write`.
 
@@ -319,12 +318,12 @@ Use CI Terraform apply only after the Terraform backend is shared/remote. Otherw
 The infrastructure Terraform service account needs enough read/write permissions to refresh and modify all Terraform-managed resources. Terraform manages these roles after the first successful apply, but if CI fails with `artifactregistry.repositories.get denied`, grant the missing role once with an owner/admin account:
 
 ```bash
-gcloud projects add-iam-policy-binding tbd-cloudappdev \
-  --member="serviceAccount:terraform-deployer@tbd-cloudappdev.iam.gserviceaccount.com" \
+gcloud projects add-iam-policy-binding project-f7f74d87-072b-4e92-9c6 \
+  --member="serviceAccount:terraform-deployer@project-f7f74d87-072b-4e92-9c6.iam.gserviceaccount.com" \
   --role="roles/artifactregistry.admin"
 
-gcloud projects add-iam-policy-binding tbd-cloudappdev \
-  --member="serviceAccount:terraform-deployer@tbd-cloudappdev.iam.gserviceaccount.com" \
+gcloud projects add-iam-policy-binding project-f7f74d87-072b-4e92-9c6 \
+  --member="serviceAccount:terraform-deployer@project-f7f74d87-072b-4e92-9c6.iam.gserviceaccount.com" \
   --role="roles/servicenetworking.networksAdmin"
 ```
 
@@ -384,7 +383,6 @@ Local Terraform apply:
 
 ```bash
 export TF_VAR_platform_github_dispatch_token="github_pat_or_token"
-export TF_VAR_flux_bootstrap_git_password="github_pat_or_token"
 terraform -chdir=infrastructure/ms2/terraform/envs/dev apply
 ```
 
@@ -399,25 +397,16 @@ The backend workflow also needs backend repo variables `GCP_PROJECT_ID`, `GCP_WI
 
 Run the backend workflow manually once after the first Terraform apply. After tenant GitOps changes, the infrastructure repo root workflow `.github/workflows/dispatch-backend-secret-sync.yml` dispatches `tenant-created` to the backend repo so the same sync can run again.
 
-For Flux bootstrap locally, use one of these options:
-
-```bash
-export TF_VAR_flux_bootstrap_git_password="github_pat_or_token"
-terraform -chdir=infrastructure/ms2/terraform/envs/dev apply
-```
-
-or create the ignored local file `infrastructure/ms2/terraform/envs/dev/secrets.auto.tfvars`:
-
-```hcl
-flux_bootstrap_git_password = "github_pat_or_token"
-```
+Flux reads the public infrastructure repository without a Git credential.
+If the repository becomes private later, add `secretRef` back to
+`gotk-sync.yaml` and provide `TF_VAR_flux_bootstrap_git_password`.
 
 When reusing an old project, some Secret Manager secrets may already exist outside the current Terraform state. Import them instead of deleting them. Example:
 
 ```bash
 terraform -chdir=infrastructure/ms2/terraform/envs/dev import \
   'module.project_bootstrap.google_secret_manager_secret.secrets["tripplanning-auth-test-bearer-token"]' \
-  projects/tbd-cloudappdev/secrets/tripplanning-auth-test-bearer-token
+  projects/project-f7f74d87-072b-4e92-9c6/secrets/tripplanning-auth-test-bearer-token
 ```
 
 Important current limitation:

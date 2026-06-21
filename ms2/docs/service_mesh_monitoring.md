@@ -45,11 +45,10 @@ terraform -chdir=infrastructure/ms2/terraform/envs/dev init
 terraform -chdir=infrastructure/ms2/terraform/envs/dev apply
 ```
 
-Always provide both sensitive variables used by this environment. Omitting a
-previously managed value can produce a destructive plan:
+Provide the dispatch token when Terraform should manage its Secret Manager
+version:
 
 ```bash
-export TF_VAR_flux_bootstrap_git_password='...'
 export TF_VAR_platform_github_dispatch_token='...'
 ```
 

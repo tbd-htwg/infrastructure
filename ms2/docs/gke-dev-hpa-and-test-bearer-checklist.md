@@ -9,7 +9,7 @@ Enable CPU-based HPA (1–8 replicas per app service) and the Locust/seeder test
 ## Prerequisites
 
 - [ ] `kubectl` and `flux` CLI installed
-- [ ] Access to GCP project **`tbd-cloudappdev`** and cluster **`tripplanning-gke`**
+- [ ] Access to GCP project **`project-f7f74d87-072b-4e92-9c6`** and cluster **`tripplanning-gke`**
 - [ ] Push rights to **`tbd-htwg/infrastructure`** (`main`)
 - [ ] GitHub secret **`TRIPPLANNING_AUTH_TEST_BEARER_TOKEN`** set on backend repo, environment **`gke-dev`**
 - [ ] Infra changes merged or ready to push:
@@ -27,10 +27,10 @@ Required before the first seed-job run (references `sample/…` paths in trip DB
 cd backend
 ./scripts/gke-sync-sample-images.sh
 # or: ./scripts/sync-sample-images.sh --target prod
-# → gs://tbd-cloudappdev-images-bucket/sample/
+# → gs://project-f7f74d87-072b-4e92-9c6-images-bucket/sample/
 ```
 
-Requires `gcloud auth application-default login` with access to project `tbd-cloudappdev`.
+Requires `gcloud auth application-default login` with access to project `project-f7f74d87-072b-4e92-9c6`.
 
 ---
 
@@ -83,7 +83,7 @@ Backend workflow copies GitHub secrets → Secret Manager (External Secrets then
 ```bash
 gcloud container clusters get-credentials tripplanning-gke \
   --region europe-west1 \
-  --project tbd-cloudappdev
+  --project project-f7f74d87-072b-4e92-9c6
 
 flux reconcile source git flux-system -n flux-system
 flux reconcile kustomization tenants -n flux-system
@@ -195,9 +195,9 @@ watch kubectl get hpa,pods -n tripplanning-free
 |-------|--------|
 | No HPAs | `flux get helmrelease tripplanning-free -n tripplanning-free`; check `autoscaling.enabled: true` in ConfigMap |
 | HPA shows 1 pod only | **Normal at low CPU** — HPA min is 1; run Locust and `watch kubectl get hpa -n tripplanning-free` to see scale-up |
-| 401 with test bearer | **`SecretSyncedError` on `trip-service-secrets`** → run Step 2 (backend sync workflow); confirm secret exists: `gcloud secrets describe tripplanning-auth-test-bearer-token --project tbd-cloudappdev` |
+| 401 with test bearer | **`SecretSyncedError` on `trip-service-secrets`** → run Step 2 (backend sync workflow); confirm secret exists: `gcloud secrets describe tripplanning-auth-test-bearer-token --project project-f7f74d87-072b-4e92-9c6` |
 | Flux not picking up Git | `flux reconcile source git flux-system -n flux-system --with-source` |
-| Secret missing in GCP | Re-run backend sync workflow; or `gcloud secrets describe tripplanning-auth-test-bearer-token --project tbd-cloudappdev` |
+| Secret missing in GCP | Re-run backend sync workflow; or `gcloud secrets describe tripplanning-auth-test-bearer-token --project project-f7f74d87-072b-4e92-9c6` |
 
 ---
 

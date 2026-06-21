@@ -2,7 +2,7 @@
 
 Reference for the **GKE dev** stack: C4-style application views (C1–C3), Terraform/GitOps resources, routing, and data flows for tenant **`tripplanning-free`**.
 
-**Scope:** GCP project `tbd-cloudappdev`, region `europe-west1`, cluster `tripplanning-gke`, namespace `tripplanning-free`. For setup/teardown and Flux reconcile commands, see [overview.md](overview.md) and [Terraform dev env](../terraform/envs/dev/README.md). Local Minikube counterpart: [backend/docs/gettingstarted/STATE.md](../../../backend/docs/gettingstarted/STATE.md).
+**Scope:** GCP project `project-f7f74d87-072b-4e92-9c6`, region `europe-west1`, cluster `tripplanning-gke`, namespace `tripplanning-free`. For setup/teardown and Flux reconcile commands, see [overview.md](overview.md) and [Terraform dev env](../terraform/envs/dev/README.md). Local Minikube counterpart: [backend/docs/gettingstarted/STATE.md](../../../backend/docs/gettingstarted/STATE.md).
 
 ---
 
@@ -186,11 +186,11 @@ Applied from [terraform/envs/dev](../terraform/envs/dev/). **Cloud SQL module ex
 
 | Category | Resource | Name / pattern |
 |----------|----------|----------------|
-| **Project** | GCP | `tbd-cloudappdev` |
+| **Project** | GCP | `project-f7f74d87-072b-4e92-9c6` |
 | **Network** | VPC, subnet, Cloud NAT | `tripplanning-vpc` |
 | **Compute** | GKE Autopilot | `tripplanning-gke`, Gateway API enabled |
 | **Data** | Firestore Native | `tbd-firestore` (+ composite index on `comments`) |
-| **Storage** | GCS buckets | `tbd-cloudappdev-images-bucket`, `tbd-cloudappdev-frontend-bucket`, `tbd-cloudappdev-tfstate` |
+| **Storage** | GCS buckets | `project-f7f74d87-072b-4e92-9c6-images-bucket`, `project-f7f74d87-072b-4e92-9c6-frontend-bucket`, `project-f7f74d87-072b-4e92-9c6-tfstate` |
 | **DNS** | Cloud DNS zone | `tbd-htwg.de` — `k8s.tbd-htwg.de`, `api.k8s.tbd-htwg.de` |
 | **LB** | Frontend global HTTPS LB | SPA + `/api/*` → api-router NEG |
 | **LB** | Gateway global IP | `tripplanning-api-gateway-ip` → GKE Gateway |
@@ -452,19 +452,19 @@ ConfigMaps (CORS, service URLs, OpenSearch/Valkey hosts) come from the Helm char
 ## 10. Naming quick reference
 
 ```
-GCP project:      tbd-cloudappdev
+GCP project:      project-f7f74d87-072b-4e92-9c6
 region:           europe-west1
 GKE cluster:      tripplanning-gke
 namespace:        tripplanning-free
 frontend URL:     https://k8s.tbd-htwg.de
 API Gateway URL:  https://api.k8s.tbd-htwg.de
-images bucket:    tbd-cloudappdev-images-bucket
-frontend bucket:  tbd-cloudappdev-frontend-bucket
+images bucket:    project-f7f74d87-072b-4e92-9c6-images-bucket
+frontend bucket:  project-f7f74d87-072b-4e92-9c6-frontend-bucket
 Firestore DB:     tbd-firestore
 Postgres:         postgres:5432 (db tripplanning, user tripplanning_app)
 search svc:       opensearch:9200 (OpenSearch 2.19 image)
-signer SA:        tripplanning-image-url-sig@tbd-cloudappdev.iam.gserviceaccount.com
-workload SA:      workload@tbd-cloudappdev.iam.gserviceaccount.com
+signer SA:        tripplanning-image-url-sig@project-f7f74d87-072b-4e92-9c6.iam.gserviceaccount.com
+workload SA:      workload@project-f7f74d87-072b-4e92-9c6.iam.gserviceaccount.com
 trip-service:     ghcr.io/tbd-htwg/backend/tripplanning-trip-service:latest
 social-service:   ghcr.io/tbd-htwg/backend/tripplanning-social-service:latest
 external-info:    ghcr.io/tbd-htwg/backend/tripplanning-external-info-service:latest

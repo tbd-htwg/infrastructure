@@ -2,9 +2,9 @@
 
 ## 2.1 Runtime Overview
 
-Runtime is on GCP project `tbd-cloudappdev` in `europe-west1`.
+Runtime is on GCP project `project-f7f74d87-072b-4e92-9c6` in `europe-west1`.
 
-- Frontend: React/Vite static build served from Cloud Storage bucket `tbd-cloudappdev-frontend-bucket` through a global HTTPS Load Balancer on `https://k8s.tbd-htwg.de`. HTTP is redirected to HTTPS.
+- Frontend: React/Vite static build served from Cloud Storage bucket `project-f7f74d87-072b-4e92-9c6-frontend-bucket` through a global HTTPS Load Balancer on `https://k8s.tbd-htwg.de`. HTTP is redirected to HTTPS.
 - Backend: GKE Autopilot cluster `tripplanning-gke`, private nodes, VPC-native networking, and tenant entrypoints exposed through Kubernetes LoadBalancer Services.
 - API routing: Standard tenants share one Standard LoadBalancer and in-namespace `api-router`; Enterprise tenants get one LoadBalancer and `api-router` per namespace. The router maps public API paths to `trip-service`, `social-service`, and `external-info-service`.
 - Tenant auth: Standard and Enterprise tenants use Google Identity Platform tenants. The hostname selects tenant config; backend services verify that the Identity Platform tenant ID in the token matches the hostname/router tenant.
@@ -16,7 +16,7 @@ Running links:
 - Frontend: `https://k8s.tbd-htwg.de`
 - Standard tenant API: `<tenant>.k8s.tbd-htwg.de`
 - Enterprise tenant API: `<tenant>.enterprise.k8s.tbd-htwg.de`
-- GCP project/environment: `tbd-cloudappdev`
+- GCP project/environment: `project-f7f74d87-072b-4e92-9c6`
 
 ## 2.2 Microservices
 
@@ -33,7 +33,7 @@ Running links:
 - Runtime: image `ghcr.io/tbd-htwg/backend/tripplanning-trip-service:latest`, Spring profile `k8s`, port `8080`, 2 replicas.
 - Scaling: HPA enabled, min 2, max 4, CPU target 70%.
 - Security: Firebase project configured via `TRIPPLANNING_AUTH_FIREBASE_PROJECT_ID`; JWT/internal/test bearer secrets come from Secret Manager via External Secrets. Uses Workload Identity through the namespace default service account.
-- External services: PostgreSQL, OpenSearch, Valkey, `social-service`, `external-info-service`, GCS image bucket `tbd-cloudappdev-images-bucket`, Firebase auth. Runtime config is provided through Kubernetes ConfigMaps, Secrets, and environment variables instead of hard-coded values.
+- External services: PostgreSQL, OpenSearch, Valkey, `social-service`, `external-info-service`, GCS image bucket `project-f7f74d87-072b-4e92-9c6-images-bucket`, Firebase auth. Runtime config is provided through Kubernetes ConfigMaps, Secrets, and environment variables instead of hard-coded values.
 
 ### social-service
 
@@ -56,10 +56,10 @@ Running links:
 - Valkey: in-cluster cache deployment, no persistent volume.
 - Firestore: native database `tbd-firestore` in `europe-west1`; used by `social-service`; composite index on `comments(tripId ASC, createdAt DESC, __name__ DESC)`.
 - Cloud Storage:
-  - `tbd-cloudappdev-images-bucket`: image storage, CORS for `https://k8s.tbd-htwg.de`.
-  - `tbd-cloudappdev-frontend-bucket`: static frontend assets, website fallback to `index.html`, public read.
-  - `tbd-cloudappdev-tfstate`: Terraform state.
-  - `tbd-cloudappdev-project-logs`: GKE container/pod log sink.
+  - `project-f7f74d87-072b-4e92-9c6-images-bucket`: image storage, CORS for `https://k8s.tbd-htwg.de`.
+  - `project-f7f74d87-072b-4e92-9c6-frontend-bucket`: static frontend assets, website fallback to `index.html`, public read.
+  - `project-f7f74d87-072b-4e92-9c6-tfstate`: Terraform state.
+  - `project-f7f74d87-072b-4e92-9c6-project-logs`: GKE container/pod log sink.
 
 These datastores are separated from the application containers, which supports the 12-Factor backing-services principle.
 

@@ -143,8 +143,10 @@ variable "flux_bootstrap" {
 
 variable "flux_bootstrap_git_password" {
   type        = string
-  description = "Git token/password used for the flux-system Git auth secret. Required because gotk-sync.yaml references secretRef."
+  description = "Optional Git token/password used for the flux-system Git auth secret when the Git repository is private."
   sensitive   = true
+  default     = null
+  nullable    = true
 }
 
 variable "platform_github_dispatch_token" {

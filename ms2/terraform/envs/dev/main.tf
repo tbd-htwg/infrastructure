@@ -265,16 +265,17 @@ module "frontend_lb" {
       port      = 8088
     }
   }
-  dns_zone_name                      = module.project_bootstrap.dns_zone_name
-  bucket_name                        = module.storage.bucket_names["frontend_assets"]
-  network_self_link                  = module.network.network_self_link
-  enable_cdn                         = var.frontend.enable_cdn
-  api_backend_neg_self_links         = coalesce(try(var.frontend.api_backend_neg_self_links, null), [])
-  api_backend_internet_endpoint_ip   = google_compute_address.standard_lb_ip.address
-  api_backend_internet_endpoint_port = 8088
-  api_paths                          = coalesce(try(var.frontend.api_paths, null), ["/api/*"])
-  api_health_check_path              = coalesce(try(var.frontend.api_health_check_path, null), "/actuator/health/readiness")
-  api_health_check_port              = coalesce(try(var.frontend.api_health_check_port, null), 8080)
+  dns_zone_name                        = module.project_bootstrap.dns_zone_name
+  bucket_name                          = module.storage.bucket_names["frontend_assets"]
+  network_self_link                    = module.network.network_self_link
+  enable_cdn                           = var.frontend.enable_cdn
+  api_backend_neg_self_links           = coalesce(try(var.frontend.api_backend_neg_self_links, null), [])
+  enable_api_backend_internet_endpoint = true
+  api_backend_internet_endpoint_ip     = google_compute_address.standard_lb_ip.address
+  api_backend_internet_endpoint_port   = 8088
+  api_paths                            = coalesce(try(var.frontend.api_paths, null), ["/api/*"])
+  api_health_check_path                = coalesce(try(var.frontend.api_health_check_path, null), "/actuator/health/readiness")
+  api_health_check_port                = coalesce(try(var.frontend.api_health_check_port, null), 8080)
 
   depends_on = [module.project_bootstrap]
 }
@@ -617,7 +618,7 @@ resource "terraform_data" "flux_bootstrap" {
     interpreter = ["/bin/bash", "-c"]
     environment = {
       FLUX_GIT_USERNAME = var.flux_bootstrap.git_username
-      FLUX_GIT_PASSWORD = var.flux_bootstrap_git_password
+      FLUX_GIT_PASSWORD = coalesce(var.flux_bootstrap_git_password, "")
     }
     command = <<-EOT
       set -euo pipefail
@@ -641,16 +642,17 @@ resource "terraform_data" "flux_bootstrap" {
         --dry-run=client \
         -o yaml | kubectl apply -f -
 
-      if grep -q "secretRef:" ${local.flux_bootstrap_manifest_dir}/gotk-sync.yaml && [ -z "$FLUX_GIT_PASSWORD" ]; then
-        echo "flux_bootstrap_git_password is required because gotk-sync.yaml references secretRef: flux-system." >&2
-        exit 1
+      if grep -q "secretRef:" ${local.flux_bootstrap_manifest_dir}/gotk-sync.yaml; then
+        if [ -z "$FLUX_GIT_PASSWORD" ]; then
+          echo "flux_bootstrap_git_password is required because gotk-sync.yaml references a Git authentication secret." >&2
+          exit 1
+        fi
+        kubectl -n ${var.flux_bootstrap.namespace} create secret generic flux-system \
+          --from-literal=username="$FLUX_GIT_USERNAME" \
+          --from-literal=password="$FLUX_GIT_PASSWORD" \
+          --dry-run=client \
+          -o yaml | kubectl apply -f -
       fi
-
-      kubectl -n ${var.flux_bootstrap.namespace} create secret generic flux-system \
-        --from-literal=username="$FLUX_GIT_USERNAME" \
-        --from-literal=password="$FLUX_GIT_PASSWORD" \
-        --dry-run=client \
-        -o yaml | kubectl apply -f -
 
       kubectl apply -f ${local.flux_bootstrap_manifest_dir}/gotk-components.yaml
       kubectl wait --for=condition=Established crd/gitrepositories.source.toolkit.fluxcd.io --timeout=120s

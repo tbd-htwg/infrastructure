@@ -67,6 +67,12 @@ variable "api_backend_internet_endpoint_ip" {
   default     = null
 }
 
+variable "enable_api_backend_internet_endpoint" {
+  type        = bool
+  description = "Whether to create the shared internet NEG API backend. Keep this separate from the computed endpoint IP so Terraform can determine resource counts during planning."
+  default     = false
+}
+
 variable "api_backend_internet_endpoint_port" {
   type        = number
   description = "Port for the optional internet NEG API backend."

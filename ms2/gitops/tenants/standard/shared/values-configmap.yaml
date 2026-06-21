@@ -12,13 +12,13 @@ data:
         - ghcr-pull
       hostnames: []
       frontend:
-        bucketName: tbd-cloudappdev-frontend-bucket
+        bucketName: "${FRONTEND_BUCKET}"
         bucketPrefix: standard
         brandName: TripPlanning
         colorScheme: default
         brandIcon: ""
       storage:
-        imagesBucketName: tbd-cloudappdev-images-bucket
+        imagesBucketName: "${IMAGES_BUCKET}"
         imagesPrefix: standard
       search:
         indexName: tripentity-standard
@@ -52,6 +52,8 @@ data:
             cpu: "750m"
             memory: "768Mi"
         env:
+          TRIPPLANNING_AUTH_FIREBASE_PROJECT_ID: "${GCP_PROJECT_ID}"
+          GCP_IMPERSONATE_SERVICE_ACCOUNT: "tripplanning-image-url-sig@${GCP_PROJECT_ID}.iam.gserviceaccount.com"
           SPRING_DATA_REDIS_HOST: valkey
           SPRING_AUTOCONFIGURE_EXCLUDE: "org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchRestClientAutoConfiguration"
           JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError"
@@ -72,6 +74,8 @@ data:
             cpu: "500m"
             memory: "512Mi"
         env:
+          TRIPPLANNING_AUTH_FIREBASE_PROJECT_ID: "${GCP_PROJECT_ID}"
+          GCP_FIRESTORE_DATABASE_ID: "${FIRESTORE_DATABASE_ID}"
           SPRING_DATA_REDIS_HOST: valkey
           JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError"
       externalInfo:

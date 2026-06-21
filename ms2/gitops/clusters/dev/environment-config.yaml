@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: environment-config
+  namespace: flux-system
+data:
+  GCP_PROJECT_ID: project-f7f74d87-072b-4e92-9c6
+  GCP_REGION: europe-west1
+  FIRESTORE_DATABASE_ID: tbd-firestore
+  FRONTEND_BUCKET: project-f7f74d87-072b-4e92-9c6-frontend-bucket
+  IMAGES_BUCKET: project-f7f74d87-072b-4e92-9c6-images-bucket
