@@ -3,6 +3,11 @@ variable "project_id" {
   description = "GCP project ID."
 }
 
+variable "project_number" {
+  type        = string
+  description = "Numeric GCP project number used by IAM workload identity resources."
+}
+
 variable "pool_id" {
   type        = string
   description = "Workload Identity Pool ID."

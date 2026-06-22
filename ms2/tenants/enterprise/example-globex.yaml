@@ -1,6 +1,6 @@
 tenantId: globex
 tier: enterprise
-projectId: PROJECT_ID
+projectId: tbd-cloudappdev
 namespace: tripplanning-ent-globex
 hostnames:
   - globex.enterprise.k8s.tbd-htwg.de
@@ -19,7 +19,7 @@ database:
   databaseName: tripplanning
   userName: tripplanning_app
 storage:
-  imageBucketName: PROJECT_ID-globex-images-bucket
+  imageBucketName: tbd-cloudappdev-globex-images-bucket
 search:
   releaseName: opensearch-globex
 cache:

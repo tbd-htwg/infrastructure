@@ -1,8 +1,8 @@
-project_id = "project-f7f74d87-072b-4e92-9c6"
+project_id = "tbd-cloudappdev"
 region     = "europe-west1"
 
 dns_zone = {
-  name        = "tbd-htwg-zone"
+  name        = "tbd-dns-zone"
   domain      = "tbd-htwg.de."
   description = "Tenant domains for GKE."
 }

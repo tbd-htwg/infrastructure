@@ -1,5 +1,16 @@
 locals {
   enabled_apis = toset(var.api_services)
+  iam_members = {
+    for binding in flatten([
+      for role, members in var.iam_bindings : [
+        for member in members : {
+          key    = "${role} ${member}"
+          role   = role
+          member = member
+        }
+      ]
+    ]) : binding.key => binding
+  }
 }
 
 resource "google_project_service" "apis" {
@@ -47,15 +58,20 @@ resource "google_service_account" "service_accounts" {
   account_id   = coalesce(each.value.account_id, replace(each.key, "_", "-"))
   display_name = each.value.display_name
   description  = each.value.description
-}
-
-resource "google_project_iam_binding" "bindings" {
-  for_each = var.iam_bindings
-  project  = var.project_id
-  role     = each.key
-  members  = each.value
 
   depends_on = [
+    google_project_service.apis["iam.googleapis.com"],
+  ]
+}
+
+resource "google_project_iam_member" "members" {
+  for_each = local.iam_members
+  project  = var.project_id
+  role     = each.value.role
+  member   = each.value.member
+
+  depends_on = [
+    google_project_service.apis["cloudresourcemanager.googleapis.com"],
     google_service_account.service_accounts,
   ]
 }
@@ -67,6 +83,10 @@ resource "google_artifact_registry_repository" "repo" {
   repository_id = var.artifact_registry.name
   format        = var.artifact_registry.format
   description   = var.artifact_registry.description
+
+  depends_on = [
+    google_project_service.apis["artifactregistry.googleapis.com"],
+  ]
 }
 
 resource "google_secret_manager_secret" "secrets" {
@@ -79,6 +99,10 @@ resource "google_secret_manager_secret" "secrets" {
   replication {
     auto {}
   }
+
+  depends_on = [
+    google_project_service.apis["secretmanager.googleapis.com"],
+  ]
 }
 
 resource "google_dns_managed_zone" "zone" {
@@ -87,6 +111,10 @@ resource "google_dns_managed_zone" "zone" {
   name        = var.dns_zone.name
   dns_name    = var.dns_zone.domain
   description = var.dns_zone.description
+
+  depends_on = [
+    google_project_service.apis["dns.googleapis.com"],
+  ]
 }
 
 resource "google_storage_bucket" "log_sink" {
@@ -95,6 +123,10 @@ resource "google_storage_bucket" "log_sink" {
   name                        = "${var.project_id}-${var.log_sink.name}"
   location                    = var.log_sink.bucket_location
   uniform_bucket_level_access = true
+
+  depends_on = [
+    google_project_service.apis["storage.googleapis.com"],
+  ]
 }
 
 resource "google_logging_project_sink" "log_sink" {
@@ -103,6 +135,10 @@ resource "google_logging_project_sink" "log_sink" {
   name        = var.log_sink.name
   destination = "storage.googleapis.com/${google_storage_bucket.log_sink[0].name}"
   filter      = var.log_sink.filter
+
+  depends_on = [
+    google_project_service.apis["logging.googleapis.com"],
+  ]
 }
 
 resource "google_storage_bucket_iam_member" "log_sink_writer" {

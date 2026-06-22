@@ -1,6 +1,6 @@
 terraform {
   backend "gcs" {
-    bucket = "project-f7f74d87-072b-4e92-9c6-tfstate"
+    bucket = "tbd-cloudappdev-tfstate"
     prefix = "ms2/dev"
   }
 }

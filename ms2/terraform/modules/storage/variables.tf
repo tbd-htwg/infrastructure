@@ -11,13 +11,16 @@ variable "location" {
 
 variable "buckets" {
   type = map(object({
-    name           = optional(string)
-    name_suffix    = string
-    storage_class  = string
-    versioning     = bool
-    uniform_access = bool
-    force_destroy  = bool
-    public_read    = optional(bool, false)
+    name                          = optional(string)
+    name_suffix                   = string
+    storage_class                 = string
+    versioning                    = bool
+    uniform_access                = bool
+    force_destroy                 = bool
+    public_read                   = optional(bool, false)
+    public_access_prevention      = optional(string, "inherited")
+    retention_period_seconds      = optional(number)
+    soft_delete_retention_seconds = optional(number)
     website = optional(object({
       main_page_suffix = string
       not_found_page   = optional(string)

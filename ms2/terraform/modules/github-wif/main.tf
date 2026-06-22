@@ -3,13 +3,13 @@ data "google_project" "current" {
 }
 
 resource "google_iam_workload_identity_pool" "pool" {
-  project                   = var.project_id
+  project                   = var.project_number
   workload_identity_pool_id = var.pool_id
   display_name              = "GitHub Actions"
 }
 
 resource "google_iam_workload_identity_pool_provider" "provider" {
-  project                            = var.project_id
+  project                            = var.project_number
   workload_identity_pool_id          = google_iam_workload_identity_pool.pool.workload_identity_pool_id
   workload_identity_pool_provider_id = var.provider_id
   display_name                       = "GitHub OIDC"
@@ -36,7 +36,7 @@ resource "google_service_account" "deployer" {
 resource "google_service_account_iam_member" "wif_binding" {
   service_account_id = google_service_account.deployer.name
   role               = "roles/iam.workloadIdentityUser"
-  member             = "principalSet://iam.googleapis.com/projects/${data.google_project.current.number}/locations/global/workloadIdentityPools/${google_iam_workload_identity_pool.pool.workload_identity_pool_id}/attribute.repository/${var.github_owner}/${var.github_repo}"
+  member             = "principalSet://iam.googleapis.com/projects/${var.project_number}/locations/global/workloadIdentityPools/${google_iam_workload_identity_pool.pool.workload_identity_pool_id}/attribute.repository/${var.github_owner}/${var.github_repo}"
 }
 
 resource "google_storage_bucket_iam_member" "bucket_writer" {

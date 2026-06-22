@@ -4,6 +4,7 @@ locals {
     image_url_sig    = "tripplanning-image-url-sig@${var.project_id}.iam.gserviceaccount.com"
     secrets_deployer = "secrets-deployer@${var.project_id}.iam.gserviceaccount.com"
     gitops           = "gitops@${var.project_id}.iam.gserviceaccount.com"
+    gke_nodes        = "gke-nodes@${var.project_id}.iam.gserviceaccount.com"
     workload         = "workload@${var.project_id}.iam.gserviceaccount.com"
   }
   infra_terraform_service_account_email = "${var.infra_wif.service_account_name}@${var.project_id}.iam.gserviceaccount.com"

@@ -63,6 +63,9 @@ module "project_bootstrap" {
     "roles/artifactregistry.reader" = [
       "serviceAccount:${local.service_account_emails["workload"]}",
     ]
+    "roles/container.defaultNodeServiceAccount" = [
+      "serviceAccount:${local.service_account_emails["gke_nodes"]}",
+    ]
   }
 
   log_sink = {
@@ -133,6 +136,10 @@ module "network" {
     name = var.network.services_secondary_name
     cidr = var.network.services_secondary_cidr
   }
+
+  depends_on = [
+    module.project_bootstrap,
+  ]
 }
 
 module "gke_autopilot" {
@@ -149,6 +156,10 @@ module "gke_autopilot" {
   subnet_self_link              = module.network.subnet_self_link
   pods_secondary_range_name     = module.network.pods_secondary_range_name
   services_secondary_range_name = module.network.services_secondary_range_name
+
+  depends_on = [
+    module.project_bootstrap,
+  ]
 }
 
 module "cloud_service_mesh" {
@@ -159,6 +170,8 @@ module "cloud_service_mesh" {
   membership_id = var.gke.cluster_name
 
   depends_on = [
+    google_project_iam_member.gkehub_service_agent,
+    google_project_iam_member.meshconfig_service_agent,
     module.project_bootstrap,
   ]
 }
@@ -177,7 +190,7 @@ module "storage" {
       force_destroy  = false
       cors = [
         {
-          origin          = ["https://k8s.tbd-htwg.de"]
+          origin          = ["https://${var.frontend.domain}"]
           method          = ["GET", "HEAD", "OPTIONS", "PUT"]
           response_header = ["Content-Type", "Authorization"]
           max_age_seconds = 3600
@@ -198,12 +211,15 @@ module "storage" {
       cors = []
     }
     terraform_state = {
-      name_suffix    = "tfstate"
-      storage_class  = "STANDARD"
-      versioning     = true
-      uniform_access = true
-      force_destroy  = false
-      cors           = []
+      name_suffix                   = "tfstate"
+      storage_class                 = "STANDARD"
+      versioning                    = true
+      uniform_access                = true
+      force_destroy                 = false
+      public_access_prevention      = "enforced"
+      retention_period_seconds      = 86400
+      soft_delete_retention_seconds = 604800
+      cors                          = []
     }
   }, local.enterprise_image_buckets)
 }
@@ -446,6 +462,7 @@ module "platform_cloudsql" {
 module "github_wif" {
   source               = "../../modules/github-wif"
   project_id           = var.project_id
+  project_number       = data.google_project.current.number
   github_owner         = var.github_wif.owner
   github_repo          = var.github_wif.repo
   pool_id              = var.github_wif.pool_id
@@ -453,10 +470,14 @@ module "github_wif" {
   service_account_name = var.github_wif.service_account_name
   bucket_name          = module.storage.bucket_names["frontend_assets"]
   url_map_name         = "frontend-url-map"
+
+  depends_on = [
+    module.project_bootstrap,
+  ]
 }
 
 resource "google_iam_workload_identity_pool_provider" "backend" {
-  project                            = var.project_id
+  project                            = data.google_project.current.number
   workload_identity_pool_id          = var.github_wif.pool_id
   workload_identity_pool_provider_id = var.backend_wif.provider_id
   display_name                       = "GitHub OIDC Backend"
@@ -498,6 +519,10 @@ resource "google_project_iam_member" "backend_wif_gke_developer" {
   project = var.project_id
   role    = "roles/container.developer"
   member  = "principalSet://iam.googleapis.com/projects/${data.google_project.current.number}/locations/global/workloadIdentityPools/${var.github_wif.pool_id}/attribute.repository/${var.backend_wif.owner}/${var.backend_wif.repo}"
+
+  depends_on = [
+    google_iam_workload_identity_pool_provider.backend,
+  ]
 }
 
 resource "google_service_account" "infra_terraform_deployer" {
@@ -508,7 +533,7 @@ resource "google_service_account" "infra_terraform_deployer" {
 }
 
 resource "google_iam_workload_identity_pool_provider" "infra" {
-  project                            = var.project_id
+  project                            = data.google_project.current.number
   workload_identity_pool_id          = var.github_wif.pool_id
   workload_identity_pool_provider_id = var.infra_wif.provider_id
   display_name                       = "GitHub OIDC Infrastructure"
@@ -534,6 +559,10 @@ resource "google_service_account_iam_member" "infra_wif_binding" {
   service_account_id = google_service_account.infra_terraform_deployer.name
   role               = "roles/iam.workloadIdentityUser"
   member             = "principalSet://iam.googleapis.com/projects/${data.google_project.current.number}/locations/global/workloadIdentityPools/${var.github_wif.pool_id}/attribute.repository/${var.infra_wif.owner}/${var.infra_wif.repo}"
+
+  depends_on = [
+    google_iam_workload_identity_pool_provider.infra,
+  ]
 }
 
 resource "google_project_iam_member" "infra_terraform_project_roles" {
@@ -624,6 +653,30 @@ resource "google_project_iam_member" "cert_manager_dns_admin" {
   project = var.project_id
   role    = "roles/dns.admin"
   member  = "serviceAccount:${local.service_account_emails["workload"]}"
+
+  depends_on = [module.project_bootstrap]
+}
+
+resource "google_project_iam_member" "service_networking_service_agent" {
+  project = var.project_id
+  role    = "roles/servicenetworking.serviceAgent"
+  member  = "serviceAccount:service-${data.google_project.current.number}@service-networking.iam.gserviceaccount.com"
+
+  depends_on = [module.project_bootstrap]
+}
+
+resource "google_project_iam_member" "gkehub_service_agent" {
+  project = var.project_id
+  role    = "roles/gkehub.serviceAgent"
+  member  = "serviceAccount:service-${data.google_project.current.number}@gcp-sa-gkehub.iam.gserviceaccount.com"
+
+  depends_on = [module.project_bootstrap]
+}
+
+resource "google_project_iam_member" "meshconfig_service_agent" {
+  project = var.project_id
+  role    = "roles/meshconfig.serviceAgent"
+  member  = "serviceAccount:service-${data.google_project.current.number}@gcp-sa-meshconfig.iam.gserviceaccount.com"
 
   depends_on = [module.project_bootstrap]
 }

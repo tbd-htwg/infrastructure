@@ -12,6 +12,22 @@ resource "google_storage_bucket" "buckets" {
     enabled = each.value.versioning
   }
 
+  public_access_prevention = each.value.public_access_prevention
+
+  dynamic "retention_policy" {
+    for_each = each.value.retention_period_seconds == null ? [] : [each.value.retention_period_seconds]
+    content {
+      retention_period = retention_policy.value
+    }
+  }
+
+  dynamic "soft_delete_policy" {
+    for_each = each.value.soft_delete_retention_seconds == null ? [] : [each.value.soft_delete_retention_seconds]
+    content {
+      retention_duration_seconds = soft_delete_policy.value
+    }
+  }
+
   dynamic "website" {
     for_each = each.value.website == null ? [] : [each.value.website]
     content {

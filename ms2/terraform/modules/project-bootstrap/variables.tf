@@ -9,6 +9,7 @@ variable "api_services" {
   default = [
     "artifactregistry.googleapis.com",
     "certificatemanager.googleapis.com",
+    "cloudbilling.googleapis.com",
     "cloudtrace.googleapis.com",
     "cloudresourcemanager.googleapis.com",
     "compute.googleapis.com",
@@ -82,6 +83,10 @@ variable "service_accounts" {
     gitops = {
       display_name = "gitops"
       description  = "FluxCD and GitOps operations."
+    }
+    gke-nodes = {
+      display_name = "gke-nodes"
+      description  = "GKE Autopilot node identity."
     }
     workload = {
       display_name = "workload"
