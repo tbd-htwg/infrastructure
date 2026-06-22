@@ -7,6 +7,7 @@ variable "api_services" {
   type        = list(string)
   description = "APIs to enable in the project."
   default = [
+    "apikeys.googleapis.com",
     "artifactregistry.googleapis.com",
     "certificatemanager.googleapis.com",
     "cloudbilling.googleapis.com",

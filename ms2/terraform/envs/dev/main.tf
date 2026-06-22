@@ -41,6 +41,9 @@ module "project_bootstrap" {
     {
       name = "tripplanning-platform-github-dispatch-token"
     },
+    {
+      name = "tripplanning-firebase-web-api-key"
+    },
   ]
 
   iam_bindings = {
@@ -103,6 +106,75 @@ module "project_bootstrap" {
 
   depends_on = [
     google_service_account.infra_terraform_deployer,
+  ]
+}
+
+resource "google_identity_platform_config" "default" {
+  project = var.project_id
+
+  authorized_domains = [
+    "${var.project_id}.firebaseapp.com",
+    "${var.project_id}.web.app",
+    "api.${var.frontend.domain}",
+    var.frontend.domain,
+    "www.tbd-htwg.de",
+    "localhost",
+  ]
+
+  sign_in {
+    email {
+      enabled           = true
+      password_required = false
+    }
+
+    phone_number {
+      enabled = false
+    }
+  }
+
+  multi_tenant {
+    allow_tenants = true
+  }
+
+  depends_on = [
+    module.project_bootstrap,
+  ]
+}
+
+resource "google_apikeys_key" "firebase_web" {
+  project      = var.project_id
+  name         = "tripplanning-firebase-web"
+  display_name = "Tripplanning Identity Platform web client"
+
+  restrictions {
+    browser_key_restrictions {
+      allowed_referrers = [
+        "https://${var.frontend.domain}/*",
+        "https://*.${var.frontend.domain}/*",
+        "https://*.enterprise.${var.frontend.domain}/*",
+        "http://localhost:*/*",
+        "http://127.0.0.1:*/*",
+      ]
+    }
+
+    api_targets {
+      service = "identitytoolkit.googleapis.com"
+    }
+  }
+
+  depends_on = [
+    google_identity_platform_config.default,
+    module.project_bootstrap,
+  ]
+}
+
+resource "google_secret_manager_secret_version" "firebase_web_api_key" {
+  project     = var.project_id
+  secret      = "projects/${var.project_id}/secrets/tripplanning-firebase-web-api-key"
+  secret_data = google_apikeys_key.firebase_web.key_string
+
+  depends_on = [
+    module.project_bootstrap,
   ]
 }
 
@@ -473,6 +545,17 @@ module "github_wif" {
 
   depends_on = [
     module.project_bootstrap,
+  ]
+}
+
+resource "google_secret_manager_secret_iam_member" "frontend_firebase_web_api_key_accessor" {
+  project   = var.project_id
+  secret_id = "tripplanning-firebase-web-api-key"
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${module.github_wif.deployer_service_account}"
+
+  depends_on = [
+    google_secret_manager_secret_version.firebase_web_api_key,
   ]
 }
 

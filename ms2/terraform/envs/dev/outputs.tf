@@ -142,6 +142,14 @@ output "identity_platform_tenant_ids" {
   }
 }
 
+output "identity_platform" {
+  description = "Project-level Identity Platform settings used by the frontend and platform service."
+  value = {
+    auth_domain        = "${var.project_id}.firebaseapp.com"
+    web_api_key_secret = "tripplanning-firebase-web-api-key"
+  }
+}
+
 output "standard_cloudsql" {
   description = "Shared Standard Cloud SQL outputs."
   value = var.standard_cloudsql.enabled ? {

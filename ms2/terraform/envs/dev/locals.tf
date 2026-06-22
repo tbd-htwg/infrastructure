@@ -98,6 +98,7 @@ locals {
     "roles/monitoring.admin",
     "roles/resourcemanager.projectIamAdmin",
     "roles/serviceusage.serviceUsageAdmin",
+    "roles/serviceusage.apiKeysAdmin",
     "roles/servicenetworking.networksAdmin",
     "roles/artifactregistry.admin",
     "roles/cloudsql.admin",

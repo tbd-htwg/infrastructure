@@ -80,6 +80,19 @@ Flux Git password.
 11. Flux then installs platform and tenant Kubernetes resources from Git.
 12. Run smoke tests for frontend, tenant API routing, Identity Platform login, and service health.
 
+Identity Platform has one project-level realm for the Free pool and platform
+administrators. Standard and Enterprise customers receive separate Identity
+Platform tenants. There is no additional "admin tenant": platform-admin access
+is an application claim issued when the authenticated email exists in the
+platform admin registry.
+
+Terraform owns the singleton `google_identity_platform_config`, enables
+multi-tenancy, creates a browser/referrer-restricted API key for
+`identitytoolkit.googleapis.com`, and stores the key in Secret Manager as
+`tripplanning-firebase-web-api-key`. The frontend deployment reads this secret
+after Workload Identity authentication; do not maintain a separate copied
+Firebase key in GitHub.
+
 `flux_bootstrap.manifest_dir` is relative to `terraform/envs/dev`; for this repository it should stay `../../../gitops/clusters/dev/flux-system`.
 
 ## Dev Cluster Capacity and Quotas
@@ -314,6 +327,11 @@ Admin UI
 ```
 
 For application-driven creation, platform-service creates the Identity Platform tenant first and sends `identityPlatformTenantId` in the GitHub dispatch payload. The provisioning workflow writes that ID into the tenant YAML, and Terraform then skips creating a second Identity Platform tenant for that tenant. For manual `workflow_dispatch` runs, no pre-created Identity Platform tenant ID is provided, so Terraform creates the Identity Platform tenant.
+
+Paid tenants currently enable email/password authentication by default. Google
+OAuth must only be advertised after a tenant-specific or shared OAuth client is
+configured; creating an Identity Platform tenant alone does not create those
+OAuth credentials.
 
 When `TENANT_PROVISION_APPLY_TERRAFORM=true`, the provisioning workflow waits for the generated tenant HelmRelease to become ready. Application-triggered `repository_dispatch` runs then mark the existing platform tenant record `ACTIVE` through the internal platform-service callback. CI reaches the existing platform-service Service through `kubectl port-forward`; it does not create a temporary callback pod, so callback delivery does not depend on Autopilot finding capacity for another pod. The callback is protected by `X-Internal-Secret` using `tripplanning-internal-secret`, and platform-service handles `/internal/**` in a dedicated security chain rather than the public OAuth2 chain.
 

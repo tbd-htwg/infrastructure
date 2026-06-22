@@ -9,3 +9,4 @@ data:
   FIRESTORE_DATABASE_ID: tbd-firestore
   FRONTEND_BUCKET: tbd-cloudappdev-frontend-bucket
   IMAGES_BUCKET: tbd-cloudappdev-images-bucket
+  STANDARD_LB_IP: 34.140.254.45

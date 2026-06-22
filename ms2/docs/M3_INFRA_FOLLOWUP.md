@@ -71,6 +71,13 @@ Enough to develop and demo multitenancy locally; not enough to run Standard/Ente
 
 **Aligned:** tier names (`FREE` / `STANDARD` / `ENTERPRISE`), host patterns (`{slug}.k8s…`, `{slug}.enterprise.k8s…`), Identity Platform tenant per paid tenant, Postgres-per-tenant (Standard DB in shared instance; Enterprise dedicated instance), no GKE Gateway as target.
 
+**Identity update (2026-06-22):** the project-level Identity Platform config is
+now imported into Terraform, multi-tenancy is enabled, and a dedicated
+referrer-restricted web API key is delivered to frontend builds through Secret
+Manager. The Free/platform-admin realm remains project-level; paid tenants are
+tenant-scoped. Backend token exchange validates that the Firebase tenant claim
+matches the hostname tenant.
+
 ---
 
 ## Related

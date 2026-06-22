@@ -81,6 +81,9 @@ data:
           JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError"
     apiRouter:
       loadBalancer:
+        enabled: true
+        ip: "${STANDARD_LB_IP}"
+        externalTrafficPolicy: Cluster
         annotations:
           cloud.google.com/neg: '{"exposed_ports":{"8088":{}}}'
     seedJob:
