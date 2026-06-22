@@ -112,7 +112,7 @@ data:
             memory: "128Mi"
       opensearch:
         enabled: true
-        existingClaim: data-elasticsearch-0
+        existingClaim: ""
         image: opensearchproject/opensearch:2.19.0
         javaOpts: "-Xms192m -Xmx192m"
         storageClassName: "standard-hdd-wffc"

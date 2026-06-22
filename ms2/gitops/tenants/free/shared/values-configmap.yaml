@@ -116,7 +116,7 @@ data:
             cpu: "250m"
             memory: "512Mi"
       opensearch:
-        existingClaim: data-elasticsearch-0
+        existingClaim: ""
         image: opensearchproject/opensearch:2.19.0
         javaOpts: "-Xms384m -Xmx384m"
         storageClassName: "standard-hdd-wffc"
