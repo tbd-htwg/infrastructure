@@ -22,4 +22,5 @@ data:
   TRIPPLANNING_PLATFORM_ADDITIONAL_ADMIN_EMAILS: ""
   TRIPPLANNING_PLATFORM_USE_STUBS: "false"
   TRIPPLANNING_PLATFORM_GITHUB_DISPATCH_URL: "https://api.github.com/repos/tbd-htwg/infrastructure/dispatches"
+  TRIPPLANNING_PLATFORM_OPENSEARCH_HOSTS: "opensearch.tripplanning-standard.svc.cluster.local:9200"
   TRIPPLANNING_TRIP_SERVICE_URL: "http://trip-service.tripplanning-free.svc.cluster.local:8080"

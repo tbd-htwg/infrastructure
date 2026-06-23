@@ -21,6 +21,12 @@ data:
         connectionName: tbd-cloudappdev:europe-west1:tripplanning-standard
         databaseName: tripplanning_std_firststand
         userName: tripplanning_app_firststand
+      search:
+        indexName: tripentity-firststand
+      cache:
+        keyPrefix: std:firststand
+      storage:
+        imagesPrefix: standard/firststand
     services:
       trip:
         secretRefs:

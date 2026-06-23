@@ -212,7 +212,16 @@ def render_standard_configmap(
                 "connectionName": cloudsql_connection_name("standard", primary_tenant_id, terraform_outputs),
                 "databaseName": primary_tenant["database"]["databaseName"],
                 "userName": primary_tenant["database"].get("userName", "tripplanning_app"),
-            }
+            },
+            "search": {
+                "indexName": primary_tenant["search"]["indexName"],
+            },
+            "cache": {
+                "keyPrefix": primary_tenant["cache"]["keyPrefix"],
+            },
+            "storage": {
+                "imagesPrefix": primary_tenant["storage"]["imagesPrefix"],
+            },
         }
         values["services"] = {
             "trip": {
