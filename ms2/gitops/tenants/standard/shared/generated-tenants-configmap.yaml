@@ -8,9 +8,31 @@ metadata:
 data:
   values.yaml: |
     apiRouter:
-      tenants: []
+      tenants:
+      - tenantId: firststand
+        identityPlatformTenantId: first-standard-aqvo9
+        hostnames:
+        - firststand.k8s.tbd-htwg.de
       loadBalancer:
-        ip: 34.52.217.31
+        ip: 34.140.254.45
+    global:
+      cloudSql:
+        enabled: true
+        connectionName: tbd-cloudappdev:europe-west1:tripplanning-standard
+        databaseName: tripplanning_std_firststand
+        userName: tripplanning_app_firststand
     services:
       trip:
-        replicas: 0
+        secretRefs:
+        - trip-service-secrets
+        - trip-service-db-secrets
+        env:
+          CORS_ALLOWED_ORIGINS: https://k8s.tbd-htwg.de,https://firststand.k8s.tbd-htwg.de
+          TRIPPLANNING_TENANT_DATASOURCE_ROUTING: 'false'
+          TRIPPLANNING_PLATFORM_BASE_URL: http://platform-service.tripplanning-system:8083
+      social:
+        env:
+          CORS_ALLOWED_ORIGINS: https://k8s.tbd-htwg.de,https://firststand.k8s.tbd-htwg.de
+      externalInfo:
+        env:
+          CORS_ALLOWED_ORIGINS: https://k8s.tbd-htwg.de,https://firststand.k8s.tbd-htwg.de

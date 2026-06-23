@@ -321,13 +321,25 @@ jobs:
           fi
 
       - name: Commit generated tenant files
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: "Provision tenant ${{ steps.payload.outputs.slug }}"
-          file_pattern: |
-            ms2/tenants/**
-            ms2/terraform/envs/dev/generated-tenants.auto.tfvars.json
-            ms2/gitops/tenants/**
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            ms2/tenants \
+            ms2/terraform/envs/dev/generated-tenants.auto.tfvars.json \
+            ms2/gitops/tenants
+
+          if git diff --cached --quiet; then
+            echo "No tenant changes to commit."
+            exit 0
+          fi
+
+          echo "Committing generated tenant files:"
+          git diff --cached --name-status
+          git commit -m "Provision tenant ${{ steps.payload.outputs.slug }}"
+          git push
 
       - name: Notify platform tenant ready
         if: env.APPLY_TERRAFORM == 'true'
