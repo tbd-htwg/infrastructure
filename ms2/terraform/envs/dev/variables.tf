@@ -194,7 +194,15 @@ variable "standard_load_balancer" {
   type = object({
     name = optional(string, "tripplanning-standard-lb-ip")
   })
-  description = "Static regional IP settings for the shared Standard Kubernetes LoadBalancer."
+  description = "Static regional IP used by the Free API pool and the frontend load balancer's default API backend."
+  default     = {}
+}
+
+variable "standard_tenant_load_balancer" {
+  type = object({
+    name = optional(string, "tripplanning-standard-tenant-lb-ip")
+  })
+  description = "Static regional IP settings for the shared paid Standard tenant Kubernetes LoadBalancer."
   default     = {}
 }
 

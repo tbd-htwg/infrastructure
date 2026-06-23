@@ -346,19 +346,28 @@ module "frontend_lb" {
   source                      = "../../modules/frontend-lb"
   project_id                  = var.project_id
   frontend_domain             = var.frontend.domain
-  additional_frontend_domains = flatten([for tenant in values(var.standard_tenants) : tenant.hostnames])
+  additional_frontend_domains = []
   certificate_domains = [
     var.frontend.domain,
     "*.${var.frontend.domain}",
     "*.enterprise.${var.frontend.domain}",
   ]
-  host_api_backend_internet_endpoints = {
-    for tenant_id, tenant in var.enterprise_tenants : tenant_id => {
-      hostnames = tenant.hostnames
-      ip        = google_compute_address.enterprise_lb_ip[tenant_id].address
-      port      = 8088
-    }
-  }
+  host_api_backend_internet_endpoints = merge(
+    length(var.standard_tenants) == 0 ? {} : {
+      standard = {
+        hostnames = flatten([for tenant in values(var.standard_tenants) : tenant.hostnames])
+        ip        = google_compute_address.standard_tenant_lb_ip.address
+        port      = 8088
+      }
+    },
+    {
+      for tenant_id, tenant in var.enterprise_tenants : tenant_id => {
+        hostnames = tenant.hostnames
+        ip        = google_compute_address.enterprise_lb_ip[tenant_id].address
+        port      = 8088
+      }
+    },
+  )
   dns_zone_name                        = module.project_bootstrap.dns_zone_name
   bucket_name                          = module.storage.bucket_names["frontend_assets"]
   network_self_link                    = module.network.network_self_link
@@ -378,6 +387,12 @@ resource "google_compute_address" "standard_lb_ip" {
   project = var.project_id
   region  = var.region
   name    = var.standard_load_balancer.name
+}
+
+resource "google_compute_address" "standard_tenant_lb_ip" {
+  project = var.project_id
+  region  = var.region
+  name    = var.standard_tenant_load_balancer.name
 }
 
 resource "google_compute_address" "enterprise_lb_ip" {

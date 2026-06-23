@@ -105,8 +105,8 @@ output "firestore_database_id" {
 }
 
 output "standard_load_balancer_ip" {
-  description = "Static regional IP address for the shared Standard Kubernetes LoadBalancer."
-  value       = google_compute_address.standard_lb_ip.address
+  description = "Static regional IP address for the shared paid Standard tenant Kubernetes LoadBalancer."
+  value       = google_compute_address.standard_tenant_lb_ip.address
 }
 
 output "enterprise_load_balancer_ips" {

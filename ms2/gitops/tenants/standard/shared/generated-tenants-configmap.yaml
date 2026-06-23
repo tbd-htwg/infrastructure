@@ -14,7 +14,7 @@ data:
         hostnames:
         - firststand.k8s.tbd-htwg.de
       loadBalancer:
-        ip: 34.140.254.45
+        ip: 34.79.13.109
     global:
       cloudSql:
         enabled: true
