@@ -152,6 +152,8 @@ resource "google_apikeys_key" "firebase_web" {
         "https://${var.frontend.domain}/*",
         "https://*.${var.frontend.domain}/*",
         "https://*.enterprise.${var.frontend.domain}/*",
+        "https://${var.project_id}.firebaseapp.com/*",
+        "https://${var.project_id}.web.app/*",
         "http://localhost:*/*",
         "http://127.0.0.1:*/*",
       ]

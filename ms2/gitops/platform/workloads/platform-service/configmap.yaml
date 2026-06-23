@@ -17,7 +17,9 @@ data:
   TRIPPLANNING_AUTH_FIREBASE_PROJECT_ID: "${GCP_PROJECT_ID}"
   TRIPPLANNING_PLATFORM_HOST_BASE: "k8s.tbd-htwg.de"
   TRIPPLANNING_PLATFORM_ENTERPRISE_HOST_BASE: "enterprise.k8s.tbd-htwg.de"
-  TRIPPLANNING_PLATFORM_BOOTSTRAP_ADMIN_EMAIL: "admin@platform.demo"
+  TRIPPLANNING_PLATFORM_BOOTSTRAP_ADMIN_EMAIL: "jakob03schwarz@gmail.com"
+  # Comma-separated additional global platform administrators.
+  TRIPPLANNING_PLATFORM_ADDITIONAL_ADMIN_EMAILS: ""
   TRIPPLANNING_PLATFORM_USE_STUBS: "false"
   TRIPPLANNING_PLATFORM_GITHUB_DISPATCH_URL: "https://api.github.com/repos/tbd-htwg/infrastructure/dispatches"
   TRIPPLANNING_TRIP_SERVICE_URL: "http://trip-service.tripplanning-free.svc.cluster.local:8080"

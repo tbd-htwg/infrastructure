@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PROJECT_ID="${GCP_PROJECT_ID:-project-f7f74d87-072b-4e92-9c6}"
+PROJECT_ID="${GCP_PROJECT_ID:-tbd-cloudappdev}"
 REGION="${GCP_REGION:-europe-west1}"
 CLUSTER_NAME="${GKE_CLUSTER_NAME:-tripplanning-gke}"
 
@@ -74,13 +74,16 @@ resume_flux_resource() {
   local kind="$1"
   local namespace="$2"
   local name="$3"
+  local token
+  token="$(date +%s)-${RANDOM}"
   kubectl -n "${namespace}" patch "${kind}/${name}" \
     --type=merge \
     -p '{"spec":{"suspend":false}}' >/dev/null
   kubectl -n "${namespace}" annotate "${kind}/${name}" \
     kustomize.toolkit.fluxcd.io/reconcile- >/dev/null 2>&1 || true
   kubectl -n "${namespace}" annotate "${kind}/${name}" \
-    "reconcile.fluxcd.io/requestedAt=$(date +%s)" \
+    "reconcile.fluxcd.io/requestedAt=${token}" \
+    "reconcile.fluxcd.io/forceAt=${token}" \
     --overwrite >/dev/null
 }
 
