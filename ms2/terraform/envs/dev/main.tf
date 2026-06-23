@@ -264,7 +264,14 @@ module "storage" {
       force_destroy  = false
       cors = [
         {
-          origin          = ["https://${var.frontend.domain}"]
+          origin = distinct(concat(
+            ["https://${var.frontend.domain}"],
+            flatten([
+              for tenant in values(var.standard_tenants) : [
+                for hostname in tenant.hostnames : "https://${hostname}"
+              ]
+            ]),
+          ))
           method          = ["GET", "HEAD", "OPTIONS", "PUT"]
           response_header = ["Content-Type", "Authorization"]
           max_age_seconds = 3600
