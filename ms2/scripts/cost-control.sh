@@ -4,6 +4,8 @@ set -euo pipefail
 PROJECT_ID="${GCP_PROJECT_ID:-tbd-cloudappdev}"
 REGION="${GCP_REGION:-europe-west1}"
 CLUSTER_NAME="${GKE_CLUSTER_NAME:-tripplanning-gke}"
+SQL_WAIT_TIMEOUT_SECONDS="${SQL_WAIT_TIMEOUT_SECONDS:-1800}"
+SQL_POLL_INTERVAL_SECONDS="${SQL_POLL_INTERVAL_SECONDS:-15}"
 
 usage() {
   cat <<'EOF'
@@ -45,17 +47,86 @@ sql_instances() {
     --format='value(name)'
 }
 
+wait_for_sql_state() {
+  local instance="$1"
+  local policy="$2"
+  local desired_state
+  local state
+  local activation_policy
+  local elapsed=0
+
+  case "${policy}" in
+    ALWAYS) desired_state="RUNNABLE" ;;
+    NEVER) desired_state="STOPPED" ;;
+    *)
+      echo "Unsupported Cloud SQL activation policy: ${policy}" >&2
+      return 1
+      ;;
+  esac
+
+  while ((elapsed < SQL_WAIT_TIMEOUT_SECONDS)); do
+    read -r state activation_policy < <(
+      gcloud sql instances describe "${instance}" \
+        --project "${PROJECT_ID}" \
+        --format='value(state,settings.activationPolicy)'
+    )
+
+    if [[ "${state}" == "${desired_state}" && "${activation_policy}" == "${policy}" ]]; then
+      echo "Cloud SQL ${instance} is ${state} with activation policy ${policy}."
+      return 0
+    fi
+
+    if [[ "${state}" == "FAILED" || "${state}" == "SUSPENDED" ]]; then
+      echo "Cloud SQL ${instance} entered unexpected state ${state}." >&2
+      return 1
+    fi
+
+    echo "Waiting for Cloud SQL ${instance}: state=${state}, activationPolicy=${activation_policy} (${elapsed}s elapsed)..."
+    sleep "${SQL_POLL_INTERVAL_SECONDS}"
+    ((elapsed += SQL_POLL_INTERVAL_SECONDS))
+  done
+
+  echo "Timed out after ${SQL_WAIT_TIMEOUT_SECONDS}s waiting for Cloud SQL ${instance} to become ${desired_state}." >&2
+  echo "Inspect it with: gcloud sql operations list --instance=${instance} --project=${PROJECT_ID}" >&2
+  return 1
+}
+
 set_sql_activation_policy() {
   local policy="$1"
   local instance
-  while read -r instance; do
-    [[ -n "${instance}" ]] || continue
+  local current_policy
+  local -a instances
+
+  mapfile -t instances < <(sql_instances)
+  if ((${#instances[@]} == 0)); then
+    echo "No tripplanning Cloud SQL instances found in project ${PROJECT_ID}."
+    return
+  fi
+
+  for instance in "${instances[@]}"; do
+    current_policy="$(
+      gcloud sql instances describe "${instance}" \
+        --project "${PROJECT_ID}" \
+        --format='value(settings.activationPolicy)'
+    )"
+
+    if [[ "${current_policy}" == "${policy}" ]]; then
+      echo "Cloud SQL ${instance} already has activation policy ${policy}; checking readiness..."
+      continue
+    fi
+
     echo "Setting Cloud SQL ${instance} activation policy to ${policy}..."
     gcloud sql instances patch "${instance}" \
       --project "${PROJECT_ID}" \
       --activation-policy="${policy}" \
-      --quiet
-  done < <(sql_instances)
+      --async \
+      --quiet \
+      --format='value(name)'
+  done
+
+  for instance in "${instances[@]}"; do
+    wait_for_sql_state "${instance}" "${policy}"
+  done
 }
 
 suspend_flux_resource() {
@@ -149,7 +220,7 @@ start_resources() {
     fi
   done
 
-  echo "Cloud SQL is starting and Flux has been asked to restore MS2 workloads."
+  echo "Cloud SQL is ready and Flux has been asked to restore MS2 workloads."
 }
 
 show_status() {
