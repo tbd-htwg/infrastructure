@@ -59,6 +59,7 @@ module "project_bootstrap" {
       "serviceAccount:${local.service_account_emails["workload"]}",
     ]
     "roles/secretmanager.secretAccessor" = [
+      "serviceAccount:${local.service_account_emails["platform-admin"]}",
       "serviceAccount:${local.service_account_emails["workload"]}",
       "serviceAccount:${local.service_account_emails["secrets_deployer"]}",
     ]
