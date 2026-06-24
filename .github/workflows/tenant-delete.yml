@@ -465,7 +465,7 @@ jobs:
           for _ in {1..120}; do
             if ! kubectl -n tripplanning-standard get configmap \
               tripplanning-standard-generated-tenants \
-              -o jsonpath='{.data.values\.yaml}' | grep -q "tenantId: ${slug}"; then
+              -o jsonpath='{.data.values\.yaml}' 2>/dev/null | grep -q "tenantId: ${slug}"; then
               break
             fi
             sleep 5
@@ -473,7 +473,7 @@ jobs:
 
           if kubectl -n tripplanning-standard get configmap \
             tripplanning-standard-generated-tenants \
-            -o jsonpath='{.data.values\.yaml}' | grep -q "tenantId: ${slug}"; then
+            -o jsonpath='{.data.values\.yaml}' 2>/dev/null | grep -q "tenantId: ${slug}"; then
             echo "Flux did not remove ${slug} from the Standard runtime configuration" >&2
             exit 1
           fi
@@ -587,11 +587,40 @@ jobs:
               --patch="${runtime_patch}"
             kubectl -n tripplanning-standard rollout restart deployment/trip-service
           else
-            # The cleanup step already stopped the shared service. Keep it at
-            # zero so any stale in-flight Helm attempt can finish before the
-            # forced reconcile persists the empty-tenant desired state.
-            kubectl -n tripplanning-standard scale deployment trip-service \
-              --replicas=0
+            # The renderer removes standard/shared from the tenant
+            # Kustomization when the final Standard tenant is deleted. Flux
+            # therefore deletes the HelmRelease and namespace; a deleting
+            # HelmRelease can never become Ready and must not enter the
+            # non-empty tier reconciliation path below.
+            for _ in {1..60}; do
+              if ! kubectl get namespace tripplanning-standard >/dev/null 2>&1; then
+                exit 0
+              fi
+              sleep 5
+            done
+
+            helmrelease_deletion_timestamp="$(
+              kubectl -n tripplanning-standard get helmrelease tripplanning-standard \
+                -o jsonpath='{.metadata.deletionTimestamp}' 2>/dev/null || true
+            )"
+            if [[ -n "${helmrelease_deletion_timestamp}" ]]; then
+              echo "::warning::Standard HelmRelease is still finalizing while its namespace is terminating; clearing the Flux finalizer."
+              kubectl -n tripplanning-standard patch helmrelease tripplanning-standard \
+                --type=merge \
+                --patch='{"metadata":{"finalizers":[]}}'
+            fi
+
+            for _ in {1..120}; do
+              if ! kubectl get namespace tripplanning-standard >/dev/null 2>&1; then
+                exit 0
+              fi
+              sleep 5
+            done
+
+            echo "Standard namespace did not terminate after deleting the final tenant" >&2
+            kubectl get namespace tripplanning-standard -o yaml >&2 || true
+            kubectl -n tripplanning-standard get helmrelease -o yaml >&2 || true
+            exit 1
           fi
 
           # A new Git revision can make the Helm chart reconcile before the
