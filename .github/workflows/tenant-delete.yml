@@ -71,53 +71,118 @@ jobs:
             tenant_path="${MS2_DIR}/tenants/enterprise/${slug}.yaml"
           fi
 
-          if [[ ! -f "${tenant_path}" ]]; then
-            echo "Tenant file does not exist: ${tenant_path}" >&2
-            exit 1
+          if [[ -f "${tenant_path}" ]]; then
+            tenant_file_exists=true
+          else
+            tenant_file_exists=false
+            echo "::warning::Tenant file does not exist; continuing with derived names for legacy/partial cleanup: ${tenant_path}"
           fi
 
           echo "slug=${slug}" >> "$GITHUB_OUTPUT"
           echo "tier=${tier}" >> "$GITHUB_OUTPUT"
           echo "tenant_path=${tenant_path}" >> "$GITHUB_OUTPUT"
+          echo "tenant_file_exists=${tenant_file_exists}" >> "$GITHUB_OUTPUT"
 
       - name: Install renderer dependencies
         run: python3 -m pip install pyyaml
 
-      - name: Read externally managed identity tenant
+      - name: Read tenant cleanup metadata
         id: tenant_config
         shell: bash
         run: |
           set -euo pipefail
           export TENANT_PATH="${{ steps.payload.outputs.tenant_path }}"
+          export TENANT_SLUG="${{ steps.payload.outputs.slug }}"
+          export TENANT_TIER="${{ steps.payload.outputs.tier }}"
+          export TFVARS_PATH="${TF_DIR}/generated-tenants.auto.tfvars.json"
           python3 <<'PY' >> "$GITHUB_OUTPUT"
+          import json
           import os
+          from pathlib import Path
           import yaml
 
-          with open(os.environ["TENANT_PATH"], "r", encoding="utf-8") as handle:
-              tenant = yaml.safe_load(handle) or {}
+          slug = os.environ["TENANT_SLUG"]
+          tier = os.environ["TENANT_TIER"].lower()
+          tenant_path = Path(os.environ["TENANT_PATH"])
+          tenant = {}
+          if tenant_path.exists():
+              tenant = yaml.safe_load(tenant_path.read_text(encoding="utf-8")) or {}
+
+          tfvars_path = Path(os.environ["TFVARS_PATH"])
+          tfvars = json.loads(tfvars_path.read_text(encoding="utf-8")) if tfvars_path.exists() else {}
+          rendered = (tfvars.get(f"{tier}_tenants") or {}).get(slug) or {}
+          rendered_identity = rendered.get("identity_platform") or {}
+
           identity_tenant_id = (tenant.get("identityPlatform") or {}).get("tenantId", "")
+          identity_tenant_id = identity_tenant_id or rendered_identity.get("tenant_id") or ""
           print(f"identity_platform_tenant_id={identity_tenant_id}")
+
           database = tenant.get("database") or {}
           storage = tenant.get("storage") or {}
           frontend = tenant.get("frontend") or {}
           search = tenant.get("search") or {}
           cache = tenant.get("cache") or {}
           hostnames = tenant.get("hostnames") or []
-          print(f"database_name={database.get('databaseName', '')}")
-          print(f"database_user={database.get('userName', '')}")
-          print(f"database_password_secret=tripplanning-standard-{tenant.get('tenantId', '')}-db-password")
-          print(f"frontend_prefix={frontend.get('bucketPrefix', '')}")
-          print(f"images_prefix={storage.get('imagesPrefix', '')}")
-          print(f"search_index={search.get('indexName', '')}")
-          print(f"cache_prefix={cache.get('keyPrefix', '')}")
-          print(f"hostname={hostnames[0] if hostnames else ''}")
+          rendered_database = rendered.get("database") or {}
+          rendered_storage = rendered.get("storage") or {}
+          rendered_frontend = rendered.get("frontend") or {}
+          rendered_search = rendered.get("search") or {}
+          rendered_cache = rendered.get("cache") or {}
+
+          if tier == "standard":
+              database_name = database.get("databaseName") or rendered_database.get("name") or f"tripplanning_std_{slug.replace('-', '_')}"
+              database_user = database.get("userName") or rendered_database.get("user_name") or f"tripplanning_app_{slug.replace('-', '_')}"
+              database_instance = database.get("cloudSqlInstance") or "tripplanning-standard"
+              database_password_secret = f"tripplanning-standard-{slug}-db-password"
+              frontend_prefix = frontend.get("bucketPrefix") or rendered_frontend.get("bucket_prefix") or f"standard/{slug}"
+              images_prefix = storage.get("imagesPrefix") or rendered_storage.get("images_prefix") or f"standard/{slug}"
+              image_bucket = ""
+              namespace = "tripplanning-standard"
+              search_index = search.get("indexName") or rendered_search.get("index_name") or f"tripentity-{slug}"
+              cache_prefix = cache.get("keyPrefix") or rendered_cache.get("key_prefix") or f"std:{slug}"
+              hostname = hostnames[0] if hostnames else f"{slug}.k8s.tbd-htwg.de"
+          else:
+              database_name = database.get("databaseName") or rendered_database.get("name") or "tripplanning"
+              database_user = database.get("userName") or rendered_database.get("user_name") or "tripplanning_app"
+              database_instance = database.get("cloudSqlInstance") or rendered_database.get("instance_name") or f"tripplanning-ent-{slug}"
+              database_password_secret = f"tripplanning-enterprise-{slug}-db-password"
+              frontend_prefix = frontend.get("bucketPrefix") or rendered_frontend.get("bucket_prefix") or f"enterprise/{slug}"
+              images_prefix = ""
+              image_bucket = storage.get("imageBucketName") or rendered_storage.get("image_bucket_name") or f"{os.environ.get('GCP_PROJECT_ID', '')}-{slug}-images-bucket"
+              namespace = tenant.get("namespace") or rendered.get("namespace") or f"tripplanning-ent-{slug}"
+              search_index = f"tripentity-{slug}"
+              cache_prefix = f"ent:{slug}"
+              hostname = hostnames[0] if hostnames else f"{slug}.enterprise.k8s.tbd-htwg.de"
+
+          references = []
+          if identity_tenant_id:
+              for other_tier in ("standard", "enterprise"):
+                  for other_slug, other in (tfvars.get(f"{other_tier}_tenants") or {}).items():
+                      other_id = ((other.get("identity_platform") or {}).get("tenant_id") or "")
+                      if other_id == identity_tenant_id and (other_tier != tier or other_slug != slug):
+                          references.append(f"{other_tier}/{other_slug}")
+
+          print(f"identity_platform_shared={'true' if references else 'false'}")
+          print(f"identity_platform_other_references={','.join(references)}")
+          print(f"database_instance={database_instance}")
+          print(f"database_name={database_name}")
+          print(f"database_user={database_user}")
+          print(f"database_password_secret={database_password_secret}")
+          print(f"frontend_prefix={frontend_prefix}")
+          print(f"images_prefix={images_prefix}")
+          print(f"image_bucket={image_bucket}")
+          print(f"namespace={namespace}")
+          print(f"search_index={search_index}")
+          print(f"cache_prefix={cache_prefix}")
+          print(f"hostname={hostname}")
+          print(f"firestore_collections={slug}_comments,{slug}_likes")
           PY
 
       - name: Remove tenant definition and render Terraform input
         shell: bash
         run: |
           set -euo pipefail
-          rm "${{ steps.payload.outputs.tenant_path }}"
+          rm -f "${{ steps.payload.outputs.tenant_path }}"
           (cd "${MS2_DIR}" && python3 scripts/render-tenants.py --terraform-only)
 
       - name: Authenticate to Google Cloud
@@ -281,24 +346,24 @@ jobs:
           cleanup_temporary_resources
           trap - ERR
 
-      - name: Remove Standard tenant search, cache, and stored objects
-        if: steps.payload.outputs.tier == 'STANDARD'
+      - name: Remove tenant-scoped runtime data and stored objects
         shell: bash
         run: |
           set -euo pipefail
 
+          tier="${{ steps.payload.outputs.tier }}"
           search_index="${{ steps.tenant_config.outputs.search_index }}"
           cache_prefix="${{ steps.tenant_config.outputs.cache_prefix }}"
           frontend_prefix="${{ steps.tenant_config.outputs.frontend_prefix }}"
           images_prefix="${{ steps.tenant_config.outputs.images_prefix }}"
 
-          if [[ -n "${search_index}" ]]; then
+          if [[ "${tier}" == "STANDARD" && -n "${search_index}" ]]; then
             kubectl -n tripplanning-standard exec statefulset/opensearch -- \
               curl -fsS -X DELETE "http://127.0.0.1:9200/${search_index}" \
               >/dev/null 2>&1 || true
           fi
 
-          if [[ -n "${cache_prefix}" ]]; then
+          if [[ "${tier}" == "STANDARD" && -n "${cache_prefix}" ]]; then
             kubectl -n tripplanning-standard exec deployment/valkey -- \
               sh -ec '
                 valkey-cli --scan --pattern "$1*" |
@@ -319,8 +384,17 @@ jobs:
               >/dev/null 2>&1 || true
           fi
 
+          firestore_collections="${{ steps.tenant_config.outputs.firestore_collections }}"
+          if [[ -n "${firestore_collections}" ]]; then
+            gcloud firestore bulk-delete \
+              --project="${GCP_PROJECT_ID}" \
+              --database=tbd-firestore \
+              --collection-ids="${firestore_collections}" \
+              --quiet
+          fi
+
       - name: Delete externally managed Identity Platform tenant
-        if: steps.tenant_config.outputs.identity_platform_tenant_id != ''
+        if: steps.tenant_config.outputs.identity_platform_tenant_id != '' && steps.tenant_config.outputs.identity_platform_shared != 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -336,6 +410,12 @@ jobs:
             cat /tmp/identity-delete-response.json >&2
             exit 1
           fi
+
+      - name: Preserve shared Identity Platform tenant
+        if: steps.tenant_config.outputs.identity_platform_shared == 'true'
+        shell: bash
+        run: |
+          echo "::warning::Identity Platform tenant ${{ steps.tenant_config.outputs.identity_platform_tenant_id }} is also referenced by ${{ steps.tenant_config.outputs.identity_platform_other_references }} and will not be deleted."
 
       - name: Terraform destroy tenant resources and rerender GitOps
         id: terraform_destroy
@@ -553,6 +633,31 @@ jobs:
               --timeout=15m
           fi
 
+      - name: Reconcile Enterprise runtime after deletion
+        if: steps.payload.outputs.tier == 'ENTERPRISE'
+        shell: bash
+        run: |
+          set -euo pipefail
+          namespace="${{ steps.tenant_config.outputs.namespace }}"
+
+          kubectl -n flux-system annotate gitrepository flux-system \
+            "reconcile.fluxcd.io/requestedAt=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --overwrite
+          kubectl -n flux-system annotate kustomization tenants \
+            "reconcile.fluxcd.io/requestedAt=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --overwrite
+
+          for _ in {1..180}; do
+            if ! kubectl get namespace "${namespace}" >/dev/null 2>&1; then
+              exit 0
+            fi
+            sleep 5
+          done
+
+          echo "Flux did not delete Enterprise namespace ${namespace}" >&2
+          kubectl get namespace "${namespace}" -o yaml >&2 || true
+          exit 1
+
       - name: Verify tenant resources are gone
         shell: bash
         run: |
@@ -634,13 +739,48 @@ jobs:
                 failures=$((failures + 1))
               fi
             fi
+          else
+            database_instance="${{ steps.tenant_config.outputs.database_instance }}"
+            password_secret="${{ steps.tenant_config.outputs.database_password_secret }}"
+            image_bucket="${{ steps.tenant_config.outputs.image_bucket }}"
+            hostname="${{ steps.tenant_config.outputs.hostname }}"
+            namespace="${{ steps.tenant_config.outputs.namespace }}"
+            frontend_prefix="${{ steps.tenant_config.outputs.frontend_prefix }}"
+
+            fail_if_output "Cloud SQL instance" \
+              gcloud sql instances list \
+                --project="${GCP_PROJECT_ID}" \
+                --filter="name=${database_instance}" \
+                --format='value(name)'
+            fail_if_output "Secret Manager secret" \
+              gcloud secrets list \
+                --project="${GCP_PROJECT_ID}" \
+                --filter="name=${password_secret}" \
+                --format='value(name)'
+            fail_if_output "DNS record" \
+              gcloud dns record-sets list \
+                --project="${GCP_PROJECT_ID}" \
+                --zone=tbd-dns-zone \
+                --name="${hostname}." \
+                --format='value(name)'
+            fail_if_output "Enterprise image bucket" \
+              gcloud storage buckets list \
+                --project="${GCP_PROJECT_ID}" \
+                --filter="name=${image_bucket}" \
+                --format='value(name)'
+            fail_if_output "Enterprise namespace" \
+              kubectl get namespace "${namespace}" \
+                -o name
+            fail_if_output "Frontend objects" \
+              gcloud storage ls \
+                "gs://${GCP_PROJECT_ID}-frontend-bucket/${frontend_prefix}/**"
           fi
 
           identity_tenant_id="${{ steps.tenant_config.outputs.identity_platform_tenant_id }}"
           if [[ -z "${identity_tenant_id}" ]]; then
             identity_tenant_id="${{ steps.terraform_destroy.outputs.terraform_identity_platform_tenant_id }}"
           fi
-          if [[ -n "${identity_tenant_id}" ]]; then
+          if [[ -n "${identity_tenant_id}" && "${{ steps.tenant_config.outputs.identity_platform_shared }}" != "true" ]]; then
             access_token="$(gcloud auth print-access-token)"
             identity_status="$(
               curl -sS -o /dev/null -w '%{http_code}' \
@@ -662,6 +802,48 @@ jobs:
           if (( failures > 0 )); then
             exit 1
           fi
+
+      - name: Delete tenant from platform registry
+        shell: bash
+        run: |
+          set -euo pipefail
+          slug="${{ steps.payload.outputs.slug }}"
+          internal_secret="$(gcloud secrets versions access latest \
+            --secret=tripplanning-internal-secret \
+            --project="${GCP_PROJECT_ID}")"
+
+          callback_port=18083
+          port_forward_log="/tmp/platform-service-port-forward.log"
+          kubectl -n tripplanning-system port-forward \
+            service/platform-service \
+            "${callback_port}:8083" \
+            >"${port_forward_log}" 2>&1 &
+          port_forward_pid=$!
+          trap 'kill "${port_forward_pid}" 2>/dev/null || true' EXIT
+
+          for _ in {1..30}; do
+            if ! kill -0 "${port_forward_pid}" 2>/dev/null; then
+              cat "${port_forward_log}" >&2
+              exit 1
+            fi
+            if curl --connect-timeout 1 --max-time 2 -s -o /dev/null \
+              "http://127.0.0.1:${callback_port}/actuator/health/readiness"; then
+              break
+            fi
+            sleep 1
+          done
+
+          curl \
+            --fail-with-body \
+            -sS \
+            --retry 5 \
+            --retry-connrefused \
+            --retry-delay 2 \
+            --connect-timeout 5 \
+            --max-time 30 \
+            -X DELETE \
+            -H "X-Internal-Secret: ${internal_secret}" \
+            "http://127.0.0.1:${callback_port}/internal/tenants/${slug}"
 
       - name: Restore Standard runtime after failed deletion
         if: failure() && steps.payload.outputs.tier == 'STANDARD' && steps.standard_cleanup.outputs.original_replicas != ''
