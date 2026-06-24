@@ -13,6 +13,10 @@ data:
         identityPlatformTenantId: first-standard-aqvo9
         hostnames:
         - firststand.k8s.tbd-htwg.de
+      - tenantId: std2
+        identityPlatformTenantId: standard-2-yrn6z
+        hostnames:
+        - std2.k8s.tbd-htwg.de
       loadBalancer:
         ip: 34.79.13.109
     global:
@@ -33,12 +37,12 @@ data:
         - trip-service-secrets
         - trip-service-db-secrets
         env:
-          CORS_ALLOWED_ORIGINS: https://k8s.tbd-htwg.de,https://firststand.k8s.tbd-htwg.de
+          CORS_ALLOWED_ORIGINS: https://k8s.tbd-htwg.de,https://firststand.k8s.tbd-htwg.de,https://std2.k8s.tbd-htwg.de
           TRIPPLANNING_TENANT_DATASOURCE_ROUTING: 'false'
           TRIPPLANNING_PLATFORM_BASE_URL: http://platform-service.tripplanning-system:8083
       social:
         env:
-          CORS_ALLOWED_ORIGINS: https://k8s.tbd-htwg.de,https://firststand.k8s.tbd-htwg.de
+          CORS_ALLOWED_ORIGINS: https://k8s.tbd-htwg.de,https://firststand.k8s.tbd-htwg.de,https://std2.k8s.tbd-htwg.de
       externalInfo:
         env:
-          CORS_ALLOWED_ORIGINS: https://k8s.tbd-htwg.de,https://firststand.k8s.tbd-htwg.de
+          CORS_ALLOWED_ORIGINS: https://k8s.tbd-htwg.de,https://firststand.k8s.tbd-htwg.de,https://std2.k8s.tbd-htwg.de
