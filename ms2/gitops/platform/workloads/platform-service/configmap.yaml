@@ -15,6 +15,7 @@ data:
   SPRING_DATASOURCE_USERNAME: "tripplanning_platform"
   CORS_ALLOWED_ORIGINS: "https://k8s.tbd-htwg.de,https://*.k8s.tbd-htwg.de,https://*.enterprise.k8s.tbd-htwg.de"
   TRIPPLANNING_AUTH_FIREBASE_PROJECT_ID: "${GCP_PROJECT_ID}"
+  TRIPPLANNING_PLATFORM_GCP_PROJECT_ID: "${GCP_PROJECT_ID}"
   TRIPPLANNING_PLATFORM_HOST_BASE: "k8s.tbd-htwg.de"
   TRIPPLANNING_PLATFORM_ENTERPRISE_HOST_BASE: "enterprise.k8s.tbd-htwg.de"
   TRIPPLANNING_PLATFORM_BOOTSTRAP_ADMIN_EMAIL: "jakob03schwarz@gmail.com"

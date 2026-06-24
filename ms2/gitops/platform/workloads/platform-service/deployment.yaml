@@ -36,6 +36,8 @@ spec:
             - secretRef:
                 name: platform-service-secrets
           env:
+            - name: TRIPPLANNING_PLATFORM_GCP_PROJECT_ID
+              value: "${GCP_PROJECT_ID}"
             - name: TRIPPLANNING_PLATFORM_GITHUB_DISPATCH_TOKEN
               valueFrom:
                 secretKeyRef:
