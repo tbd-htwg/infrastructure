@@ -44,6 +44,9 @@ module "project_bootstrap" {
     {
       name = "tripplanning-firebase-web-api-key"
     },
+    {
+      name = "tripplanning-google-maps-browser-api-key"
+    },
   ]
 
   iam_bindings = {
@@ -82,26 +85,63 @@ module "project_bootstrap" {
     enabled     = var.firestore.enabled
     database_id = var.firestore.database_id
     location_id = var.firestore.location_id
-    indexes = {
-      comments_by_trip_created_at = {
-        collection  = "comments"
-        query_scope = "COLLECTION"
-        fields = [
-          {
-            field_path = "tripId"
-            order      = "ASCENDING"
-          },
-          {
-            field_path = "createdAt"
-            order      = "DESCENDING"
-          },
-          {
-            field_path = "__name__"
-            order      = "DESCENDING"
-          },
-        ]
+    indexes = merge(
+      {
+        comments_by_trip_created_at = {
+          collection  = "comments"
+          query_scope = "COLLECTION"
+          fields = [
+            {
+              field_path = "tripId"
+              order      = "ASCENDING"
+            },
+            {
+              field_path = "createdAt"
+              order      = "DESCENDING"
+            },
+            {
+              field_path = "__name__"
+              order      = "DESCENDING"
+            },
+          ]
+        }
+        likes_by_user_created_at = {
+          collection  = "likes"
+          query_scope = "COLLECTION"
+          fields = [
+            {
+              field_path = "userId"
+              order      = "ASCENDING"
+            },
+            {
+              field_path = "createdAt"
+              order      = "DESCENDING"
+            },
+          ]
+        }
+      },
+      {
+        for tenant_id in setunion(toset(keys(var.standard_tenants)), toset(keys(var.enterprise_tenants))) :
+        "${tenant_id}_comments_by_trip_created_at" => {
+          collection  = "${tenant_id}_comments"
+          query_scope = "COLLECTION"
+          fields = [
+            {
+              field_path = "tripId"
+              order      = "ASCENDING"
+            },
+            {
+              field_path = "createdAt"
+              order      = "DESCENDING"
+            },
+            {
+              field_path = "__name__"
+              order      = "DESCENDING"
+            },
+          ]
+        }
       }
-    }
+    )
   }
 
   depends_on = [
@@ -174,6 +214,46 @@ resource "google_secret_manager_secret_version" "firebase_web_api_key" {
   project     = var.project_id
   secret      = "projects/${var.project_id}/secrets/tripplanning-firebase-web-api-key"
   secret_data = google_apikeys_key.firebase_web.key_string
+
+  depends_on = [
+    module.project_bootstrap,
+  ]
+}
+
+resource "google_apikeys_key" "google_maps_browser" {
+  project      = var.project_id
+  name         = "tripplanning-google-maps-browser"
+  display_name = "Tripplanning browser Maps and Routes client"
+
+  restrictions {
+    browser_key_restrictions {
+      allowed_referrers = [
+        "https://${var.frontend.domain}/*",
+        "https://*.${var.frontend.domain}/*",
+        "https://*.enterprise.${var.frontend.domain}/*",
+        "http://localhost:*/*",
+        "http://127.0.0.1:*/*",
+      ]
+    }
+
+    api_targets {
+      service = "maps-backend.googleapis.com"
+    }
+
+    api_targets {
+      service = "routes.googleapis.com"
+    }
+  }
+
+  depends_on = [
+    module.project_bootstrap,
+  ]
+}
+
+resource "google_secret_manager_secret_version" "google_maps_browser_api_key" {
+  project     = var.project_id
+  secret      = "projects/${var.project_id}/secrets/tripplanning-google-maps-browser-api-key"
+  secret_data = google_apikeys_key.google_maps_browser.key_string
 
   depends_on = [
     module.project_bootstrap,
@@ -580,6 +660,17 @@ resource "google_secret_manager_secret_iam_member" "frontend_firebase_web_api_ke
 
   depends_on = [
     google_secret_manager_secret_version.firebase_web_api_key,
+  ]
+}
+
+resource "google_secret_manager_secret_iam_member" "frontend_google_maps_browser_api_key_accessor" {
+  project   = var.project_id
+  secret_id = "tripplanning-google-maps-browser-api-key"
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${module.github_wif.deployer_service_account}"
+
+  depends_on = [
+    google_secret_manager_secret_version.google_maps_browser_api_key,
   ]
 }
 

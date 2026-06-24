@@ -150,6 +150,14 @@ output "identity_platform" {
   }
 }
 
+output "google_maps_browser" {
+  description = "Browser-restricted Google Maps JavaScript and Routes API key configuration."
+  value = {
+    api_key_secret = "tripplanning-google-maps-browser-api-key"
+    allowed_domain = var.frontend.domain
+  }
+}
+
 output "standard_cloudsql" {
   description = "Shared Standard Cloud SQL outputs."
   value = var.standard_cloudsql.enabled ? {
