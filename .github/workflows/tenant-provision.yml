@@ -321,6 +321,7 @@ jobs:
           fi
 
       - name: Commit generated tenant files
+        id: tenant_commit
         shell: bash
         run: |
           set -euo pipefail
@@ -333,6 +334,7 @@ jobs:
 
           if git diff --cached --quiet; then
             echo "No tenant changes to commit."
+            echo "revision=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
@@ -340,6 +342,7 @@ jobs:
           git diff --cached --name-status
           git commit -m "Provision tenant ${{ steps.payload.outputs.slug }}"
           git push
+          echo "revision=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Notify platform tenant ready
         if: env.APPLY_TERRAFORM == 'true'
@@ -348,6 +351,7 @@ jobs:
           set -euo pipefail
           slug="${{ steps.payload.outputs.slug }}"
           tier="${{ steps.payload.outputs.tier }}"
+          desired_revision="${{ steps.tenant_commit.outputs.revision }}"
           cluster_name="$(jq -r '.gke_cluster_name.value' /tmp/ms2-terraform-output.json)"
           cluster_location="$(jq -r '.gke_cluster_location.value' /tmp/ms2-terraform-output.json)"
 
@@ -358,9 +362,35 @@ jobs:
           kubectl -n flux-system annotate gitrepository flux-system \
             "reconcile.fluxcd.io/requestedAt=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
             --overwrite
+
+          # A Ready condition can still describe the previous Git revision. Wait
+          # until source-controller has fetched the commit produced by this run
+          # before asking the tenant Kustomization to reconcile.
+          for _ in {1..120}; do
+            source_revision="$(kubectl -n flux-system get gitrepository flux-system \
+              -o jsonpath='{.status.artifact.revision}' 2>/dev/null || true)"
+            if [[ "${source_revision}" == "main@sha1:${desired_revision}" ]]; then
+              break
+            fi
+            sleep 5
+          done
+          test "$(kubectl -n flux-system get gitrepository flux-system \
+            -o jsonpath='{.status.artifact.revision}')" = "main@sha1:${desired_revision}"
+
           kubectl -n flux-system annotate kustomization tenants \
             "reconcile.fluxcd.io/requestedAt=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
             --overwrite
+
+          for _ in {1..120}; do
+            applied_revision="$(kubectl -n flux-system get kustomization tenants \
+              -o jsonpath='{.status.lastAppliedRevision}' 2>/dev/null || true)"
+            if [[ "${applied_revision}" == "main@sha1:${desired_revision}" ]]; then
+              break
+            fi
+            sleep 5
+          done
+          test "$(kubectl -n flux-system get kustomization tenants \
+            -o jsonpath='{.status.lastAppliedRevision}')" = "main@sha1:${desired_revision}"
 
           if [[ "${tier}" == "ENTERPRISE" ]]; then
             namespace="tripplanning-ent-${slug}"
@@ -386,9 +416,42 @@ jobs:
           done
           kubectl get "helmrelease/${helmrelease}" -n "${namespace}" >/dev/null
 
-          kubectl wait --for=condition=Ready "helmrelease/${helmrelease}" \
-            -n "${namespace}" \
-            --timeout=25m
+          desired_chart_revision="${desired_revision:0:12}"
+          for _ in {1..300}; do
+            attempted_revision="$(kubectl -n "${namespace}" get "helmrelease/${helmrelease}" \
+              -o jsonpath='{.status.lastAttemptedRevision}' 2>/dev/null || true)"
+            ready_status="$(kubectl -n "${namespace}" get "helmrelease/${helmrelease}" \
+              -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}' 2>/dev/null || true)"
+            if [[ "${attempted_revision}" == *"${desired_chart_revision}"* && "${ready_status}" == "True" ]]; then
+              break
+            fi
+            sleep 5
+          done
+
+          attempted_revision="$(kubectl -n "${namespace}" get "helmrelease/${helmrelease}" \
+            -o jsonpath='{.status.lastAttemptedRevision}')"
+          ready_status="$(kubectl -n "${namespace}" get "helmrelease/${helmrelease}" \
+            -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}')"
+          [[ "${attempted_revision}" == *"${desired_chart_revision}"* ]]
+          test "${ready_status}" = "True"
+
+          kubectl -n "${namespace}" rollout status deployment/api-router --timeout=10m
+          kubectl -n "${namespace}" rollout status deployment/trip-service --timeout=10m
+
+          if [[ "${tier}" == "ENTERPRISE" ]]; then
+            tenant_url="https://${slug}.enterprise.k8s.tbd-htwg.de"
+          else
+            tenant_url="https://${slug}.k8s.tbd-htwg.de"
+          fi
+          for _ in {1..120}; do
+            if curl --fail --silent --show-error --max-time 10 \
+              "${tenant_url}/api/v2/tenants/${slug}/public-config" >/dev/null; then
+              break
+            fi
+            sleep 5
+          done
+          curl --fail --silent --show-error --max-time 10 \
+            "${tenant_url}/api/v2/tenants/${slug}/public-config" >/dev/null
 
           if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
             echo "Manual workflow dispatch completed infrastructure provisioning."

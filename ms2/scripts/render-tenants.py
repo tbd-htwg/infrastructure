@@ -231,7 +231,7 @@ def render_standard_configmap(
                 ],
                 "env": {
                     "CORS_ALLOWED_ORIGINS": cors_origins,
-                    "TRIPPLANNING_TENANT_DATASOURCE_ROUTING": "false",
+                    "TRIPPLANNING_TENANT_DATASOURCE_ROUTING": "true",
                     "TRIPPLANNING_PLATFORM_BASE_URL": "http://platform-service.tripplanning-system:8083",
                 }
             }
