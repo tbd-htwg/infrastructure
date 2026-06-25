@@ -145,6 +145,18 @@ resource "google_compute_url_map" "frontend" {
 
     default_service = google_compute_backend_bucket.frontend.id
 
+    dynamic "route_rules" {
+      for_each = local.has_api_backend ? [1] : []
+      content {
+        priority = 5
+        service  = google_compute_backend_service.api[0].id
+
+        match_rules {
+          prefix_match = "/api/"
+        }
+      }
+    }
+
     route_rules {
       priority = 10
       service  = google_compute_backend_bucket.frontend.id
@@ -160,18 +172,6 @@ resource "google_compute_url_map" "frontend" {
       }
       match_rules {
         full_path_match = "/index.html"
-      }
-    }
-
-    dynamic "route_rules" {
-      for_each = local.has_api_backend ? [1] : []
-      content {
-        priority = 5
-        service  = google_compute_backend_service.api[0].id
-
-        match_rules {
-          prefix_match = "/api/"
-        }
       }
     }
 
@@ -207,6 +207,15 @@ resource "google_compute_url_map" "frontend" {
       default_service = google_compute_backend_bucket.frontend.id
 
       route_rules {
+        priority = 5
+        service  = google_compute_backend_service.host_api[path_matcher.key].id
+
+        match_rules {
+          prefix_match = "/api/"
+        }
+      }
+
+      route_rules {
         priority = 10
         service  = google_compute_backend_bucket.frontend.id
 
@@ -221,15 +230,6 @@ resource "google_compute_url_map" "frontend" {
         }
         match_rules {
           full_path_match = "/index.html"
-        }
-      }
-
-      route_rules {
-        priority = 5
-        service  = google_compute_backend_service.host_api[path_matcher.key].id
-
-        match_rules {
-          prefix_match = "/api/"
         }
       }
 
