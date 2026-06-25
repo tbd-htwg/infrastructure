@@ -13,6 +13,10 @@ The provisioning flow is:
 
 1. platform-service creates the tenant registry entry and Identity Platform tenant.
 2. platform-service sends `repository_dispatch` to the infrastructure repo.
+   Its `client_payload` contains only `slug`, `displayName`, `tier`,
+   `identityPlatformTenantId`, and the optional Enterprise `imageTag`.
+   Infrastructure derives resource names rather than sending them through
+   GitHub's ten-property `client_payload` limit.
 3. `tenant-provision.yml` writes the tenant YAML file.
 4. `scripts/render-tenants.py` generates Terraform tenant variables and GitOps/Helm values.
 5. If `TENANT_PROVISION_APPLY_TERRAFORM=true`, CI applies Terraform and rerenders GitOps with computed outputs.
