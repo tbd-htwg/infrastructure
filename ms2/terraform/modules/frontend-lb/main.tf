@@ -176,6 +176,45 @@ resource "google_compute_url_map" "frontend" {
     }
 
     route_rules {
+      priority = 20
+      service  = google_compute_backend_bucket.frontend.id
+
+      match_rules {
+        path_template_match = "/users"
+      }
+      match_rules {
+        path_template_match = "/login"
+      }
+      match_rules {
+        path_template_match = "/profile"
+      }
+      match_rules {
+        path_template_match = "/impressum"
+      }
+      match_rules {
+        path_template_match = "/trips/new"
+      }
+      match_rules {
+        path_template_match = "/admin"
+      }
+      match_rules {
+        path_template_match = "/admin/platform-admins"
+      }
+      match_rules {
+        path_template_match = "/admin/tenants"
+      }
+      match_rules {
+        path_template_match = "/admin/tenants/new"
+      }
+
+      route_action {
+        url_rewrite {
+          path_template_rewrite = "/index.html"
+        }
+      }
+    }
+
+    route_rules {
       priority = 100
       service  = google_compute_backend_bucket.frontend.id
 
@@ -230,6 +269,45 @@ resource "google_compute_url_map" "frontend" {
         }
         match_rules {
           full_path_match = "/index.html"
+        }
+      }
+
+      route_rules {
+        priority = 20
+        service  = google_compute_backend_bucket.frontend.id
+
+        match_rules {
+          path_template_match = "/users"
+        }
+        match_rules {
+          path_template_match = "/login"
+        }
+        match_rules {
+          path_template_match = "/profile"
+        }
+        match_rules {
+          path_template_match = "/impressum"
+        }
+        match_rules {
+          path_template_match = "/trips/new"
+        }
+        match_rules {
+          path_template_match = "/admin"
+        }
+        match_rules {
+          path_template_match = "/admin/platform-admins"
+        }
+        match_rules {
+          path_template_match = "/admin/tenants"
+        }
+        match_rules {
+          path_template_match = "/admin/tenants/new"
+        }
+
+        route_action {
+          url_rewrite {
+            path_template_rewrite = "/index.html"
+          }
         }
       }
 
