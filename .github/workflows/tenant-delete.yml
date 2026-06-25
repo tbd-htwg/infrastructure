@@ -668,15 +668,67 @@ jobs:
         run: |
           set -euo pipefail
           namespace="${{ steps.tenant_config.outputs.namespace }}"
+          desired_revision="$(git rev-parse HEAD)"
 
           kubectl -n flux-system annotate gitrepository flux-system \
             "reconcile.fluxcd.io/requestedAt=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
             --overwrite
+
+          for _ in {1..120}; do
+            source_revision="$(kubectl -n flux-system get gitrepository flux-system \
+              -o jsonpath='{.status.artifact.revision}' 2>/dev/null || true)"
+            if [[ "${source_revision}" == "main@sha1:${desired_revision}" ]]; then
+              break
+            fi
+            sleep 5
+          done
+          test "$(kubectl -n flux-system get gitrepository flux-system \
+            -o jsonpath='{.status.artifact.revision}')" = "main@sha1:${desired_revision}"
+
           kubectl -n flux-system annotate kustomization tenants \
             "reconcile.fluxcd.io/requestedAt=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
             --overwrite
 
-          for _ in {1..180}; do
+          for _ in {1..120}; do
+            applied_revision="$(kubectl -n flux-system get kustomization tenants \
+              -o jsonpath='{.status.lastAppliedRevision}' 2>/dev/null || true)"
+            if [[ "${applied_revision}" == "main@sha1:${desired_revision}" ]]; then
+              break
+            fi
+            sleep 5
+          done
+          test "$(kubectl -n flux-system get kustomization tenants \
+            -o jsonpath='{.status.lastAppliedRevision}')" = "main@sha1:${desired_revision}"
+
+          for _ in {1..60}; do
+            if ! kubectl get namespace "${namespace}" >/dev/null 2>&1; then
+              exit 0
+            fi
+            sleep 5
+          done
+
+          # Failed or stalled Helm releases can keep their Flux finalizer while
+          # the namespace is terminating. The namespace deletion already
+          # provides the cleanup boundary, so allow it to finish.
+          helmrelease="$(
+            kubectl -n "${namespace}" get helmrelease \
+              -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true
+          )"
+          helmrelease_deletion_timestamp=""
+          if [[ -n "${helmrelease}" ]]; then
+            helmrelease_deletion_timestamp="$(
+              kubectl -n "${namespace}" get "helmrelease/${helmrelease}" \
+                -o jsonpath='{.metadata.deletionTimestamp}' 2>/dev/null || true
+            )"
+          fi
+          if [[ -n "${helmrelease_deletion_timestamp}" ]]; then
+            echo "::warning::Enterprise HelmRelease ${helmrelease} is still finalizing; clearing the Flux finalizer."
+            kubectl -n "${namespace}" patch "helmrelease/${helmrelease}" \
+              --type=merge \
+              --patch='{"metadata":{"finalizers":[]}}'
+          fi
+
+          for _ in {1..120}; do
             if ! kubectl get namespace "${namespace}" >/dev/null 2>&1; then
               exit 0
             fi
@@ -685,6 +737,7 @@ jobs:
 
           echo "Flux did not delete Enterprise namespace ${namespace}" >&2
           kubectl get namespace "${namespace}" -o yaml >&2 || true
+          kubectl -n "${namespace}" get helmrelease -o yaml >&2 || true
           exit 1
 
       - name: Verify tenant resources are gone
@@ -796,6 +849,21 @@ jobs:
               gcloud storage buckets list \
                 --project="${GCP_PROJECT_ID}" \
                 --filter="name=${image_bucket}" \
+                --format='value(name)'
+            fail_if_output "Enterprise LoadBalancer IP" \
+              gcloud compute addresses list \
+                --project="${GCP_PROJECT_ID}" \
+                --filter="name=tripplanning-ent-${slug}-lb-ip" \
+                --format='value(name)'
+            fail_if_output "Enterprise API backend service" \
+              gcloud compute backend-services list \
+                --project="${GCP_PROJECT_ID}" \
+                --filter="name=api-${slug}-backend-service" \
+                --format='value(name)'
+            fail_if_output "Enterprise API internet NEG" \
+              gcloud compute network-endpoint-groups list \
+                --project="${GCP_PROJECT_ID}" \
+                --filter="name=api-${slug}-internet-neg" \
                 --format='value(name)'
             fail_if_output "Enterprise namespace" \
               kubectl get namespace "${namespace}" \

@@ -9,25 +9,39 @@ data:
   default.conf: |
     map $host $tripplanning_tenant_id {
       default {{ .Values.global.tenantId | quote }};
+{{- $seenTenantHosts := dict }}
 {{- range $tenant := .Values.apiRouter.tenants }}
 {{- range $tenant.hostnames }}
+{{- if not (hasKey $seenTenantHosts .) }}
       {{ . | quote }} {{ $tenant.tenantId | quote }};
+{{- $_ := set $seenTenantHosts . true }}
+{{- end }}
 {{- end }}
 {{- end }}
 {{- range .Values.global.hostnames }}
+{{- if not (hasKey $seenTenantHosts .) }}
       {{ . | quote }} {{ $.Values.global.tenantId | quote }};
+{{- $_ := set $seenTenantHosts . true }}
+{{- end }}
 {{- end }}
     }
 
     map $host $tripplanning_identity_tenant_id {
       default {{ .Values.global.identityPlatform.tenantId | quote }};
+{{- $seenIdentityHosts := dict }}
 {{- range $tenant := .Values.apiRouter.tenants }}
 {{- range $tenant.hostnames }}
+{{- if not (hasKey $seenIdentityHosts .) }}
       {{ . | quote }} {{ $tenant.identityPlatformTenantId | quote }};
+{{- $_ := set $seenIdentityHosts . true }}
+{{- end }}
 {{- end }}
 {{- end }}
 {{- range .Values.global.hostnames }}
+{{- if not (hasKey $seenIdentityHosts .) }}
       {{ . | quote }} {{ $.Values.global.identityPlatform.tenantId | quote }};
+{{- $_ := set $seenIdentityHosts . true }}
+{{- end }}
 {{- end }}
     }
 
