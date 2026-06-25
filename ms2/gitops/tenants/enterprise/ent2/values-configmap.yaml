@@ -1,0 +1,157 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tripplanning-enterprise-ent2-values
+  namespace: tripplanning-ent-ent2
+data:
+  values.yaml: |
+    global:
+      tier: enterprise
+      tenantId: ent2
+      hostnames:
+      - ent2.enterprise.k8s.tbd-htwg.de
+      identityPlatform:
+        tenantId: ent2-9818v
+      frontend:
+        bucketName: tbd-cloudappdev-frontend-bucket
+        bucketPrefix: enterprise/ent2
+        brandName: Enterprise 2
+        colorScheme: default
+        brandIcon: assets/brand-icon.png
+      storage:
+        imagesBucketName: tbd-cloudappdev-ent2-images-bucket
+        imagesPrefix: ''
+      search:
+        indexName: tripentity-ent2
+      cache:
+        keyPrefix: ent:ent2
+      cloudSql:
+        enabled: true
+        connectionName: tbd-cloudappdev:europe-west1:tripplanning-ent-ent2
+        databaseName: tripplanning
+        userName: tripplanning_app
+      imagePullSecrets:
+      - ghcr-pull
+    apiRouter:
+      mode: enterprise
+      enforceKnownHosts: true
+      tenants:
+      - tenantId: ent2
+        identityPlatformTenantId: ent2-9818v
+        hostnames:
+        - ent2.enterprise.k8s.tbd-htwg.de
+      loadBalancer:
+        enabled: true
+        ip: 34.76.143.134
+        externalTrafficPolicy: Cluster
+    services:
+      apiRouter:
+        replicas: 1
+        resources:
+          requests:
+            cpu: 50m
+            memory: 32Mi
+          limits:
+            cpu: 200m
+            memory: 128Mi
+      trip:
+        replicas: 1
+        image:
+          repository: ghcr.io/tbd-htwg/backend/tripplanning-trip-service
+          tag: latest
+          pullPolicy: Always
+        resources:
+          requests:
+            cpu: 100m
+            memory: 512Mi
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+        env:
+          CORS_ALLOWED_ORIGINS: https://ent2.enterprise.k8s.tbd-htwg.de
+          ELASTICSEARCH_HOSTS: opensearch-ent2:9200
+          TRIPPLANNING_AUTH_FIREBASE_PROJECT_ID: tbd-cloudappdev
+          GCP_IMPERSONATE_SERVICE_ACCOUNT: tripplanning-image-url-sig@tbd-cloudappdev.iam.gserviceaccount.com
+          TRIPPLANNING_PLATFORM_BASE_URL: http://platform-service.tripplanning-system:8083
+        bootstrap:
+          waitForValkey: true
+          waitForSearch: true
+      social:
+        replicas: 1
+        image:
+          repository: ghcr.io/tbd-htwg/backend/tripplanning-social-service
+          tag: latest
+          pullPolicy: Always
+        resources:
+          requests:
+            cpu: 50m
+            memory: 384Mi
+          limits:
+            cpu: 750m
+            memory: 768Mi
+        env:
+          CORS_ALLOWED_ORIGINS: https://ent2.enterprise.k8s.tbd-htwg.de
+          TRIPPLANNING_AUTH_FIREBASE_PROJECT_ID: tbd-cloudappdev
+          SPRING_DATA_REDIS_HOST: valkey
+        bootstrap:
+          waitForValkey: true
+      externalInfo:
+        replicas: 1
+        image:
+          repository: ghcr.io/tbd-htwg/backend/tripplanning-external-info-service
+          tag: latest
+          pullPolicy: Always
+        resources:
+          requests:
+            cpu: 50m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        env:
+          CORS_ALLOWED_ORIGINS: https://ent2.enterprise.k8s.tbd-htwg.de
+          SPRING_DATA_REDIS_HOST: valkey
+        bootstrap:
+          waitForValkey: true
+    autoscaling:
+      enabled: true
+      minReplicas: 1
+      maxReplicas: 3
+      targetCPUUtilizationPercentage: 70
+      scaleUpStabilizationSeconds: 30
+      scaleDownStabilizationSeconds: 300
+      trip:
+        minReplicas: 1
+        maxReplicas: 4
+        targetCPUUtilizationPercentage: 70
+        targetMemoryUtilizationPercentage: 0
+      social:
+        minReplicas: 1
+        maxReplicas: 3
+      externalInfo:
+        minReplicas: 1
+        maxReplicas: 3
+    backingServices:
+      postgres:
+        enabled: false
+      opensearch:
+        enabled: true
+        serviceName: opensearch-ent2
+        javaOpts: -Xms384m -Xmx384m
+        storageSize: 2Gi
+        resources:
+          requests:
+            cpu: 250m
+            memory: 768Mi
+          limits:
+            cpu: 1000m
+            memory: 1536Mi
+      valkey:
+        enabled: true
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 200m
+            memory: 256Mi
