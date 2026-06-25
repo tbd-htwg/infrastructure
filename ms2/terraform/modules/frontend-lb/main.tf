@@ -143,16 +143,10 @@ resource "google_compute_url_map" "frontend" {
   path_matcher {
     name = "frontend"
 
-    default_service = google_compute_backend_bucket.frontend.id
-
-    path_rule {
-      paths = ["/*"]
-
-      url_redirect {
-        path_redirect          = "/index.html"
-        redirect_response_code = "MOVED_PERMANENTLY_DEFAULT"
-        strip_query            = false
-      }
+    default_url_redirect {
+      path_redirect          = "/index.html"
+      redirect_response_code = "MOVED_PERMANENTLY_DEFAULT"
+      strip_query            = false
     }
 
     path_rule {
@@ -178,17 +172,12 @@ resource "google_compute_url_map" "frontend" {
   dynamic "path_matcher" {
     for_each = local.host_api_backend_internet_endpoints
     content {
-      name            = "frontend-${path_matcher.key}"
-      default_service = google_compute_backend_bucket.frontend.id
+      name = "frontend-${path_matcher.key}"
 
-      path_rule {
-        paths = ["/*"]
-
-        url_redirect {
-          path_redirect          = "/index.html"
-          redirect_response_code = "MOVED_PERMANENTLY_DEFAULT"
-          strip_query            = false
-        }
+      default_url_redirect {
+        path_redirect          = "/index.html"
+        redirect_response_code = "MOVED_PERMANENTLY_DEFAULT"
+        strip_query            = false
       }
 
       path_rule {
