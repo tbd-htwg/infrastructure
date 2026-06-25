@@ -1,0 +1,24 @@
+tenantId: greenstd
+tier: standard
+hostnames:
+- greenstd.k8s.tbd-htwg.de
+identityPlatform:
+  displayName: greenstd
+  emailPasswordEnabled: true
+  mfaEnabled: false
+  tenantId: greenstd-a5wnz
+frontend:
+  bucketPrefix: standard/greenstd
+  brandName: greenstd
+  colorScheme: default
+  brandIcon: assets/brand-icon.png
+database:
+  cloudSqlInstance: tripplanning-standard
+  databaseName: tripplanning_std_greenstd
+  userName: tripplanning_app_greenstd
+storage:
+  imagesPrefix: standard/greenstd
+search:
+  indexName: tripentity-greenstd
+cache:
+  keyPrefix: std:greenstd
