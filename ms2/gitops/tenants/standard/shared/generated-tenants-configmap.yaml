@@ -8,9 +8,37 @@ metadata:
 data:
   values.yaml: |
     apiRouter:
-      tenants: []
+      tenants:
+      - tenantId: bluestd
+        identityPlatformTenantId: bluestd-7u1ai
+        hostnames:
+        - bluestd.k8s.tbd-htwg.de
       loadBalancer:
         ip: 34.79.13.109
+    global:
+      cloudSql:
+        enabled: true
+        connectionName: tbd-cloudappdev:europe-west1:tripplanning-standard
+        databaseName: tripplanning_std_bluestd
+        userName: tripplanning_app_bluestd
+      search:
+        indexName: tripentity-bluestd
+      cache:
+        keyPrefix: std:bluestd
+      storage:
+        imagesPrefix: standard/bluestd
     services:
       trip:
-        replicas: 0
+        secretRefs:
+        - trip-service-secrets
+        - trip-service-db-secrets
+        env:
+          CORS_ALLOWED_ORIGINS: https://k8s.tbd-htwg.de,https://bluestd.k8s.tbd-htwg.de
+          TRIPPLANNING_TENANT_DATASOURCE_ROUTING: 'true'
+          TRIPPLANNING_PLATFORM_BASE_URL: http://platform-service.tripplanning-system:8083
+      social:
+        env:
+          CORS_ALLOWED_ORIGINS: https://k8s.tbd-htwg.de,https://bluestd.k8s.tbd-htwg.de
+      externalInfo:
+        env:
+          CORS_ALLOWED_ORIGINS: https://k8s.tbd-htwg.de,https://bluestd.k8s.tbd-htwg.de
