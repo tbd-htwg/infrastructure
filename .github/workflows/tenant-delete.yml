@@ -867,7 +867,10 @@ jobs:
           test "$(kubectl -n flux-system get kustomization tenants \
             -o jsonpath='{.status.lastAppliedRevision}')" = "main@sha1:${desired_revision}"
 
-          for _ in {1..60}; do
+          # Enterprise cleanup suspends the HelmRelease before removing its
+          # database. Give Flux a short chance to finalize naturally, then use
+          # the safe finalizer fallback below.
+          for _ in {1..12}; do
             if ! kubectl get namespace "${namespace}" >/dev/null 2>&1; then
               exit 0
             fi
