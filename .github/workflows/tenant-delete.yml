@@ -346,6 +346,173 @@ jobs:
           cleanup_temporary_resources
           trap - ERR
 
+      - name: Prepare Enterprise tenant database for deletion
+        if: steps.payload.outputs.tier == 'ENTERPRISE'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          slug="${{ steps.payload.outputs.slug }}"
+          namespace="${{ steps.tenant_config.outputs.namespace }}"
+          database_instance="${{ steps.tenant_config.outputs.database_instance }}"
+          database_name="${{ steps.tenant_config.outputs.database_name }}"
+          database_user="${{ steps.tenant_config.outputs.database_user }}"
+          cleanup_name="enterprise-db-cleanup-${slug:0:20}-${GITHUB_RUN_ID}"
+          cleanup_secret="${cleanup_name}-db"
+          cleanup_namespace="tripplanning-system"
+
+          if [[ ! "${database_name}" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then
+            echo "Invalid Enterprise database identifier: ${database_name}" >&2
+            exit 1
+          fi
+          if [[ ! "${database_user}" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then
+            echo "Invalid Enterprise database user identifier: ${database_user}" >&2
+            exit 1
+          fi
+
+          instance_exists="$(
+            gcloud sql instances list \
+              --project="${GCP_PROJECT_ID}" \
+              --filter="name=${database_instance}" \
+              --format='value(name)'
+          )"
+          if [[ -z "${instance_exists}" ]]; then
+            echo "Enterprise Cloud SQL instance ${database_instance} is already absent."
+            exit 0
+          fi
+
+          # Stop the application before cleaning the schema. Suspend Flux and
+          # remove the HPA first so neither controller recreates DB sessions.
+          if kubectl get namespace "${namespace}" >/dev/null 2>&1; then
+            kubectl -n "${namespace}" patch \
+              helmrelease "tripplanning-enterprise-${slug}" \
+              --type=merge \
+              --patch='{"spec":{"suspend":true}}' >/dev/null 2>&1 || true
+            kubectl -n "${namespace}" delete hpa trip-service \
+              --ignore-not-found >/dev/null 2>&1 || true
+            if kubectl -n "${namespace}" get deployment trip-service \
+              >/dev/null 2>&1; then
+              kubectl -n "${namespace}" scale deployment trip-service \
+                --replicas=0
+              kubectl -n "${namespace}" wait \
+                --for=delete pod \
+                -l app.kubernetes.io/component=trip-service \
+                --timeout=10m
+            fi
+          fi
+
+          database_exists="$(
+            gcloud sql databases list \
+              --instance="${database_instance}" \
+              --project="${GCP_PROJECT_ID}" \
+              --filter="name=${database_name}" \
+              --format='value(name)'
+          )"
+          database_user_exists="$(
+            gcloud sql users list \
+              --instance="${database_instance}" \
+              --project="${GCP_PROJECT_ID}" \
+              --filter="name=${database_user}" \
+              --format='value(name)'
+          )"
+          if [[ -z "${database_exists}" || -z "${database_user_exists}" ]]; then
+            echo "Enterprise database or app user is already absent; skipping schema cleanup."
+            exit 0
+          fi
+
+          # Reset the app user's password rather than depending on Secret
+          # Manager. A previous partial Terraform apply may already have
+          # deleted the managed password secret.
+          database_password="$(openssl rand -base64 32 | tr -d '\n')"
+          gcloud sql users set-password "${database_user}" \
+            --instance="${database_instance}" \
+            --project="${GCP_PROJECT_ID}" \
+            --password="${database_password}"
+
+          database_ip="$(
+            gcloud sql instances describe "${database_instance}" \
+              --project="${GCP_PROJECT_ID}" \
+              --format='value(ipAddresses[0].ipAddress)'
+          )"
+          password_b64="$(printf '%s' "${database_password}" | base64 -w0)"
+
+          cleanup_temporary_resources() {
+            kubectl -n "${cleanup_namespace}" delete job "${cleanup_name}" \
+              --ignore-not-found --wait=false >/dev/null 2>&1 || true
+            kubectl -n "${cleanup_namespace}" delete secret "${cleanup_secret}" \
+              --ignore-not-found >/dev/null 2>&1 || true
+          }
+          trap cleanup_temporary_resources EXIT
+
+          kubectl -n "${cleanup_namespace}" apply -f - <<EOF
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: ${cleanup_secret}
+          type: Opaque
+          data:
+            password: ${password_b64}
+          ---
+          apiVersion: batch/v1
+          kind: Job
+          metadata:
+            name: ${cleanup_name}
+          spec:
+            backoffLimit: 2
+            ttlSecondsAfterFinished: 600
+            template:
+              spec:
+                restartPolicy: Never
+                containers:
+                  - name: postgres-cleanup
+                    image: postgres:15-alpine
+                    env:
+                      - name: PGHOST
+                        value: ${database_ip}
+                      - name: PGPORT
+                        value: "5432"
+                      - name: PGDATABASE
+                        value: ${database_name}
+                      - name: PGUSER
+                        value: ${database_user}
+                      - name: PGPASSWORD
+                        valueFrom:
+                          secretKeyRef:
+                            name: ${cleanup_secret}
+                            key: password
+                      - name: PGSSLMODE
+                        value: disable
+                    command:
+                      - sh
+                      - -ec
+                      - |
+                        psql -v ON_ERROR_STOP=1 <<SQL
+                        SELECT pg_terminate_backend(pid)
+                        FROM pg_stat_activity
+                        WHERE datname = current_database()
+                          AND usename = current_user
+                          AND pid <> pg_backend_pid();
+                        DROP OWNED BY "\${PGUSER}" CASCADE;
+                        SQL
+                    resources:
+                      requests:
+                        cpu: 50m
+                        memory: 64Mi
+                      limits:
+                        cpu: 250m
+                        memory: 256Mi
+          EOF
+
+          if ! kubectl -n "${cleanup_namespace}" wait \
+            --for=condition=complete "job/${cleanup_name}" \
+            --timeout=10m; then
+            kubectl -n "${cleanup_namespace}" logs "job/${cleanup_name}" \
+              --all-containers >&2 || true
+            exit 1
+          fi
+          kubectl -n "${cleanup_namespace}" logs "job/${cleanup_name}" \
+            --all-containers
+
       - name: Remove tenant-scoped runtime data and stored objects
         shell: bash
         run: |
