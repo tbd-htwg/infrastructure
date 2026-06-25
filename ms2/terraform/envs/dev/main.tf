@@ -153,14 +153,18 @@ module "project_bootstrap" {
 resource "google_identity_platform_config" "default" {
   project = var.project_id
 
-  authorized_domains = [
-    "${var.project_id}.firebaseapp.com",
-    "${var.project_id}.web.app",
-    "api.${var.frontend.domain}",
-    var.frontend.domain,
-    "www.tbd-htwg.de",
-    "localhost",
-  ]
+  authorized_domains = distinct(concat(
+    [
+      "${var.project_id}.firebaseapp.com",
+      "${var.project_id}.web.app",
+      "api.${var.frontend.domain}",
+      var.frontend.domain,
+      "www.tbd-htwg.de",
+      "localhost",
+    ],
+    flatten([for tenant in values(var.standard_tenants) : tenant.hostnames]),
+    flatten([for tenant in values(var.enterprise_tenants) : tenant.hostnames]),
+  ))
 
   sign_in {
     email {

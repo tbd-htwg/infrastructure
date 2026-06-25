@@ -146,7 +146,7 @@ resource "google_compute_url_map" "frontend" {
     default_service = google_compute_backend_bucket.frontend.id
 
     path_rule {
-      paths = ["/"]
+      paths = ["/*"]
 
       url_redirect {
         path_redirect          = "/index.html"
@@ -182,7 +182,7 @@ resource "google_compute_url_map" "frontend" {
       default_service = google_compute_backend_bucket.frontend.id
 
       path_rule {
-        paths = ["/"]
+        paths = ["/*"]
 
         url_redirect {
           path_redirect          = "/index.html"
