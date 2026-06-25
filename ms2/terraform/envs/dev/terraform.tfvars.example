@@ -135,8 +135,11 @@ enterprise_tenants = {
       instance_name     = "tripplanning-ent-globex"
       name              = "tripplanning"
       user_name         = "tripplanning_app"
-      tier              = "db-custom-1-3840"
-      disk_size_gb      = 20
+      # Low-idle development defaults. Increase the tier explicitly for
+      # production workloads; Cloud SQL does not scale through Kubernetes HPA.
+      tier              = "db-f1-micro"
+      disk_size_gb      = 10
+      disk_autoresize   = true
       availability_type = "ZONAL"
     }
     frontend = {

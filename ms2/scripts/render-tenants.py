@@ -23,6 +23,7 @@ STANDARD_GITOPS_OUT = ROOT / "gitops/tenants/standard/shared/generated-tenants-c
 STANDARD_DB_SECRET_OUT = ROOT / "gitops/tenants/standard/shared/generated-db-external-secret.yaml"
 ENTERPRISE_GITOPS_DIR = ROOT / "gitops/tenants/enterprise"
 TENANTS_KUSTOMIZATION = ROOT / "gitops/tenants/kustomization.yaml"
+ENTERPRISE_VALUES = ROOT / "charts/tripplanning/values-enterprise.yaml"
 
 
 def tenant_project_id(tenant: dict[str, Any]) -> str:
@@ -300,14 +301,17 @@ def render_enterprise_values(
     tenant: dict[str, Any],
     terraform_outputs: dict[str, Any],
 ) -> str:
+    enterprise_defaults = yaml.safe_load(ENTERPRISE_VALUES.read_text(encoding="utf-8")) or {}
     project_id = tenant_project_id(tenant)
     frontend_bucket_name = tenant["frontend"].get("bucketName", f"{project_id}-frontend-bucket")
     cors_origins = ",".join(f"https://{hostname}" for hostname in tenant["hostnames"])
+    search_service_name = tenant["search"]["releaseName"]
     services = tenant.get("services", {})
     service_defaults = {
         "trip": {
             "env": {
                 "CORS_ALLOWED_ORIGINS": cors_origins,
+                "ELASTICSEARCH_HOSTS": f"{search_service_name}:9200",
                 "TRIPPLANNING_AUTH_FIREBASE_PROJECT_ID": project_id,
                 "GCP_IMPERSONATE_SERVICE_ACCOUNT": f"tripplanning-image-url-sig@{project_id}.iam.gserviceaccount.com",
                 "TRIPPLANNING_PLATFORM_BASE_URL": "http://platform-service.tripplanning-system:8083",
@@ -392,12 +396,12 @@ def render_enterprise_values(
             "postgres": {"enabled": False},
             "opensearch": {
                 "enabled": True,
-                "serviceName": tenant["search"]["releaseName"],
+                "serviceName": search_service_name,
             },
             "valkey": {"enabled": tenant.get("cache", {}).get("dedicated", True)},
         },
     }
-    return yaml.safe_dump(values, sort_keys=False)
+    return yaml.safe_dump(deep_merge(enterprise_defaults, values), sort_keys=False)
 
 
 def render_enterprise_gitops(
@@ -436,12 +440,12 @@ metadata:
   namespace: {tenant["namespace"]}
 spec:
   hard:
-    requests.cpu: "16"
-    requests.memory: 32Gi
-    limits.cpu: "48"
-    limits.memory: 64Gi
-    pods: "80"
-    persistentvolumeclaims: "10"
+    requests.cpu: "8"
+    requests.memory: 16Gi
+    limits.cpu: "24"
+    limits.memory: 32Gi
+    pods: "40"
+    persistentvolumeclaims: "5"
 """,
             "serviceaccount-default.yaml": f"""apiVersion: v1
 kind: ServiceAccount
@@ -450,6 +454,63 @@ metadata:
   namespace: {tenant["namespace"]}
   annotations:
     iam.gke.io/gcp-service-account: workload@{project_id}.iam.gserviceaccount.com
+""",
+            "network-policies.yaml": f"""apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+  namespace: {tenant["namespace"]}
+spec:
+  podSelector: {{}}
+  policyTypes:
+    - Ingress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-same-namespace
+  namespace: {tenant["namespace"]}
+spec:
+  podSelector: {{}}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector: {{}}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-api-router-ingress
+  namespace: {tenant["namespace"]}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/component: api-router
+  policyTypes:
+    - Ingress
+  ingress:
+    - ports:
+        - protocol: TCP
+          port: 8088
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-managed-prometheus
+  namespace: {tenant["namespace"]}
+spec:
+  podSelector: {{}}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: gke-gmp-system
+      ports:
+        - protocol: TCP
+          port: 15020
 """,
             "external-secrets.yaml": f"""apiVersion: external-secrets.io/v1
 kind: ExternalSecret
@@ -577,6 +638,7 @@ kind: Kustomization
 resources:
   - namespace.yaml
   - serviceaccount-default.yaml
+  - network-policies.yaml
   - external-secrets.yaml
   - values-configmap.yaml
   - helmrelease.yaml

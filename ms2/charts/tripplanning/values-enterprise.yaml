@@ -34,31 +34,72 @@ apiRouter:
 
 services:
   apiRouter:
-    replicas: 2
+    replicas: 1
+    resources:
+      requests:
+        cpu: "50m"
+        memory: "32Mi"
+      limits:
+        cpu: "200m"
+        memory: "128Mi"
   trip:
-    replicas: 2
+    replicas: 1
     image:
       repository: ghcr.io/tbd-htwg/backend/tripplanning-trip-service
-      tag: stable
-      pullPolicy: IfNotPresent
+      tag: latest
+      pullPolicy: Always
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "512Mi"
+      limits:
+        cpu: "1000m"
+        memory: "1Gi"
   social:
-    replicas: 2
+    replicas: 1
     image:
       repository: ghcr.io/tbd-htwg/backend/tripplanning-social-service
-      tag: stable
-      pullPolicy: IfNotPresent
+      tag: latest
+      pullPolicy: Always
+    resources:
+      requests:
+        cpu: "50m"
+        memory: "384Mi"
+      limits:
+        cpu: "750m"
+        memory: "768Mi"
   externalInfo:
     replicas: 1
     image:
       repository: ghcr.io/tbd-htwg/backend/tripplanning-external-info-service
-      tag: stable
-      pullPolicy: IfNotPresent
+      tag: latest
+      pullPolicy: Always
+    resources:
+      requests:
+        cpu: "50m"
+        memory: "256Mi"
+      limits:
+        cpu: "500m"
+        memory: "512Mi"
 
 autoscaling:
   enabled: true
-  minReplicas: 2
-  maxReplicas: 8
+  minReplicas: 1
+  maxReplicas: 3
   targetCPUUtilizationPercentage: 70
+  scaleUpStabilizationSeconds: 30
+  scaleDownStabilizationSeconds: 300
+  trip:
+    minReplicas: 1
+    maxReplicas: 4
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 0
+  social:
+    minReplicas: 1
+    maxReplicas: 3
+  externalInfo:
+    minReplicas: 1
+    maxReplicas: 3
 
 backingServices:
   postgres:
@@ -66,5 +107,21 @@ backingServices:
   opensearch:
     enabled: true
     serviceName: opensearch
+    javaOpts: "-Xms384m -Xmx384m"
+    storageSize: 2Gi
+    resources:
+      requests:
+        cpu: "250m"
+        memory: "768Mi"
+      limits:
+        cpu: "1000m"
+        memory: "1536Mi"
   valkey:
     enabled: true
+    resources:
+      requests:
+        cpu: "50m"
+        memory: "64Mi"
+      limits:
+        cpu: "200m"
+        memory: "256Mi"

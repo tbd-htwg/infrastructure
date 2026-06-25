@@ -33,7 +33,10 @@ permissions:
   id-token: write
 
 concurrency:
-  group: tenant-provision-${{ github.event.client_payload.slug || inputs.slug }}
+  # Every run rewrites aggregate Terraform and GitOps tenant files and pushes
+  # them to the same branch. Serialize all provisions so two different tenant
+  # slugs cannot race and lose each other's generated state.
+  group: tenant-provision
   cancel-in-progress: false
 
 jobs:
@@ -57,26 +60,26 @@ jobs:
       - name: Parse request
         id: payload
         shell: bash
+        env:
+          REQUEST_SLUG: ${{ github.event.client_payload.slug || inputs.slug }}
+          REQUEST_TIER: ${{ github.event.client_payload.tier || inputs.tier || '' }}
+          REQUEST_BRAND_NAME: ${{ github.event.client_payload.brandName || github.event.client_payload.displayName || inputs.brandName || '' }}
+          REQUEST_COLOR_SCHEME: ${{ github.event.client_payload.colorScheme || inputs.colorScheme || 'default' }}
+          REQUEST_IDENTITY_PLATFORM_TENANT_ID: ${{ github.event.client_payload.identityPlatformTenantId || '' }}
+          REQUEST_IMAGE_TAG: ${{ github.event.client_payload.imageTag || inputs.imageTag || '' }}
+          REQUEST_ACTION: ${{ github.event.action || '' }}
         run: |
           set -euo pipefail
 
-          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
-            slug="${{ inputs.slug }}"
-            tier="${{ inputs.tier }}"
-            brand_name="${{ inputs.brandName }}"
-            color_scheme="${{ inputs.colorScheme }}"
-            image_tag="${{ inputs.imageTag }}"
-          else
-            slug="${{ github.event.client_payload.slug }}"
-            tier="${{ github.event.client_payload.tier || '' }}"
-            brand_name="${{ github.event.client_payload.brandName || '' }}"
-            color_scheme="${{ github.event.client_payload.colorScheme || 'default' }}"
-            identity_platform_tenant_id="${{ github.event.client_payload.identityPlatformTenantId || '' }}"
-            image_tag="${{ github.event.client_payload.imageTag || '' }}"
-          fi
+          slug="${REQUEST_SLUG}"
+          tier="${REQUEST_TIER}"
+          brand_name="${REQUEST_BRAND_NAME}"
+          color_scheme="${REQUEST_COLOR_SCHEME}"
+          identity_platform_tenant_id="${REQUEST_IDENTITY_PLATFORM_TENANT_ID}"
+          image_tag="${REQUEST_IMAGE_TAG}"
 
           if [[ -z "${tier}" && "${GITHUB_EVENT_NAME}" == "repository_dispatch" ]]; then
-            case "${{ github.event.action }}" in
+            case "${REQUEST_ACTION}" in
               tenant-created-standard) tier="STANDARD" ;;
               tenant-created-enterprise) tier="ENTERPRISE" ;;
             esac
@@ -89,6 +92,14 @@ jobs:
           fi
           if [[ "${tier}" != "STANDARD" && "${tier}" != "ENTERPRISE" ]]; then
             echo "tier must be STANDARD or ENTERPRISE" >&2
+            exit 1
+          fi
+          if [[ "${tier}" == "STANDARD" && "${#slug}" -gt 46 ]]; then
+            echo "Standard tenant slug must be at most 46 characters so generated PostgreSQL identifiers remain valid" >&2
+            exit 1
+          fi
+          if [[ "${tier}" == "ENTERPRISE" && "${#slug}" -gt 32 ]]; then
+            echo "Enterprise tenant slug must be at most 32 characters so generated Kubernetes and GCS names remain valid" >&2
             exit 1
           fi
 
@@ -108,15 +119,19 @@ jobs:
 
       - name: Write tenant definition
         shell: bash
+        env:
+          TENANT_SLUG: ${{ steps.payload.outputs.slug }}
+          TENANT_TIER: ${{ steps.payload.outputs.tier }}
+          TENANT_BRAND_NAME: ${{ steps.payload.outputs.brand_name }}
+          TENANT_COLOR_SCHEME: ${{ steps.payload.outputs.color_scheme }}
+          TENANT_IDENTITY_PLATFORM_TENANT_ID: ${{ steps.payload.outputs.identity_platform_tenant_id }}
+          TENANT_IMAGE_TAG: ${{ steps.payload.outputs.image_tag }}
+          TENANT_PROJECT_ID: ${{ env.GCP_PROJECT_ID }}
         run: |
           set -euo pipefail
-          slug="${{ steps.payload.outputs.slug }}"
-          tier="${{ steps.payload.outputs.tier }}"
-          brand_name="${{ steps.payload.outputs.brand_name }}"
-          color_scheme="${{ steps.payload.outputs.color_scheme }}"
-          identity_platform_tenant_id="${{ steps.payload.outputs.identity_platform_tenant_id }}"
-          image_tag="${{ steps.payload.outputs.image_tag }}"
-          project_id="${GCP_PROJECT_ID}"
+          slug="${TENANT_SLUG}"
+          tier="${TENANT_TIER}"
+          project_id="${TENANT_PROJECT_ID}"
 
           if [[ "${tier}" == "STANDARD" ]]; then
             mkdir -p "${MS2_DIR}/tenants/standard"
@@ -131,13 +146,6 @@ jobs:
           fi
 
           export TENANT_PATH="${tenant_path}"
-          export TENANT_SLUG="${slug}"
-          export TENANT_TIER="${tier}"
-          export TENANT_BRAND_NAME="${brand_name}"
-          export TENANT_COLOR_SCHEME="${color_scheme}"
-          export TENANT_IDENTITY_PLATFORM_TENANT_ID="${identity_platform_tenant_id}"
-          export TENANT_IMAGE_TAG="${image_tag}"
-          export TENANT_PROJECT_ID="${project_id}"
           python3 <<'PY'
           import os
           import re
@@ -463,6 +471,37 @@ jobs:
             --secret=tripplanning-internal-secret \
             --project="${GCP_PROJECT_ID}")"
 
+          callback_json="$(jq -n \
+            --arg status "ACTIVE" \
+            --arg db_name "$(jq -r --arg tier "${tier,,}" --arg slug "${slug}" \
+              '.[$tier + "_cloudsql"].value as $sql |
+               if $tier == "enterprise" then $sql[$slug].database_names.primary
+               else $sql.database_names[$slug]
+               end // empty' /tmp/ms2-terraform-output.json)" \
+            --arg db_user "$(jq -r --arg tier "${tier,,}" --arg slug "${slug}" \
+              '.[$tier + "_cloudsql"].value as $sql |
+               if $tier == "enterprise" then $sql[$slug].user_names.primary
+               else $sql.user_names[$slug]
+               end // empty' /tmp/ms2-terraform-output.json)" \
+            --arg identity_tenant_id "$(jq -r --arg tier "${tier,,}" --arg slug "${slug}" \
+              '.identity_platform_tenant_ids.value[$tier][$slug] // empty' \
+              /tmp/ms2-terraform-output.json)" \
+            --arg firestore_database "$(jq -r '.firestore_database_id.value // empty' \
+              /tmp/ms2-terraform-output.json)" \
+            --arg gcs_bucket "$(if [[ "${tier}" == "ENTERPRISE" ]]; then
+              jq -r --arg key "enterprise_${slug}_images" \
+                '.storage_buckets.value[$key] // empty' /tmp/ms2-terraform-output.json
+            else
+              printf ''
+            fi)" \
+            '{
+              status: $status,
+              dbName: $db_name,
+              dbUser: $db_user,
+              identityPlatformTenantId: $identity_tenant_id,
+              firestoreDatabase: $firestore_database
+            } + if $gcs_bucket == "" then {} else {gcsBucket: $gcs_bucket} end')"
+
           # Use the existing platform-service pod instead of scheduling a
           # one-shot callback pod. Autopilot may be temporarily unable to
           # schedule extra pods when a zone is short on capacity.
@@ -504,5 +543,5 @@ jobs:
             -X POST \
             -H "Content-Type: application/json" \
             -H "X-Internal-Secret: ${internal_secret}" \
-            --data '{"status":"ACTIVE"}' \
+            --data "${callback_json}" \
             "http://127.0.0.1:${callback_port}/internal/tenants/${slug}/provisioning-callback"
