@@ -1,0 +1,68 @@
+{{- if .Values.searchReconcileCronJob.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: tripplanning-search-reconcile
+  labels:
+    {{- include "tripplanning.labels" . | nindent 4 }}
+    app.kubernetes.io/component: search-reconcile
+spec:
+  schedule: {{ .Values.searchReconcileCronJob.schedule | quote }}
+  concurrencyPolicy: {{ .Values.searchReconcileCronJob.concurrencyPolicy }}
+  startingDeadlineSeconds: {{ .Values.searchReconcileCronJob.startingDeadlineSeconds }}
+  successfulJobsHistoryLimit: {{ .Values.searchReconcileCronJob.successfulJobsHistoryLimit }}
+  failedJobsHistoryLimit: {{ .Values.searchReconcileCronJob.failedJobsHistoryLimit }}
+  jobTemplate:
+    spec:
+      backoffLimit: {{ .Values.searchReconcileCronJob.backoffLimit }}
+      activeDeadlineSeconds: {{ .Values.searchReconcileCronJob.activeDeadlineSeconds }}
+      ttlSecondsAfterFinished: {{ .Values.searchReconcileCronJob.ttlSecondsAfterFinished }}
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/component: search-reconcile
+            {{- include "tripplanning.selectorLabels" . | nindent 12 }}
+          annotations:
+            sidecar.istio.io/inject: "false"
+        spec:
+          restartPolicy: Never
+          {{- if .Values.global.imagePullSecrets }}
+          imagePullSecrets:
+          {{- range .Values.global.imagePullSecrets }}
+            - name: {{ . }}
+          {{- end }}
+          {{- end }}
+          containers:
+            - name: search-reconcile
+              image: {{ .Values.searchReconcileCronJob.image | quote }}
+              imagePullPolicy: {{ .Values.searchReconcileCronJob.imagePullPolicy }}
+              env:
+                - name: TRIP_SERVICE_URL
+                  value: {{ .Values.searchReconcileCronJob.tripServiceUrl | quote }}
+                - name: FORCE
+                  value: {{ .Values.searchReconcileCronJob.forceReindex | quote }}
+                - name: MAX_TIME
+                  value: {{ .Values.searchReconcileCronJob.curlMaxTimeSeconds | quote }}
+                - name: TRIPPLANNING_INTERNAL_SECRET
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ .Values.searchReconcileCronJob.secretName | quote }}
+                      key: {{ .Values.searchReconcileCronJob.secretKey | quote }}
+              command:
+                - sh
+                - -c
+                - |
+                  set -eu
+                  echo "Triggering search-reconcile (force=${FORCE}) on ${TRIP_SERVICE_URL}"
+                  curl -sf --max-time "${MAX_TIME}" -X POST \
+                    -H "X-Internal-Secret: ${TRIPPLANNING_INTERNAL_SECRET}" \
+                    "${TRIP_SERVICE_URL}/internal/maintenance/search-reconcile?force=${FORCE}"
+                  echo "search-reconcile request completed"
+              resources:
+                requests:
+                  cpu: {{ .Values.searchReconcileCronJob.resources.requests.cpu }}
+                  memory: {{ .Values.searchReconcileCronJob.resources.requests.memory }}
+                limits:
+                  cpu: {{ .Values.searchReconcileCronJob.resources.limits.cpu }}
+                  memory: {{ .Values.searchReconcileCronJob.resources.limits.memory }}
+{{- end }}

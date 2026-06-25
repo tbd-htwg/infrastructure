@@ -300,3 +300,28 @@ seedJob:
     limits:
       cpu: "2000m"
       memory: "1536Mi"
+
+searchReconcileCronJob:
+  enabled: false
+  schedule: "0 3 * * *"
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 300
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  backoffLimit: 1
+  activeDeadlineSeconds: 2100
+  ttlSecondsAfterFinished: 86400
+  tripServiceUrl: http://trip-service:8080
+  forceReindex: true
+  curlMaxTimeSeconds: 1800
+  image: curlimages/curl:8.5.0
+  imagePullPolicy: IfNotPresent
+  secretName: trip-service-secrets
+  secretKey: TRIPPLANNING_INTERNAL_SECRET
+  resources:
+    requests:
+      cpu: "50m"
+      memory: "64Mi"
+    limits:
+      cpu: "200m"
+      memory: "128Mi"
