@@ -4,7 +4,6 @@ metadata:
   name: tripplanning-ent-blueent
   labels:
     app.kubernetes.io/name: tripplanning
-    istio-injection: enabled
     tier: enterprise
     tenant_id: blueent
     tripplanning.htwg.dev/tier: enterprise

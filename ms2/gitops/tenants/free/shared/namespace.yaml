@@ -4,5 +4,4 @@ metadata:
   name: tripplanning-free
   labels:
     app.kubernetes.io/name: tripplanning
-    istio-injection: enabled
     tripplanning.htwg.dev/tier: free

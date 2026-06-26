@@ -351,20 +351,6 @@ module "gke_autopilot" {
   ]
 }
 
-module "cloud_service_mesh" {
-  source = "../../modules/cloud-service-mesh"
-
-  project_id    = var.project_id
-  cluster_id    = module.gke_autopilot.cluster_id
-  membership_id = var.gke.cluster_name
-
-  depends_on = [
-    google_project_iam_member.gkehub_service_agent,
-    google_project_iam_member.meshconfig_service_agent,
-    module.project_bootstrap,
-  ]
-}
-
 module "storage" {
   source     = "../../modules/storage"
   project_id = var.project_id
@@ -906,14 +892,6 @@ resource "google_project_iam_member" "gkehub_service_agent" {
   depends_on = [module.project_bootstrap]
 }
 
-resource "google_project_iam_member" "meshconfig_service_agent" {
-  project = var.project_id
-  role    = "roles/meshconfig.serviceAgent"
-  member  = "serviceAccount:service-${data.google_project.current.number}@gcp-sa-meshconfig.iam.gserviceaccount.com"
-
-  depends_on = [module.project_bootstrap]
-}
-
 moved {
   from = terraform_data.flux_bootstrap[0]
   to   = terraform_data.flux_bootstrap
@@ -977,6 +955,5 @@ resource "terraform_data" "flux_bootstrap" {
 
   depends_on = [
     module.gke_autopilot,
-    module.cloud_service_mesh,
   ]
 }

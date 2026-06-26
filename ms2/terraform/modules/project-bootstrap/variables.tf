@@ -21,9 +21,6 @@ variable "api_services" {
     "identitytoolkit.googleapis.com",
     "logging.googleapis.com",
     "gkehub.googleapis.com",
-    "mesh.googleapis.com",
-    "meshca.googleapis.com",
-    "meshconfig.googleapis.com",
     "maps-backend.googleapis.com",
     "monitoring.googleapis.com",
     "servicenetworking.googleapis.com",
@@ -33,7 +30,6 @@ variable "api_services" {
     "routes.googleapis.com",
     "sqladmin.googleapis.com",
     "storage.googleapis.com",
-    "trafficdirector.googleapis.com",
   ]
 }
 
