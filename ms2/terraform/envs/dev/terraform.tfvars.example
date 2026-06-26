@@ -174,3 +174,5 @@ flux_bootstrap = {
 # tripplanning-platform-github-dispatch-token for platform-service tenant creation.
 # Prefer TF_VAR_platform_github_dispatch_token or an uncommitted secrets.auto.tfvars file.
 # platform_github_dispatch_token = "REPLACE_WITH_GITHUB_DISPATCH_TOKEN"
+
+# Google OAuth for Identity Platform google.com provider — use secrets.auto.tfvars (see secrets.auto.tfvars.example).

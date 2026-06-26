@@ -287,3 +287,13 @@ variable "enterprise_tenants" {
   description = "Enterprise tenant definitions."
   default     = {}
 }
+
+variable "google_oauth" {
+  type = object({
+    client_id     = string
+    client_secret = string
+    enabled       = optional(bool, true)
+  })
+  description = "Google OAuth Web client credentials for Identity Platform google.com provider. Set in secrets.auto.tfvars (gitignored)."
+  sensitive   = true
+}

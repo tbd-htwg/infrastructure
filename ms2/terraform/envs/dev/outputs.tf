@@ -150,6 +150,18 @@ output "identity_platform" {
   }
 }
 
+output "google_oauth_console_checklist" {
+  description = "OAuth Web client settings to verify in Google Auth Platform console (not Terraform-managed)."
+  sensitive   = true
+  value = {
+    client_id                     = var.google_oauth.client_id
+    authorized_javascript_origins = local.google_oauth_authorized_javascript_origins
+    authorized_redirect_uris      = ["https://${var.project_id}.firebaseapp.com/__/auth/handler"]
+    idp_managed_by_terraform      = var.google_oauth.enabled
+    oauth_client_secret           = "tripplanning-google-oauth-client-secret"
+  }
+}
+
 output "google_maps_browser" {
   description = "Browser-restricted Google Maps JavaScript and Routes API key configuration."
   value = {

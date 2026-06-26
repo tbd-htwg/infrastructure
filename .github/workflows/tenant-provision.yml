@@ -52,6 +52,8 @@ jobs:
       GCP_TERRAFORM_SERVICE_ACCOUNT: ${{ secrets.GCP_TERRAFORM_SERVICE_ACCOUNT }}
       FLUX_BOOTSTRAP_GIT_PASSWORD: ${{ secrets.FLUX_BOOTSTRAP_GIT_PASSWORD }}
       PLATFORM_GITHUB_DISPATCH_TOKEN: ${{ secrets.PLATFORM_GITHUB_DISPATCH_TOKEN }}
+      GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
+      GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
 
     steps:
       - name: Checkout
@@ -272,6 +274,15 @@ jobs:
         run: |
           set -euo pipefail
           terraform -chdir="${TF_DIR}" init -input=false
+
+          if [[ -z "${GOOGLE_OAUTH_CLIENT_ID}" || -z "${GOOGLE_OAUTH_CLIENT_SECRET}" ]]; then
+            echo "GOOGLE_OAUTH_CLIENT_ID and GOOGLE_OAUTH_CLIENT_SECRET must be set in gke-dev" >&2
+            exit 1
+          fi
+          export TF_VAR_google_oauth="$(jq -n \
+            --arg id "${GOOGLE_OAUTH_CLIENT_ID}" \
+            --arg secret "${GOOGLE_OAUTH_CLIENT_SECRET}" \
+            '{client_id:$id, client_secret:$secret, enabled:true}')"
 
           # Keep the existing load-balancer certificate attached while Certificate
           # Manager performs the asynchronous initial wildcard issuance.

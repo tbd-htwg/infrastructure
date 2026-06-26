@@ -16,6 +16,10 @@ Before a full plan/apply, provide `TF_VAR_platform_github_dispatch_token` if
 Terraform should create that Secret Manager version. The public infrastructure
 repository does not require `TF_VAR_flux_bootstrap_git_password`.
 
+For CI (`gke-dev` environment), set GitHub secrets `GOOGLE_OAUTH_CLIENT_ID` and
+`GOOGLE_OAUTH_CLIENT_SECRET` (see `secrets.auto.tfvars.example`). Workflows pass
+them as `TF_VAR_google_oauth` JSON. Locally, use gitignored `secrets.auto.tfvars`.
+
 ## Frontend TLS migration
 
 The frontend load balancer uses Certificate Manager DNS authorization and one certificate for `k8s.tbd-htwg.de`, `*.k8s.tbd-htwg.de`, and `*.enterprise.k8s.tbd-htwg.de`. Tenant creation therefore does not modify the certificate.

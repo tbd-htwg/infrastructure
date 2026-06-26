@@ -17,3 +17,9 @@ import {
   to = google_identity_platform_config.default
   id = "projects/${var.project_id}/config"
 }
+
+# Google OAuth provider was registered manually before Terraform owned Identity Platform.
+import {
+  to = google_identity_platform_default_supported_idp_config.google[0]
+  id = "projects/${var.project_id}/defaultSupportedIdpConfigs/google.com"
+}

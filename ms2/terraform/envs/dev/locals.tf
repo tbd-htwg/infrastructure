@@ -105,4 +105,15 @@ locals {
     "roles/storage.admin",
     "roles/datastore.owner",
   ])
+
+  google_oauth_authorized_javascript_origins = distinct(concat(
+    [
+      "http://localhost:5173",
+      "http://127.0.0.1:5173",
+      "https://${var.frontend.domain}",
+      "https://www.tbd-htwg.de",
+    ],
+    [for hostname in flatten([for tenant in values(var.standard_tenants) : tenant.hostnames]) : "https://${hostname}"],
+    [for hostname in flatten([for tenant in values(var.enterprise_tenants) : tenant.hostnames]) : "https://${hostname}"],
+  ))
 }

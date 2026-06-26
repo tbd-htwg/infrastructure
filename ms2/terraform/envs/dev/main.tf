@@ -47,6 +47,9 @@ module "project_bootstrap" {
     {
       name = "tripplanning-google-maps-browser-api-key"
     },
+    {
+      name = "tripplanning-google-oauth-client-secret"
+    },
   ]
 
   iam_bindings = {
@@ -199,6 +202,8 @@ resource "google_apikeys_key" "firebase_web" {
         "https://*.enterprise.${var.frontend.domain}/*",
         "https://${var.project_id}.firebaseapp.com/*",
         "https://${var.project_id}.web.app/*",
+        "http://localhost:5173/*",
+        "http://127.0.0.1:5173/*",
         "http://localhost:*/*",
         "http://127.0.0.1:*/*",
       ]
@@ -212,6 +217,31 @@ resource "google_apikeys_key" "firebase_web" {
   depends_on = [
     google_identity_platform_config.default,
     module.project_bootstrap,
+  ]
+}
+
+resource "google_secret_manager_secret_version" "google_oauth_client_secret" {
+  count       = var.google_oauth.enabled ? 1 : 0
+  project     = var.project_id
+  secret      = "projects/${var.project_id}/secrets/tripplanning-google-oauth-client-secret"
+  secret_data = var.google_oauth.client_secret
+
+  depends_on = [
+    module.project_bootstrap,
+  ]
+}
+
+resource "google_identity_platform_default_supported_idp_config" "google" {
+  count         = var.google_oauth.enabled ? 1 : 0
+  project       = var.project_id
+  idp_id        = "google.com"
+  client_id     = var.google_oauth.client_id
+  client_secret = var.google_oauth.client_secret
+  enabled       = true
+
+  depends_on = [
+    google_identity_platform_config.default,
+    google_secret_manager_secret_version.google_oauth_client_secret,
   ]
 }
 

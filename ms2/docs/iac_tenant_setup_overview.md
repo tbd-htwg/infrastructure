@@ -93,6 +93,13 @@ multi-tenancy, creates a browser/referrer-restricted API key for
 after Workload Identity authentication; do not maintain a separate copied
 Firebase key in GitHub.
 
+**Google OAuth:** the OAuth 2.0 Web application client is created once in Google
+Auth Platform (console). Terraform imports the project-level
+`google.com` Identity Platform provider (`google_identity_platform_default_supported_idp_config`)
+and stores the client secret in `tripplanning-google-oauth-client-secret`.
+Populate credentials in `secrets.auto.tfvars` (see `secrets.auto.tfvars.example`).
+Verify console JS origins and redirect URIs with `terraform output google_oauth_console_checklist`.
+
 `flux_bootstrap.manifest_dir` is relative to `terraform/envs/dev`; for this repository it should stay `../../../gitops/clusters/dev/flux-system`.
 
 ## Dev Cluster Capacity and Quotas
