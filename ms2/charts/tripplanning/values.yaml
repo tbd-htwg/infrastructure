@@ -169,6 +169,34 @@ services:
     bootstrap:
       waitForValkey: false
 
+  customfield:
+    enabled: false
+    name: customfield-service
+    image:
+      repository: ghcr.io/tbd-htwg/backend/tripplanning-customfield-service
+      tag: latest
+      pullPolicy: Always
+    port: 8084
+    replicas: 1
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "256Mi"
+      limits:
+        cpu: "500m"
+        memory: "512Mi"
+    env:
+      SPRING_PROFILES_ACTIVE: "cloud"
+      SERVER_PORT: "8084"
+      CORS_ALLOWED_ORIGINS: "https://k8s.tbd-htwg.de"
+      TRIPPLANNING_AUTH_FIREBASE_PROJECT_ID: ""
+      TRIPPLANNING_TRIP_SERVICE_URL: "http://trip-service:8080"
+      GCP_FIRESTORE_DATABASE_ID: "tbd-firestore"
+    secretRefs:
+      - customfield-service-secrets
+    livenessPath: /actuator/health/liveness
+    readinessPath: /actuator/health/readiness
+
 routes:
   - path: /api/v2/comments
     service: social-service

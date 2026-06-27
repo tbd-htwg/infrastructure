@@ -1,0 +1,81 @@
+{{- if .Values.services.customfield.enabled }}
+{{- $rollingUpdate := default dict .Values.services.customfield.rollingUpdate }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: customfield-service
+  labels:
+    {{- include "tripplanning.labels" . | nindent 4 }}
+    app.kubernetes.io/component: customfield-service
+spec:
+  replicas: {{ .Values.services.customfield.replicas }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: {{ default 0 $rollingUpdate.maxSurge }}
+      maxUnavailable: {{ default 1 $rollingUpdate.maxUnavailable }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: customfield-service
+      {{- include "tripplanning.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/customfield-config: {{ include (print $.Template.BasePath "/configmaps/customfield-configmap.yaml") . | sha256sum }}
+        traffic.sidecar.istio.io/excludeOutboundIPRanges: 169.254.169.254/32
+        traffic.sidecar.istio.io/excludeOutboundPorts: "5432,6379,9200"
+      labels:
+        app.kubernetes.io/component: customfield-service
+        {{- include "tripplanning.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- if .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+      {{- range .Values.global.imagePullSecrets }}
+        - name: {{ . }}
+      {{- end }}
+      {{- end }}
+      containers:
+        - name: customfield-service
+          image: "{{ .Values.services.customfield.image.repository }}:{{ .Values.services.customfield.image.tag }}"
+          imagePullPolicy: {{ .Values.services.customfield.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.services.customfield.port }}
+          envFrom:
+            - configMapRef:
+                name: customfield-service-config
+{{- range .Values.services.customfield.secretRefs }}
+            - secretRef:
+                name: {{ . }}
+{{- end }}
+          startupProbe:
+            httpGet:
+              path: {{ .Values.services.customfield.livenessPath }}
+              port: {{ .Values.services.customfield.port }}
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 24
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.services.customfield.readinessPath }}
+              port: {{ .Values.services.customfield.port }}
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 12
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.services.customfield.livenessPath }}
+              port: {{ .Values.services.customfield.port }}
+            initialDelaySeconds: 40
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 6
+          resources:
+            requests:
+              cpu: {{ .Values.services.customfield.resources.requests.cpu }}
+              memory: {{ .Values.services.customfield.resources.requests.memory }}
+            limits:
+              cpu: {{ .Values.services.customfield.resources.limits.cpu }}
+              memory: {{ .Values.services.customfield.resources.limits.memory }}
+{{- end }}

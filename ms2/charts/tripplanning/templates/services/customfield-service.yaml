@@ -1,0 +1,16 @@
+{{- if .Values.services.customfield.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: customfield-service
+  labels:
+    {{- include "tripplanning.labels" . | nindent 4 }}
+    app.kubernetes.io/component: customfield-service
+spec:
+  selector:
+    app.kubernetes.io/component: customfield-service
+    {{- include "tripplanning.selectorLabels" . | nindent 4 }}
+  ports:
+    - port: {{ .Values.services.customfield.port }}
+      targetPort: {{ .Values.services.customfield.port }}
+{{- end }}
