@@ -55,18 +55,18 @@ data:
             cpu: 200m
             memory: 128Mi
       trip:
-        replicas: 1
+        replicas: 3
         image:
           repository: ghcr.io/tbd-htwg/backend/tripplanning-trip-service
           tag: latest
           pullPolicy: Always
         resources:
           requests:
-            cpu: 100m
-            memory: 512Mi
+            cpu: 600m
+            memory: 768Mi
           limits:
-            cpu: 1000m
-            memory: 1Gi
+            cpu: 1500m
+            memory: 1536Mi
         env:
           CORS_ALLOWED_ORIGINS: https://redent.enterprise.k8s.tbd-htwg.de
           ELASTICSEARCH_HOSTS: opensearch-redent:9200
@@ -84,7 +84,7 @@ data:
           pullPolicy: Always
         resources:
           requests:
-            cpu: 50m
+            cpu: 200m
             memory: 384Mi
           limits:
             cpu: 750m
@@ -103,7 +103,7 @@ data:
           pullPolicy: Always
         resources:
           requests:
-            cpu: 50m
+            cpu: 150m
             memory: 256Mi
           limits:
             cpu: 500m
@@ -121,16 +121,16 @@ data:
       scaleUpStabilizationSeconds: 30
       scaleDownStabilizationSeconds: 300
       trip:
-        minReplicas: 1
+        minReplicas: 3
         maxReplicas: 4
         targetCPUUtilizationPercentage: 70
         targetMemoryUtilizationPercentage: 0
       social:
         minReplicas: 1
-        maxReplicas: 3
+        maxReplicas: 2
       externalInfo:
         minReplicas: 1
-        maxReplicas: 3
+        maxReplicas: 2
     backingServices:
       postgres:
         enabled: false
