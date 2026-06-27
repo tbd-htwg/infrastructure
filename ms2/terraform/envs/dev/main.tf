@@ -257,8 +257,9 @@ resource "google_secret_manager_secret_version" "firebase_web_api_key" {
 
 resource "google_apikeys_key" "google_maps_browser" {
   project      = var.project_id
-  name         = "tripplanning-google-maps-browser"
-  display_name = "Tripplanning browser Maps and Routes client"
+  # Rotated 2026-06-27; prior key id was tripplanning-google-maps-browser (expired).
+  name         = "2669c798-cc9a-4454-81e4-7d48af53218b"
+  display_name = "New Tripplanning browser Maps and Routes client"
 
   restrictions {
     browser_key_restrictions {
