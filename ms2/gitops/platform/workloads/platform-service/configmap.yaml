@@ -25,3 +25,5 @@ data:
   TRIPPLANNING_PLATFORM_GITHUB_DISPATCH_URL: "https://api.github.com/repos/tbd-htwg/infrastructure/dispatches"
   TRIPPLANNING_PLATFORM_OPENSEARCH_HOSTS: "opensearch.tripplanning-standard.svc.cluster.local:9200"
   TRIPPLANNING_TRIP_SERVICE_URL: "http://trip-service.tripplanning-free.svc.cluster.local:8080"
+  SPRING_CLOUD_GCP_STORAGE_BUCKET_NAME: "${GCP_PROJECT_ID}-images-bucket"
+  SPRING_CLOUD_GCP_IMPERSONATE_SERVICE_ACCOUNT: "tripplanning-image-url-sig@${GCP_PROJECT_ID}.iam.gserviceaccount.com"

@@ -446,6 +446,12 @@ resource "google_service_account_iam_member" "image_url_sig_token_creator" {
   member             = "serviceAccount:${module.project_bootstrap.service_account_emails["workload"]}"
 }
 
+resource "google_service_account_iam_member" "image_url_sig_token_creator_platform" {
+  service_account_id = "projects/${var.project_id}/serviceAccounts/${module.project_bootstrap.service_account_emails["image_url_sig"]}"
+  role               = "roles/iam.serviceAccountTokenCreator"
+  member             = "serviceAccount:${module.project_bootstrap.service_account_emails["platform-admin"]}"
+}
+
 module "kms" {
   source     = "../../modules/kms"
   project_id = var.project_id
