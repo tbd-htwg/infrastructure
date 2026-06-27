@@ -366,7 +366,13 @@ module "storage" {
       cors = [
         {
           origin = distinct(concat(
-            ["https://${var.frontend.domain}"],
+            [
+              "http://localhost:5173",
+              "http://127.0.0.1:5173",
+              "http://localhost:4173",
+              "http://127.0.0.1:4173",
+              "https://${var.frontend.domain}",
+            ],
             flatten([
               for tenant in values(var.standard_tenants) : [
                 for hostname in tenant.hostnames : "https://${hostname}"
@@ -374,7 +380,7 @@ module "storage" {
             ]),
           ))
           method          = ["GET", "HEAD", "OPTIONS", "PUT"]
-          response_header = ["Content-Type", "Authorization"]
+          response_header = ["Content-Type", "Authorization", "x-goog-resumable", "x-goog-meta-*"]
           max_age_seconds = 3600
         }
       ]
