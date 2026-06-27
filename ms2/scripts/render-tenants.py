@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import shutil
@@ -420,6 +421,8 @@ def render_enterprise_gitops(
     for tenant_id, tenant in tenants.items():
         project_id = tenant_project_id(tenant)
         tenant_dir = ENTERPRISE_GITOPS_DIR / tenant_id
+        values_yaml = render_enterprise_values(tenant_id, tenant, terraform_outputs)
+        values_checksum = hashlib.sha256(values_yaml.encode("utf-8")).hexdigest()
         resources.append(tenant_id)
         files = {
             "namespace.yaml": f"""apiVersion: v1
@@ -631,15 +634,19 @@ kind: ConfigMap
 metadata:
   name: tripplanning-enterprise-{tenant_id}-values
   namespace: {tenant["namespace"]}
+  labels:
+    reconcile.fluxcd.io/watch: Enabled
 data:
   values.yaml: |
-{chr(10).join(f"    {line}" if line else "" for line in render_enterprise_values(tenant_id, tenant, terraform_outputs).splitlines())}
+{chr(10).join(f"    {line}" if line else "" for line in values_yaml.splitlines())}
 """,
             "helmrelease.yaml": f"""apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
   name: tripplanning-enterprise-{tenant_id}
   namespace: {tenant["namespace"]}
+  annotations:
+    tripplanning.htwg.dev/values-checksum: {values_checksum}
 spec:
   interval: 10m
   chart:
