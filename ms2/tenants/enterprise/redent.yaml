@@ -61,6 +61,19 @@ services:
       requests:
         cpu: 50m
         memory: 256Mi
+  customfield:
+    enabled: true
+    image:
+      tag: latest
+      pullPolicy: Always
+    replicas: 1
+    resources:
+      limits:
+        cpu: 500m
+        memory: 512Mi
+      requests:
+        cpu: 50m
+        memory: 256Mi
 autoscaling:
   enabled: true
   trip:
@@ -70,5 +83,8 @@ autoscaling:
     minReplicas: 1
     maxReplicas: 2
   externalInfo:
+    minReplicas: 1
+    maxReplicas: 2
+  customfield:
     minReplicas: 1
     maxReplicas: 2

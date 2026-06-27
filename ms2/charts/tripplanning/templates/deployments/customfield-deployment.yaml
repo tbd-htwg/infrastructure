@@ -8,7 +8,7 @@ metadata:
     {{- include "tripplanning.labels" . | nindent 4 }}
     app.kubernetes.io/component: customfield-service
 spec:
-  replicas: {{ .Values.services.customfield.replicas }}
+  replicas: {{ include "tripplanning.customfieldReplicas" . }}
   strategy:
     type: RollingUpdate
     rollingUpdate:

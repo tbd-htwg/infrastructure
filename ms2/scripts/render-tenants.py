@@ -341,6 +341,14 @@ def render_enterprise_values(
                 "waitForValkey": True,
             },
         },
+        "customfield": {
+            "env": {
+                "CORS_ALLOWED_ORIGINS": cors_origins,
+                "TRIPPLANNING_AUTH_FIREBASE_PROJECT_ID": project_id,
+                "TRIPPLANNING_TRIP_SERVICE_URL": "http://trip-service:8080",
+                "GCP_FIRESTORE_DATABASE_ID": f"(default)-{tenant_id}",
+            },
+        },
     }
     merged_services = deep_merge(service_defaults, services)
     values = {
@@ -507,6 +515,34 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
+  name: allow-platform-customfield
+  namespace: {tenant["namespace"]}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/component: customfield-service
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: tripplanning-system
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: platform-service
+      ports:
+        - protocol: TCP
+          port: 8084
+    - from:
+        - podSelector: {{}}
+      ports:
+        - protocol: TCP
+          port: 8084
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
   name: allow-api-router-ingress
   namespace: {tenant["namespace"]}
 spec:
@@ -543,6 +579,8 @@ spec:
           port: 8081
         - protocol: TCP
           port: 8082
+        - protocol: TCP
+          port: 8084
 """,
             "external-secrets.yaml": f"""apiVersion: external-secrets.io/v1
 kind: ExternalSecret
@@ -634,6 +672,26 @@ spec:
     - secretKey: VIATOR_API_KEY
       remoteRef:
         key: tripplanning-viator-api-key
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: customfield-service-secrets
+  namespace: {tenant["namespace"]}
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: gcp-secret-manager
+    kind: ClusterSecretStore
+  target:
+    name: customfield-service-secrets
+  data:
+    - secretKey: TRIPPLANNING_AUTH_JWT_SECRET
+      remoteRef:
+        key: tripplanning-jwt-secret
+    - secretKey: TRIPPLANNING_INTERNAL_SECRET
+      remoteRef:
+        key: tripplanning-internal-secret
 """,
             "values-configmap.yaml": f"""apiVersion: v1
 kind: ConfigMap
