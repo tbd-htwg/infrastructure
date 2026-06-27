@@ -3,6 +3,8 @@ kind: ConfigMap
 metadata:
   name: tripplanning-enterprise-redent-values
   namespace: tripplanning-ent-redent
+  labels:
+    reconcile.fluxcd.io/watch: Enabled
 data:
   values.yaml: |
     global:
@@ -55,7 +57,7 @@ data:
             cpu: 200m
             memory: 128Mi
       trip:
-        replicas: 3
+        replicas: 1
         image:
           repository: ghcr.io/tbd-htwg/backend/tripplanning-trip-service
           tag: latest
@@ -84,7 +86,7 @@ data:
           pullPolicy: Always
         resources:
           requests:
-            cpu: 200m
+            cpu: 50m
             memory: 384Mi
           limits:
             cpu: 750m
@@ -103,7 +105,7 @@ data:
           pullPolicy: Always
         resources:
           requests:
-            cpu: 150m
+            cpu: 50m
             memory: 256Mi
           limits:
             cpu: 500m
@@ -121,8 +123,8 @@ data:
       scaleUpStabilizationSeconds: 30
       scaleDownStabilizationSeconds: 300
       trip:
-        minReplicas: 3
-        maxReplicas: 4
+        minReplicas: 1
+        maxReplicas: 2
         targetCPUUtilizationPercentage: 70
         targetMemoryUtilizationPercentage: 0
       social:

@@ -3,6 +3,8 @@ kind: HelmRelease
 metadata:
   name: tripplanning-enterprise-redent
   namespace: tripplanning-ent-redent
+  annotations:
+    tripplanning.htwg.dev/values-checksum: 9171b30fee5c398499250240066185c99a4e8d6a1f4286408031452121b691aa
 spec:
   interval: 10m
   chart:
