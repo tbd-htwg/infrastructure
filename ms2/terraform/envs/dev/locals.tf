@@ -8,6 +8,24 @@ locals {
     workload         = "workload@${var.project_id}.iam.gserviceaccount.com"
   }
   infra_terraform_service_account_email = "${var.infra_wif.service_account_name}@${var.project_id}.iam.gserviceaccount.com"
+
+  # Origins that upload branding icons via signed GCS URLs (main portal admin + tenant hosts).
+  storage_cors_platform_origins = distinct(concat(
+    [
+      "http://localhost:5173",
+      "http://127.0.0.1:5173",
+      "http://localhost:4173",
+      "http://127.0.0.1:4173",
+      "https://${var.frontend.domain}",
+      "http://${var.frontend.domain}",
+    ],
+    flatten([
+      for tenant in values(var.standard_tenants) : [
+        for hostname in tenant.hostnames : "https://${hostname}"
+      ]
+    ]),
+  ))
+
   standard_tenant_databases = {
     for tenant_id, tenant in var.standard_tenants : tenant_id => {
       name               = tenant.database.name
@@ -70,15 +88,10 @@ locals {
       force_destroy  = true
       cors = [
         {
-          origin = concat(
-            [
-              "http://localhost:5173",
-              "http://127.0.0.1:5173",
-              "http://localhost:4173",
-              "http://127.0.0.1:4173",
-            ],
+          origin = distinct(concat(
+            local.storage_cors_platform_origins,
             [for hostname in tenant.hostnames : "https://${hostname}"],
-          )
+          ))
           method          = ["GET", "HEAD", "OPTIONS", "PUT"]
           response_header = ["Content-Type", "Authorization", "x-goog-resumable", "x-goog-meta-*"]
           max_age_seconds = 3600
