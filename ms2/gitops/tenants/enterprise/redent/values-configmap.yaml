@@ -49,9 +49,6 @@ data:
     services:
       apiRouter:
         replicas: 1
-        rollingUpdate:
-          maxSurge: 1
-          maxUnavailable: 0
         resources:
           requests:
             cpu: 50m
@@ -61,9 +58,6 @@ data:
             memory: 128Mi
       trip:
         replicas: 1
-        rollingUpdate:
-          maxSurge: 1
-          maxUnavailable: 0
         image:
           repository: ghcr.io/tbd-htwg/backend/tripplanning-trip-service
           tag: latest
@@ -86,9 +80,6 @@ data:
           waitForSearch: true
       social:
         replicas: 1
-        rollingUpdate:
-          maxSurge: 1
-          maxUnavailable: 0
         image:
           repository: ghcr.io/tbd-htwg/backend/tripplanning-social-service
           tag: latest
@@ -108,9 +99,6 @@ data:
           waitForValkey: true
       externalInfo:
         replicas: 1
-        rollingUpdate:
-          maxSurge: 1
-          maxUnavailable: 0
         image:
           repository: ghcr.io/tbd-htwg/backend/tripplanning-external-info-service
           tag: latest
@@ -127,6 +115,35 @@ data:
           SPRING_DATA_REDIS_HOST: valkey
         bootstrap:
           waitForValkey: true
+      customfield:
+        enabled: true
+        port: 8084
+        replicas: 1
+        rollingUpdate:
+          maxSurge: 1
+          maxUnavailable: 0
+        image:
+          repository: ghcr.io/tbd-htwg/backend/tripplanning-customfield-service
+          tag: latest
+          pullPolicy: Always
+        resources:
+          requests:
+            cpu: 50m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        env:
+          SPRING_PROFILES_ACTIVE: cloud
+          SERVER_PORT: '8084'
+          CORS_ALLOWED_ORIGINS: https://redent.enterprise.k8s.tbd-htwg.de
+          TRIPPLANNING_AUTH_FIREBASE_PROJECT_ID: tbd-cloudappdev
+          TRIPPLANNING_TRIP_SERVICE_URL: http://trip-service:8080
+          GCP_FIRESTORE_DATABASE_ID: (default)-redent
+        secretRefs:
+        - customfield-service-secrets
+        livenessPath: /actuator/health/liveness
+        readinessPath: /actuator/health/readiness
     autoscaling:
       enabled: true
       minReplicas: 1
@@ -143,6 +160,9 @@ data:
         minReplicas: 1
         maxReplicas: 2
       externalInfo:
+        minReplicas: 1
+        maxReplicas: 2
+      customfield:
         minReplicas: 1
         maxReplicas: 2
     backingServices:

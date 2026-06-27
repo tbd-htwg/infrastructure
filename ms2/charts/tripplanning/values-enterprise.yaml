@@ -81,6 +81,31 @@ services:
       limits:
         cpu: "500m"
         memory: "512Mi"
+  customfield:
+    enabled: false
+    port: 8084
+    replicas: 1
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+    image:
+      repository: ghcr.io/tbd-htwg/backend/tripplanning-customfield-service
+      tag: latest
+      pullPolicy: Always
+    resources:
+      requests:
+        cpu: "50m"
+        memory: "256Mi"
+      limits:
+        cpu: "500m"
+        memory: "512Mi"
+    env:
+      SPRING_PROFILES_ACTIVE: "cloud"
+      SERVER_PORT: "8084"
+    secretRefs:
+      - customfield-service-secrets
+    livenessPath: /actuator/health/liveness
+    readinessPath: /actuator/health/readiness
 
 autoscaling:
   enabled: true
@@ -98,6 +123,9 @@ autoscaling:
     minReplicas: 1
     maxReplicas: 3
   externalInfo:
+    minReplicas: 1
+    maxReplicas: 3
+  customfield:
     minReplicas: 1
     maxReplicas: 3
 

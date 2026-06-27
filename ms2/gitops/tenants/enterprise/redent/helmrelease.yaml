@@ -4,7 +4,7 @@ metadata:
   name: tripplanning-enterprise-redent
   namespace: tripplanning-ent-redent
   annotations:
-    tripplanning.htwg.dev/values-checksum: 9171b30fee5c398499250240066185c99a4e8d6a1f4286408031452121b691aa
+    tripplanning.htwg.dev/values-checksum: ea083e282bceab8e32ff58af6879dd224f29f08fb280deddb2413212870aa7b7
 spec:
   interval: 10m
   chart:

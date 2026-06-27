@@ -207,7 +207,10 @@ jobs:
               tenant = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
               profile = yaml.safe_load(resource_profile_raw) or {}
               services = profile.get("services") or {}
-              for name in ("trip", "social", "externalInfo"):
+              service_names = ["trip", "social", "externalInfo"]
+              if "customfield" in (tenant.get("services") or {}):
+                  service_names.append("customfield")
+              for name in service_names:
                   service = services.get(name) or {}
                   tenant.setdefault("services", {}).setdefault(name, {})
                   tenant["services"][name]["replicas"] = service["replicas"]
@@ -220,8 +223,10 @@ jobs:
                   "social": {},
                   "externalInfo": {},
               }
+              if "customfield" in service_names:
+                  tenant["autoscaling"]["customfield"] = {}
               if autoscaling_enabled:
-                  for name in ("trip", "social", "externalInfo"):
+                  for name in service_names:
                       service = services[name]
                       tenant["autoscaling"][name] = {
                           "minReplicas": service["minReplicas"],
@@ -277,6 +282,10 @@ jobs:
                       "social": {"image": {"tag": image_tag, "pullPolicy": "Always"}},
                       "externalInfo": {"image": {"tag": image_tag, "pullPolicy": "Always"}},
                   }
+                  if "customfield" in (tenant.get("services") or {}):
+                      tenant["services"]["customfield"] = {
+                          "image": {"tag": image_tag, "pullPolicy": "Always"}
+                      }
 
           Path(os.environ["TENANT_PATH"]).write_text(yaml.safe_dump(tenant, sort_keys=False), encoding="utf-8")
           PY

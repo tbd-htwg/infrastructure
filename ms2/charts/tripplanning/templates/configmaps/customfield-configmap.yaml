@@ -1,0 +1,16 @@
+{{- if .Values.services.customfield.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: customfield-service-config
+  labels:
+    {{- include "tripplanning.labels" . | nindent 4 }}
+    app.kubernetes.io/component: customfield-service
+data:
+{{- range $key, $value := .Values.services.customfield.env }}
+  {{ $key }}: {{ $value | quote }}
+{{- end }}
+  TRIPPLANNING_TIER: {{ .Values.global.tier | quote }}
+  TRIPPLANNING_TENANT_ID: {{ .Values.global.tenantId | quote }}
+  TRIPPLANNING_AUTH_IDENTITY_PLATFORM_TENANT_ID: {{ .Values.global.identityPlatform.tenantId | quote }}
+{{- end }}

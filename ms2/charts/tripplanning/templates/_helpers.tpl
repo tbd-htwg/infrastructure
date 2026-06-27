@@ -112,3 +112,27 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{ .Values.autoscaling.maxReplicas }}
 {{- end -}}
 {{- end -}}
+
+{{- define "tripplanning.customfieldReplicas" -}}
+{{- if and .Values.autoscaling.enabled .Values.services.customfield.enabled -}}
+{{ include "tripplanning.customfieldAutoscalingMinReplicas" . }}
+{{- else -}}
+{{ .Values.services.customfield.replicas }}
+{{- end -}}
+{{- end -}}
+
+{{- define "tripplanning.customfieldAutoscalingMinReplicas" -}}
+{{- if .Values.autoscaling.customfield.minReplicas -}}
+{{ .Values.autoscaling.customfield.minReplicas }}
+{{- else -}}
+{{ .Values.autoscaling.minReplicas }}
+{{- end -}}
+{{- end -}}
+
+{{- define "tripplanning.customfieldAutoscalingMaxReplicas" -}}
+{{- if .Values.autoscaling.customfield.maxReplicas -}}
+{{ .Values.autoscaling.customfield.maxReplicas }}
+{{- else -}}
+{{ .Values.autoscaling.maxReplicas }}
+{{- end -}}
+{{- end -}}
