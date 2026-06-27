@@ -11,8 +11,8 @@ spec:
   strategy:
     type: RollingUpdate
     rollingUpdate:
-      maxSurge: {{ default 0 $rollingUpdate.maxSurge }}
-      maxUnavailable: {{ default 1 $rollingUpdate.maxUnavailable }}
+      maxSurge: {{- if hasKey $rollingUpdate "maxSurge" }} {{ $rollingUpdate.maxSurge }}{{- else }} 1{{- end }}
+      maxUnavailable: {{- if hasKey $rollingUpdate "maxUnavailable" }} {{ $rollingUpdate.maxUnavailable }}{{- else }} 0{{- end }}
   selector:
     matchLabels:
       app.kubernetes.io/component: api-router

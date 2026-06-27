@@ -15,6 +15,9 @@ data:
     services:
       apiRouter:
         replicas: 2
+        rollingUpdate:
+          maxSurge: 1
+          maxUnavailable: 0
       trip:
         replicas: 1
         image:
@@ -30,8 +33,8 @@ data:
             memory: "1024Mi"
         terminationGracePeriodSeconds: 60
         rollingUpdate:
-          maxSurge: 0
-          maxUnavailable: 1
+          maxSurge: 1
+          maxUnavailable: 0
         bootstrap:
           waitForValkey: true
           waitForSearch: true
@@ -44,6 +47,9 @@ data:
           GCP_IMPERSONATE_SERVICE_ACCOUNT: "tripplanning-image-url-sig@${GCP_PROJECT_ID}.iam.gserviceaccount.com"
       social:
         replicas: 1
+        rollingUpdate:
+          maxSurge: 1
+          maxUnavailable: 0
         image:
           repository: ghcr.io/tbd-htwg/backend/tripplanning-social-service
           tag: latest
@@ -63,6 +69,9 @@ data:
           TRIPPLANNING_CACHE_REDIS_TTL_SECONDS: "30"
       externalInfo:
         replicas: 1
+        rollingUpdate:
+          maxSurge: 1
+          maxUnavailable: 0
         image:
           repository: ghcr.io/tbd-htwg/backend/tripplanning-external-info-service
           tag: latest

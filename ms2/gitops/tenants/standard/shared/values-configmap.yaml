@@ -37,13 +37,13 @@ data:
       apiRouter:
         replicas: 1
         rollingUpdate:
-          maxSurge: 0
-          maxUnavailable: 1
+          maxSurge: 1
+          maxUnavailable: 0
       trip:
         replicas: 1
         rollingUpdate:
-          maxSurge: 0
-          maxUnavailable: 1
+          maxSurge: 1
+          maxUnavailable: 0
         resources:
           requests:
             cpu: "250m"
@@ -64,8 +64,8 @@ data:
       social:
         replicas: 1
         rollingUpdate:
-          maxSurge: 0
-          maxUnavailable: 1
+          maxSurge: 1
+          maxUnavailable: 0
         resources:
           requests:
             cpu: "150m"
@@ -81,8 +81,8 @@ data:
       externalInfo:
         replicas: 1
         rollingUpdate:
-          maxSurge: 0
-          maxUnavailable: 1
+          maxSurge: 1
+          maxUnavailable: 0
         resources:
           requests:
             cpu: "100m"
@@ -101,8 +101,8 @@ data:
         serviceName: valkey
         image: valkey/valkey:8-alpine
         rollingUpdate:
-          maxSurge: 0
-          maxUnavailable: 1
+          maxSurge: 1
+          maxUnavailable: 0
         resources:
           requests:
             cpu: "25m"
