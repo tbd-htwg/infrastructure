@@ -158,6 +158,10 @@ def load_balancer_ip(tier: str, tenant_id: str, terraform_outputs: dict[str, Any
     return terraform_outputs.get("standard_load_balancer_ip", {}).get("value", "")
 
 
+def firestore_database_id(terraform_outputs: dict[str, Any]) -> str:
+    return terraform_outputs.get("firestore_database_id", {}).get("value") or "tbd-firestore"
+
+
 def deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
     merged = dict(base)
     for key, value in override.items():
@@ -346,7 +350,7 @@ def render_enterprise_values(
                 "CORS_ALLOWED_ORIGINS": cors_origins,
                 "TRIPPLANNING_AUTH_FIREBASE_PROJECT_ID": project_id,
                 "TRIPPLANNING_TRIP_SERVICE_URL": "http://trip-service:8080",
-                "GCP_FIRESTORE_DATABASE_ID": f"(default)-{tenant_id}",
+                "GCP_FIRESTORE_DATABASE_ID": firestore_database_id(terraform_outputs),
             },
         },
     }
