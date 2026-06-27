@@ -537,6 +537,12 @@ spec:
       ports:
         - protocol: TCP
           port: 15020
+        - protocol: TCP
+          port: 8080
+        - protocol: TCP
+          port: 8081
+        - protocol: TCP
+          port: 8082
 """,
             "external-secrets.yaml": f"""apiVersion: external-secrets.io/v1
 kind: ExternalSecret

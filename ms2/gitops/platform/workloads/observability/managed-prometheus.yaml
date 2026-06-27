@@ -1,6 +1,63 @@
 apiVersion: monitoring.googleapis.com/v1
 kind: ClusterPodMonitoring
 metadata:
+  name: tripplanning-trip-service
+  labels:
+    app.kubernetes.io/name: tripplanning-trip-service
+    app.kubernetes.io/part-of: tripplanning
+spec:
+  selector:
+    matchExpressions:
+      - key: app.kubernetes.io/component
+        operator: In
+        values:
+          - trip-service
+  endpoints:
+    - port: 8080
+      path: /actuator/prometheus
+      interval: 30s
+---
+apiVersion: monitoring.googleapis.com/v1
+kind: ClusterPodMonitoring
+metadata:
+  name: tripplanning-social-service
+  labels:
+    app.kubernetes.io/name: tripplanning-social-service
+    app.kubernetes.io/part-of: tripplanning
+spec:
+  selector:
+    matchExpressions:
+      - key: app.kubernetes.io/component
+        operator: In
+        values:
+          - social-service
+  endpoints:
+    - port: 8081
+      path: /actuator/prometheus
+      interval: 30s
+---
+apiVersion: monitoring.googleapis.com/v1
+kind: ClusterPodMonitoring
+metadata:
+  name: tripplanning-external-info-service
+  labels:
+    app.kubernetes.io/name: tripplanning-external-info-service
+    app.kubernetes.io/part-of: tripplanning
+spec:
+  selector:
+    matchExpressions:
+      - key: app.kubernetes.io/component
+        operator: In
+        values:
+          - external-info-service
+  endpoints:
+    - port: 8082
+      path: /actuator/prometheus
+      interval: 30s
+---
+apiVersion: monitoring.googleapis.com/v1
+kind: ClusterPodMonitoring
+metadata:
   name: tripplanning-mesh-proxies
   labels:
     app.kubernetes.io/name: tripplanning-mesh-proxies

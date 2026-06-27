@@ -25,6 +25,13 @@ spec:
         traffic.sidecar.istio.io/excludeOutboundPorts: "5432,6379,9200"
       labels:
         app.kubernetes.io/component: trip-service
+        app.kubernetes.io/name: {{ include "tripplanning.name" . }}
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/part-of: tripplanning
+        tripplanning.htwg.dev/tier: {{ .Values.global.tier }}
+        {{- if .Values.global.tenantId }}
+        tripplanning.htwg.dev/tenant-id: {{ .Values.global.tenantId }}
+        {{- end }}
         {{- include "tripplanning.selectorLabels" . | nindent 8 }}
     spec:
       terminationGracePeriodSeconds: {{ .Values.services.trip.terminationGracePeriodSeconds | default 30 }}
@@ -48,7 +55,8 @@ spec:
           image: "{{ .Values.services.trip.image.repository }}:{{ .Values.services.trip.image.tag }}"
           imagePullPolicy: {{ .Values.services.trip.image.pullPolicy }}
           ports:
-            - containerPort: {{ .Values.services.trip.port }}
+            - name: http
+              containerPort: {{ .Values.services.trip.port }}
           envFrom:
             - configMapRef:
                 name: trip-service-config
