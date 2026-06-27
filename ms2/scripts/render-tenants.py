@@ -392,6 +392,7 @@ def render_enterprise_values(
             },
         },
         "services": merged_services,
+        "autoscaling": deep_merge(enterprise_defaults.get("autoscaling", {}), tenant.get("autoscaling", {})),
         "backingServices": {
             "postgres": {"enabled": False},
             "opensearch": {

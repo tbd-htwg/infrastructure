@@ -5,6 +5,7 @@ on:
     types:
       - tenant-created-standard
       - tenant-created-enterprise
+      - tenant-updated-enterprise-resources
   workflow_dispatch:
     inputs:
       slug:
@@ -69,6 +70,7 @@ jobs:
           REQUEST_COLOR_SCHEME: ${{ github.event.client_payload.colorScheme || inputs.colorScheme || 'default' }}
           REQUEST_IDENTITY_PLATFORM_TENANT_ID: ${{ github.event.client_payload.identityPlatformTenantId || '' }}
           REQUEST_IMAGE_TAG: ${{ github.event.client_payload.imageTag || inputs.imageTag || '' }}
+          REQUEST_RESOURCE_PROFILE: ${{ toJson(github.event.client_payload.resourceProfile) }}
           REQUEST_ACTION: ${{ github.event.action || '' }}
         run: |
           set -euo pipefail
@@ -79,11 +81,13 @@ jobs:
           color_scheme="${REQUEST_COLOR_SCHEME}"
           identity_platform_tenant_id="${REQUEST_IDENTITY_PLATFORM_TENANT_ID}"
           image_tag="${REQUEST_IMAGE_TAG}"
+          resource_profile="${REQUEST_RESOURCE_PROFILE}"
 
           if [[ -z "${tier}" && "${GITHUB_EVENT_NAME}" == "repository_dispatch" ]]; then
             case "${REQUEST_ACTION}" in
               tenant-created-standard) tier="STANDARD" ;;
               tenant-created-enterprise) tier="ENTERPRISE" ;;
+              tenant-updated-enterprise-resources) tier="ENTERPRISE" ;;
             esac
           fi
 
@@ -115,6 +119,19 @@ jobs:
           echo "color_scheme=${color_scheme}" >> "$GITHUB_OUTPUT"
           echo "identity_platform_tenant_id=${identity_platform_tenant_id:-}" >> "$GITHUB_OUTPUT"
           echo "image_tag=${image_tag:-}" >> "$GITHUB_OUTPUT"
+          if [[ "${REQUEST_ACTION}" == "tenant-updated-enterprise-resources" ]]; then
+            echo "resource_update=true" >> "$GITHUB_OUTPUT"
+            if [[ "${tier}" != "ENTERPRISE" ]]; then
+              echo "Resource updates are only supported for Enterprise tenants" >&2
+              exit 1
+            fi
+            if [[ -z "${resource_profile}" || "${resource_profile}" == "null" ]]; then
+              echo "resourceProfile is required for Enterprise resource updates" >&2
+              exit 1
+            fi
+          else
+            echo "resource_update=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Install renderer dependencies
         run: python3 -m pip install pyyaml
@@ -128,6 +145,8 @@ jobs:
           TENANT_COLOR_SCHEME: ${{ steps.payload.outputs.color_scheme }}
           TENANT_IDENTITY_PLATFORM_TENANT_ID: ${{ steps.payload.outputs.identity_platform_tenant_id }}
           TENANT_IMAGE_TAG: ${{ steps.payload.outputs.image_tag }}
+          TENANT_RESOURCE_UPDATE: ${{ steps.payload.outputs.resource_update }}
+          TENANT_RESOURCE_PROFILE: ${{ toJson(github.event.client_payload.resourceProfile) }}
           TENANT_PROJECT_ID: ${{ env.GCP_PROJECT_ID }}
         run: |
           set -euo pipefail
@@ -139,7 +158,7 @@ jobs:
             mkdir -p "${MS2_DIR}/tenants/standard"
             tenant_path="${MS2_DIR}/tenants/standard/${slug}.yaml"
           else
-            if [[ -z "${project_id}" ]]; then
+            if [[ "${TENANT_RESOURCE_UPDATE}" != "true" && -z "${project_id}" ]]; then
               echo "GCP_PROJECT_ID repo/environment variable is required for Enterprise tenants" >&2
               exit 1
             fi
@@ -161,6 +180,8 @@ jobs:
           color_scheme = os.environ["TENANT_COLOR_SCHEME"]
           identity_platform_tenant_id = os.environ["TENANT_IDENTITY_PLATFORM_TENANT_ID"]
           image_tag = os.environ["TENANT_IMAGE_TAG"]
+          resource_update = os.environ["TENANT_RESOURCE_UPDATE"] == "true"
+          resource_profile_raw = os.environ["TENANT_RESOURCE_PROFILE"]
           project_id = os.environ["TENANT_PROJECT_ID"]
 
           def identity_display_name(value: str) -> str:
@@ -179,7 +200,34 @@ jobs:
           if identity_platform_tenant_id:
               identity["tenantId"] = identity_platform_tenant_id
 
-          if tier == "STANDARD":
+          if resource_update:
+              path = Path(os.environ["TENANT_PATH"])
+              if not path.exists():
+                  raise SystemExit(f"Enterprise tenant definition not found: {path}")
+              tenant = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+              profile = yaml.safe_load(resource_profile_raw) or {}
+              services = profile.get("services") or {}
+              for name in ("trip", "social", "externalInfo"):
+                  service = services.get(name) or {}
+                  tenant.setdefault("services", {}).setdefault(name, {})
+                  tenant["services"][name]["replicas"] = service["replicas"]
+                  tenant["services"][name]["resources"] = service["resources"]
+
+              autoscaling_enabled = bool(profile.get("autoscalingEnabled"))
+              tenant["autoscaling"] = {
+                  "enabled": autoscaling_enabled,
+                  "trip": {},
+                  "social": {},
+                  "externalInfo": {},
+              }
+              if autoscaling_enabled:
+                  for name in ("trip", "social", "externalInfo"):
+                      service = services[name]
+                      tenant["autoscaling"][name] = {
+                          "minReplicas": service["minReplicas"],
+                          "maxReplicas": service["maxReplicas"],
+                      }
+          elif tier == "STANDARD":
               tenant = {
                   "tenantId": slug,
                   "tier": "standard",
@@ -359,7 +407,11 @@ jobs:
 
           echo "Committing generated tenant files:"
           git diff --cached --name-status
-          git commit -m "Provision tenant ${{ steps.payload.outputs.slug }}"
+          if [[ "${{ steps.payload.outputs.resource_update }}" == "true" ]]; then
+            git commit -m "Update tenant ${{ steps.payload.outputs.slug }} resources"
+          else
+            git commit -m "Provision tenant ${{ steps.payload.outputs.slug }}"
+          fi
           git push
           echo "revision=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
@@ -471,6 +523,11 @@ jobs:
           done
           curl --fail --silent --show-error --max-time 10 \
             "${tenant_url}/api/v2/tenants/${slug}/public-config" >/dev/null
+
+          if [[ "${{ steps.payload.outputs.resource_update }}" == "true" ]]; then
+            echo "Enterprise resource update completed."
+            exit 0
+          fi
 
           if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
             echo "Manual workflow dispatch completed infrastructure provisioning."
