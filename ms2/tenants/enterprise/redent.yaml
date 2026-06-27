@@ -1,0 +1,39 @@
+tenantId: redent
+tier: enterprise
+projectId: tbd-cloudappdev
+namespace: tripplanning-ent-redent
+hostnames:
+- redent.enterprise.k8s.tbd-htwg.de
+identityPlatform:
+  displayName: redent
+  emailPasswordEnabled: true
+  mfaEnabled: true
+  tenantId: redent-iw5b2
+frontend:
+  bucketPrefix: enterprise/redent
+  brandName: Red Enterprise
+  colorScheme: default
+  brandIcon: assets/brand-icon.png
+database:
+  cloudSqlInstance: tripplanning-ent-redent
+  databaseName: tripplanning
+  userName: tripplanning_app
+storage:
+  imageBucketName: tbd-cloudappdev-redent-images-bucket
+search:
+  releaseName: opensearch-redent
+cache:
+  dedicated: true
+services:
+  trip:
+    image:
+      tag: latest
+      pullPolicy: Always
+  social:
+    image:
+      tag: latest
+      pullPolicy: Always
+  externalInfo:
+    image:
+      tag: latest
+      pullPolicy: Always
