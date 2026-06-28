@@ -1,35 +1,35 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: tripplanning-enterprise-one-cloud-away-values
-  namespace: tripplanning-ent-one-cloud-away
+  name: tripplanning-enterprise-ente-values
+  namespace: tripplanning-ent-ente
   labels:
     reconcile.fluxcd.io/watch: Enabled
 data:
   values.yaml: |
     global:
       tier: enterprise
-      tenantId: one-cloud-away
+      tenantId: ente
       hostnames:
-      - one-cloud-away.enterprise.k8s.tbd-htwg.de
+      - ente.enterprise.k8s.tbd-htwg.de
       identityPlatform:
-        tenantId: one-cloud-away-2kv19
+        tenantId: ente-z3ndn
       frontend:
         bucketName: tbd-cloudappdev-frontend-bucket
-        bucketPrefix: enterprise/one-cloud-away
-        brandName: One Cloud Away
+        bucketPrefix: enterprise/ente
+        brandName: EntePrise
         colorScheme: default
         brandIcon: assets/brand-icon.png
       storage:
-        imagesBucketName: tbd-cloudappdev-one-cloud-away-images-bucket
+        imagesBucketName: tbd-cloudappdev-ente-images-bucket
         imagesPrefix: ''
       search:
-        indexName: tripentity-one-cloud-away
+        indexName: tripentity-ente
       cache:
-        keyPrefix: ent:one-cloud-away
+        keyPrefix: ent:ente
       cloudSql:
         enabled: true
-        connectionName: tbd-cloudappdev:europe-west1:tripplanning-ent-one-cloud-away
+        connectionName: tbd-cloudappdev:europe-west1:tripplanning-ent-ente
         databaseName: tripplanning
         userName: tripplanning_app
       imagePullSecrets:
@@ -38,13 +38,13 @@ data:
       mode: enterprise
       enforceKnownHosts: true
       tenants:
-      - tenantId: one-cloud-away
-        identityPlatformTenantId: one-cloud-away-2kv19
+      - tenantId: ente
+        identityPlatformTenantId: ente-z3ndn
         hostnames:
-        - one-cloud-away.enterprise.k8s.tbd-htwg.de
+        - ente.enterprise.k8s.tbd-htwg.de
       loadBalancer:
         enabled: true
-        ip: 34.78.67.127
+        ip: 34.62.209.64
         externalTrafficPolicy: Cluster
     services:
       apiRouter:
@@ -70,8 +70,8 @@ data:
             cpu: 1000m
             memory: 1Gi
         env:
-          CORS_ALLOWED_ORIGINS: https://one-cloud-away.enterprise.k8s.tbd-htwg.de
-          ELASTICSEARCH_HOSTS: opensearch-one-cloud-away:9200
+          CORS_ALLOWED_ORIGINS: https://ente.enterprise.k8s.tbd-htwg.de
+          ELASTICSEARCH_HOSTS: opensearch-ente:9200
           TRIPPLANNING_AUTH_FIREBASE_PROJECT_ID: tbd-cloudappdev
           GCP_IMPERSONATE_SERVICE_ACCOUNT: tripplanning-image-url-sig@tbd-cloudappdev.iam.gserviceaccount.com
           TRIPPLANNING_PLATFORM_BASE_URL: http://platform-service.tripplanning-system:8083
@@ -92,7 +92,7 @@ data:
             cpu: 750m
             memory: 768Mi
         env:
-          CORS_ALLOWED_ORIGINS: https://one-cloud-away.enterprise.k8s.tbd-htwg.de
+          CORS_ALLOWED_ORIGINS: https://ente.enterprise.k8s.tbd-htwg.de
           TRIPPLANNING_AUTH_FIREBASE_PROJECT_ID: tbd-cloudappdev
           SPRING_DATA_REDIS_HOST: valkey
         bootstrap:
@@ -111,7 +111,7 @@ data:
             cpu: 500m
             memory: 512Mi
         env:
-          CORS_ALLOWED_ORIGINS: https://one-cloud-away.enterprise.k8s.tbd-htwg.de
+          CORS_ALLOWED_ORIGINS: https://ente.enterprise.k8s.tbd-htwg.de
           SPRING_DATA_REDIS_HOST: valkey
         bootstrap:
           waitForValkey: true
@@ -136,7 +136,7 @@ data:
         env:
           SPRING_PROFILES_ACTIVE: cloud
           SERVER_PORT: '8084'
-          CORS_ALLOWED_ORIGINS: https://one-cloud-away.enterprise.k8s.tbd-htwg.de
+          CORS_ALLOWED_ORIGINS: https://ente.enterprise.k8s.tbd-htwg.de
           TRIPPLANNING_AUTH_FIREBASE_PROJECT_ID: tbd-cloudappdev
           TRIPPLANNING_TRIP_SERVICE_URL: http://trip-service:8080
           GCP_FIRESTORE_DATABASE_ID: tbd-firestore
@@ -170,7 +170,7 @@ data:
         enabled: false
       opensearch:
         enabled: true
-        serviceName: opensearch-one-cloud-away
+        serviceName: opensearch-ente
         javaOpts: -Xms384m -Xmx384m
         storageSize: 2Gi
         resources:

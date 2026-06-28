@@ -1,10 +1,10 @@
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
-  name: tripplanning-enterprise-one-cloud-away
-  namespace: tripplanning-ent-one-cloud-away
+  name: tripplanning-enterprise-ente
+  namespace: tripplanning-ent-ente
   annotations:
-    tripplanning.htwg.dev/values-checksum: c648ae7c0f13420fdad975638bc0284576e827837c352630c049aabc3bcbc141
+    tripplanning.htwg.dev/values-checksum: d2695d68e3e09dbf4964b680a0ff7cb201cadc6179cbe3b82285fd25eb39ee4d
 spec:
   interval: 10m
   chart:
@@ -18,5 +18,5 @@ spec:
       interval: 1m
   valuesFrom:
     - kind: ConfigMap
-      name: tripplanning-enterprise-one-cloud-away-values
+      name: tripplanning-enterprise-ente-values
       valuesKey: values.yaml
