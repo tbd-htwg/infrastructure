@@ -37,3 +37,8 @@ services:
     image:
       tag: latest
       pullPolicy: Always
+  customfield:
+    enabled: true
+    image:
+      tag: latest
+      pullPolicy: Always

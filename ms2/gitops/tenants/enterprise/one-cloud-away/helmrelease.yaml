@@ -4,7 +4,7 @@ metadata:
   name: tripplanning-enterprise-one-cloud-away
   namespace: tripplanning-ent-one-cloud-away
   annotations:
-    tripplanning.htwg.dev/values-checksum: 67ce98946a37f1f77eb31773b6e7946dc95c66c140cde4793b734923000eb2f6
+    tripplanning.htwg.dev/values-checksum: 1a6f79dc1ca85f1f0285e414f3c7cf01e2a2e39623ccefc01f6e7c96cb9e232a
 spec:
   interval: 10m
   chart:

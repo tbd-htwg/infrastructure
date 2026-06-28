@@ -82,7 +82,7 @@ services:
         cpu: "500m"
         memory: "512Mi"
   customfield:
-    enabled: false
+    enabled: true
     port: 8084
     replicas: 1
     rollingUpdate:

@@ -207,9 +207,7 @@ jobs:
               tenant = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
               profile = yaml.safe_load(resource_profile_raw) or {}
               services = profile.get("services") or {}
-              service_names = ["trip", "social", "externalInfo"]
-              if "customfield" in (tenant.get("services") or {}):
-                  service_names.append("customfield")
+              service_names = ["trip", "social", "externalInfo", "customfield"]
               for name in service_names:
                   service = services.get(name) or {}
                   tenant.setdefault("services", {}).setdefault(name, {})
@@ -222,9 +220,8 @@ jobs:
                   "trip": {},
                   "social": {},
                   "externalInfo": {},
+                  "customfield": {},
               }
-              if "customfield" in service_names:
-                  tenant["autoscaling"]["customfield"] = {}
               if autoscaling_enabled:
                   for name in service_names:
                       service = services[name]
@@ -275,17 +272,20 @@ jobs:
                   "storage": {"imageBucketName": f"{project_id}-{slug}-images-bucket"},
                   "search": {"releaseName": f"opensearch-{slug}"},
                   "cache": {"dedicated": True},
+                  "services": {
+                      "customfield": {"enabled": True},
+                  },
               }
               if image_tag:
                   tenant["services"] = {
                       "trip": {"image": {"tag": image_tag, "pullPolicy": "Always"}},
                       "social": {"image": {"tag": image_tag, "pullPolicy": "Always"}},
                       "externalInfo": {"image": {"tag": image_tag, "pullPolicy": "Always"}},
+                      "customfield": {
+                          "enabled": True,
+                          "image": {"tag": image_tag, "pullPolicy": "Always"},
+                      },
                   }
-                  if "customfield" in (tenant.get("services") or {}):
-                      tenant["services"]["customfield"] = {
-                          "image": {"tag": image_tag, "pullPolicy": "Always"}
-                      }
 
           Path(os.environ["TENANT_PATH"]).write_text(yaml.safe_dump(tenant, sort_keys=False), encoding="utf-8")
           PY

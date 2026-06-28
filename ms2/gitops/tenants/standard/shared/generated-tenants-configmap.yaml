@@ -18,11 +18,11 @@ data:
         hostnames:
         - xtripmanager.k8s.tbd-htwg.de
       loadBalancer:
-        ip: 34.79.13.109
+        ip: ''
     global:
       cloudSql:
         enabled: true
-        connectionName: tbd-cloudappdev:europe-west1:tripplanning-standard
+        connectionName: ''
         databaseName: tripplanning_std_tripper_ultimate
         userName: tripplanning_app_tripper_ultimate
       search:

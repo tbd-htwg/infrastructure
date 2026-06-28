@@ -29,7 +29,7 @@ data:
         keyPrefix: ent:one-cloud-away
       cloudSql:
         enabled: true
-        connectionName: tbd-cloudappdev:europe-west1:tripplanning-ent-one-cloud-away
+        connectionName: ''
         databaseName: tripplanning
         userName: tripplanning_app
       imagePullSecrets:
@@ -44,7 +44,7 @@ data:
         - one-cloud-away.enterprise.k8s.tbd-htwg.de
       loadBalancer:
         enabled: true
-        ip: 34.78.67.127
+        ip: ''
         externalTrafficPolicy: Cluster
     services:
       apiRouter:
@@ -116,7 +116,7 @@ data:
         bootstrap:
           waitForValkey: true
       customfield:
-        enabled: false
+        enabled: true
         port: 8084
         replicas: 1
         rollingUpdate:
