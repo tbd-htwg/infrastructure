@@ -593,6 +593,39 @@ jobs:
           set -euo pipefail
           terraform -chdir="${TF_DIR}" init -input=false
 
+          # Older state can record frontend load balancer resources as
+          # depending on all project bootstrap resources, including tenant
+          # Firestore indexes. If Terraform destroys the tenant index in the
+          # same graph where it detaches and destroys a host-specific backend,
+          # that stale dependency metadata can create a cycle. Delete the
+          # tenant-scoped composite indexes directly, then remove their state
+          # entries so the remaining tenant resources can be destroyed normally.
+          firestore_collections="${{ steps.tenant_config.outputs.firestore_collections }}"
+          if [[ -n "${firestore_collections}" ]]; then
+            IFS=',' read -ra collection_ids <<< "${firestore_collections}"
+            for collection_id in "${collection_ids[@]}"; do
+              mapfile -t firestore_indexes < <(
+                gcloud firestore indexes composite list \
+                  --project="${GCP_PROJECT_ID}" \
+                  --database=tbd-firestore \
+                  --format=json |
+                  jq -r \
+                    --arg collection_id "${collection_id}" \
+                    '.[] | select(.name | contains("/collectionGroups/" + $collection_id + "/indexes/")) | .name'
+              )
+              for firestore_index in "${firestore_indexes[@]}"; do
+                gcloud firestore indexes composite delete "${firestore_index}" \
+                  --project="${GCP_PROJECT_ID}" \
+                  --quiet
+              done
+            done
+
+            firestore_state_address="module.project_bootstrap.google_firestore_index.indexes[\"${{ steps.payload.outputs.slug }}_comments_by_trip_created_at\"]"
+            if terraform -chdir="${TF_DIR}" state list | grep -Fxq "${firestore_state_address}"; then
+              terraform -chdir="${TF_DIR}" state rm "${firestore_state_address}"
+            fi
+          fi
+
           if [[ -z "${GOOGLE_OAUTH_CLIENT_ID}" || -z "${GOOGLE_OAUTH_CLIENT_SECRET}" ]]; then
             echo "GOOGLE_OAUTH_CLIENT_ID and GOOGLE_OAUTH_CLIENT_SECRET must be set in gke-dev" >&2
             exit 1

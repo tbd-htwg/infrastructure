@@ -487,8 +487,6 @@ module "frontend_lb" {
   api_paths                            = coalesce(try(var.frontend.api_paths, null), ["/api/*"])
   api_health_check_path                = coalesce(try(var.frontend.api_health_check_path, null), "/actuator/health/readiness")
   api_health_check_port                = coalesce(try(var.frontend.api_health_check_port, null), 8080)
-
-  depends_on = [module.project_bootstrap]
 }
 
 resource "google_compute_address" "standard_lb_ip" {
