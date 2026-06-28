@@ -23,3 +23,11 @@ import {
   to = google_identity_platform_default_supported_idp_config.google[0]
   id = "projects/${var.project_id}/defaultSupportedIdpConfigs/google.com"
 }
+
+# The browser Maps API key has a fixed key ID so frontend secrets can point at
+# a stable resource. Import it if state was lost during a failed tenant delete
+# instead of trying to recreate a soft-deleted key with the same ID.
+import {
+  to = google_apikeys_key.google_maps_browser
+  id = "projects/${var.project_id}/locations/global/keys/2669c798-cc9a-4454-81e4-7d48af53218b"
+}
