@@ -1,0 +1,24 @@
+tenantId: xtripmanager
+tier: standard
+hostnames:
+- xtripmanager.k8s.tbd-htwg.de
+identityPlatform:
+  displayName: xtripmanager
+  emailPasswordEnabled: true
+  mfaEnabled: false
+  tenantId: xtripmanager-j058b
+frontend:
+  bucketPrefix: standard/xtripmanager
+  brandName: X - TripManager
+  colorScheme: default
+  brandIcon: assets/brand-icon.png
+database:
+  cloudSqlInstance: tripplanning-standard
+  databaseName: tripplanning_std_xtripmanager
+  userName: tripplanning_app_xtripmanager
+storage:
+  imagesPrefix: standard/xtripmanager
+search:
+  indexName: tripentity-xtripmanager
+cache:
+  keyPrefix: std:xtripmanager
