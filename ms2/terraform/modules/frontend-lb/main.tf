@@ -11,17 +11,6 @@ locals {
   has_internet_api_backend            = local.has_api_internet_endpoint || length(local.host_api_backend_internet_endpoints) > 0
   needs_api_health_check              = length(local.api_backend_neg_self_links) > 0
   keep_api_health_check               = local.needs_api_health_check || local.has_internet_api_backend
-  spa_routes = [
-    "/users",
-    "/login",
-    "/profile",
-    "/impressum",
-    "/trips/new",
-    "/admin",
-    "/admin/platform-admins",
-    "/admin/tenants",
-    "/admin/tenants/new",
-  ]
   frontend_prefixes = {
     dev  = trimsuffix(trimprefix(var.dev_frontend_prefix, "/"), "/")
     prod = trimsuffix(trimprefix(var.prod_frontend_prefix, "/"), "/")
@@ -172,119 +161,17 @@ resource "google_compute_url_map" "frontend" {
     }
 
     route_rules {
-      priority = 10
-      service  = google_compute_backend_bucket.frontend.id
-
-      match_rules {
-        prefix_match = "/assets/"
-      }
-
-      route_action {
-        url_rewrite {
-          path_prefix_rewrite = "/${local.frontend_prefixes.dev}/assets/"
-        }
-      }
-    }
-
-    route_rules {
-      priority = 11
-      service  = google_compute_backend_bucket.frontend.id
-
-      match_rules {
-        path_template_match = "/favicon.svg"
-      }
-
-      route_action {
-        url_rewrite {
-          path_template_rewrite = "/${local.frontend_prefixes.dev}/favicon.svg"
-        }
-      }
-    }
-
-    route_rules {
-      priority = 12
-      service  = google_compute_backend_bucket.frontend.id
-
-      match_rules {
-        path_template_match = "/cloud-regular-full.svg"
-      }
-
-      route_action {
-        url_rewrite {
-          path_template_rewrite = "/${local.frontend_prefixes.dev}/cloud-regular-full.svg"
-        }
-      }
-    }
-
-    route_rules {
-      priority = 13
-      service  = google_compute_backend_bucket.frontend.id
-
-      match_rules {
-        path_template_match = "/version.json"
-      }
-
-      route_action {
-        url_rewrite {
-          path_template_rewrite = "/${local.frontend_prefixes.dev}/version.json"
-        }
-      }
-    }
-
-    route_rules {
-      priority = 14
-      service  = google_compute_backend_bucket.frontend.id
-
-      match_rules {
-        path_template_match = "/index.html"
-      }
-
-      route_action {
-        url_rewrite {
-          path_template_rewrite = "/${local.frontend_prefixes.dev}/index.html"
-        }
-      }
-    }
-
-    route_rules {
-      priority = 15
-      service  = google_compute_backend_bucket.frontend.id
-
-      match_rules {
-        path_template_match = "/"
-      }
-
-      route_action {
-        url_rewrite {
-          path_template_rewrite = "/${local.frontend_prefixes.dev}/index.html"
-        }
-      }
-    }
-
-    route_rules {
-      priority = 20
-      service  = google_compute_backend_bucket.frontend.id
-
-      dynamic "match_rules" {
-        for_each = toset(local.spa_routes)
-        content {
-          path_template_match = match_rules.value
-        }
-      }
-
-      route_action {
-        url_rewrite {
-          path_template_rewrite = "/${local.frontend_prefixes.dev}/index.html"
-        }
-      }
-    }
-
-    route_rules {
       priority = 100
       service  = google_compute_backend_bucket.frontend.id
 
       match_rules {
         prefix_match = "/"
+      }
+
+      route_action {
+        url_rewrite {
+          path_prefix_rewrite = "/${local.frontend_prefixes.dev}/"
+        }
       }
 
       custom_error_response_policy {
@@ -320,119 +207,17 @@ resource "google_compute_url_map" "frontend" {
       }
 
       route_rules {
-        priority = 10
-        service  = google_compute_backend_bucket.frontend.id
-
-        match_rules {
-          prefix_match = "/assets/"
-        }
-
-        route_action {
-          url_rewrite {
-            path_prefix_rewrite = "/${local.frontend_prefixes.prod}/assets/"
-          }
-        }
-      }
-
-      route_rules {
-        priority = 11
-        service  = google_compute_backend_bucket.frontend.id
-
-        match_rules {
-          path_template_match = "/favicon.svg"
-        }
-
-        route_action {
-          url_rewrite {
-            path_template_rewrite = "/${local.frontend_prefixes.prod}/favicon.svg"
-          }
-        }
-      }
-
-      route_rules {
-        priority = 12
-        service  = google_compute_backend_bucket.frontend.id
-
-        match_rules {
-          path_template_match = "/cloud-regular-full.svg"
-        }
-
-        route_action {
-          url_rewrite {
-            path_template_rewrite = "/${local.frontend_prefixes.prod}/cloud-regular-full.svg"
-          }
-        }
-      }
-
-      route_rules {
-        priority = 13
-        service  = google_compute_backend_bucket.frontend.id
-
-        match_rules {
-          path_template_match = "/version.json"
-        }
-
-        route_action {
-          url_rewrite {
-            path_template_rewrite = "/${local.frontend_prefixes.prod}/version.json"
-          }
-        }
-      }
-
-      route_rules {
-        priority = 14
-        service  = google_compute_backend_bucket.frontend.id
-
-        match_rules {
-          path_template_match = "/index.html"
-        }
-
-        route_action {
-          url_rewrite {
-            path_template_rewrite = "/${local.frontend_prefixes.prod}/index.html"
-          }
-        }
-      }
-
-      route_rules {
-        priority = 15
-        service  = google_compute_backend_bucket.frontend.id
-
-        match_rules {
-          path_template_match = "/"
-        }
-
-        route_action {
-          url_rewrite {
-            path_template_rewrite = "/${local.frontend_prefixes.prod}/index.html"
-          }
-        }
-      }
-
-      route_rules {
-        priority = 20
-        service  = google_compute_backend_bucket.frontend.id
-
-        dynamic "match_rules" {
-          for_each = toset(local.spa_routes)
-          content {
-            path_template_match = match_rules.value
-          }
-        }
-
-        route_action {
-          url_rewrite {
-            path_template_rewrite = "/${local.frontend_prefixes.prod}/index.html"
-          }
-        }
-      }
-
-      route_rules {
         priority = 100
         service  = google_compute_backend_bucket.frontend.id
 
         match_rules {
           prefix_match = "/"
+        }
+
+        route_action {
+          url_rewrite {
+            path_prefix_rewrite = "/${local.frontend_prefixes.prod}/"
+          }
         }
 
         custom_error_response_policy {
