@@ -57,6 +57,14 @@ data:
         return 200 "ok\n";
       }
 
+      location = /api/v2/deployment-info {
+        access_log off;
+        add_header X-Api-Router "tripplanning" always;
+        add_header Cache-Control "no-store" always;
+        default_type application/json;
+        alias /usr/share/nginx/html/deployment-info.json;
+      }
+
 {{- if .Values.apiRouter.enforceKnownHosts }}
       if ($tripplanning_tenant_id = "") {
         return 404;

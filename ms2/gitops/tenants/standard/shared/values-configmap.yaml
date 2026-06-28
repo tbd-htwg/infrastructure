@@ -8,6 +8,8 @@ data:
     global:
       tier: standard
       tenantId: standard-shared
+      deployment:
+        environment: prod
       imagePullSecrets:
         - ghcr-pull
       hostnames: []
@@ -40,6 +42,8 @@ data:
           maxSurge: 1
           maxUnavailable: 0
       trip:
+        image:
+          tag: prod
         replicas: 1
         rollingUpdate:
           maxSurge: 1
@@ -62,6 +66,8 @@ data:
           waitForValkey: true
           waitForSearch: true
       social:
+        image:
+          tag: prod
         replicas: 1
         rollingUpdate:
           maxSurge: 1
@@ -79,6 +85,8 @@ data:
           SPRING_DATA_REDIS_HOST: valkey
           JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError"
       externalInfo:
+        image:
+          tag: prod
         replicas: 1
         rollingUpdate:
           maxSurge: 1

@@ -4,7 +4,7 @@ metadata:
   name: tripplanning-enterprise-ente
   namespace: tripplanning-ent-ente
   annotations:
-    tripplanning.htwg.dev/values-checksum: d2695d68e3e09dbf4964b680a0ff7cb201cadc6179cbe3b82285fd25eb39ee4d
+    tripplanning.htwg.dev/values-checksum: 4330f0827f9f5211522acbceb150d15afe29ec026bdfeb7a7d0415465aa9d0ab
 spec:
   interval: 10m
   chart:

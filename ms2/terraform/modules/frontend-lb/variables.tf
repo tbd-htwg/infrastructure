@@ -96,3 +96,15 @@ variable "api_health_check_port" {
   description = "HTTP health check port for the API backend."
   default     = 8080
 }
+
+variable "dev_frontend_prefix" {
+  type        = string
+  description = "Object prefix in the frontend bucket for the development SPA."
+  default     = "dev"
+}
+
+variable "prod_frontend_prefix" {
+  type        = string
+  description = "Object prefix in the frontend bucket for the production SPA."
+  default     = "prod"
+}

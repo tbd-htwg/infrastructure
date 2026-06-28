@@ -27,18 +27,18 @@ cache:
 services:
   trip:
     image:
-      tag: latest
+      tag: prod
       pullPolicy: Always
   social:
     image:
-      tag: latest
+      tag: prod
       pullPolicy: Always
   externalInfo:
     image:
-      tag: latest
+      tag: prod
       pullPolicy: Always
   customfield:
     enabled: true
     image:
-      tag: latest
+      tag: prod
       pullPolicy: Always

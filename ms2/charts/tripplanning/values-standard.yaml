@@ -1,6 +1,8 @@
 global:
   tier: standard
   tenantId: standard-shared
+  deployment:
+    environment: prod
   hostnames: []
   identityPlatform:
     tenantId: ""
@@ -31,6 +33,8 @@ services:
   apiRouter:
     replicas: 2
   trip:
+    image:
+      tag: prod
     replicas: 2
     resources:
       requests:
@@ -40,6 +44,8 @@ services:
         cpu: "2000m"
         memory: "2Gi"
   social:
+    image:
+      tag: prod
     replicas: 2
     resources:
       requests:
@@ -49,6 +55,8 @@ services:
         cpu: "1000m"
         memory: "1Gi"
   externalInfo:
+    image:
+      tag: prod
     replicas: 2
     resources:
       requests:

@@ -10,6 +10,8 @@ data:
     global:
       tier: enterprise
       tenantId: one-cloud-away
+      deployment:
+        environment: prod
       hostnames:
       - one-cloud-away.enterprise.k8s.tbd-htwg.de
       identityPlatform:
@@ -60,7 +62,7 @@ data:
         replicas: 1
         image:
           repository: ghcr.io/tbd-htwg/backend/tripplanning-trip-service
-          tag: latest
+          tag: prod
           pullPolicy: Always
         resources:
           requests:
@@ -82,7 +84,7 @@ data:
         replicas: 1
         image:
           repository: ghcr.io/tbd-htwg/backend/tripplanning-social-service
-          tag: latest
+          tag: prod
           pullPolicy: Always
         resources:
           requests:
@@ -101,7 +103,7 @@ data:
         replicas: 1
         image:
           repository: ghcr.io/tbd-htwg/backend/tripplanning-external-info-service
-          tag: latest
+          tag: prod
           pullPolicy: Always
         resources:
           requests:
@@ -124,7 +126,7 @@ data:
           maxUnavailable: 0
         image:
           repository: ghcr.io/tbd-htwg/backend/tripplanning-customfield-service
-          tag: latest
+          tag: prod
           pullPolicy: Always
         resources:
           requests:

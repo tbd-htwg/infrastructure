@@ -31,6 +31,12 @@ global:
     userName: "tripplanning_app"
     proxyImage: "gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.18.0"
     proxyPort: 5432
+  deployment:
+    environment: "dev"
+    branch: ""
+    commit: ""
+    repository: ""
+    runId: ""
 
 apiRouter:
   mode: "free"
@@ -70,7 +76,7 @@ services:
     name: trip-service
     image:
       repository: ghcr.io/tbd-htwg/backend/tripplanning-trip-service
-      tag: latest
+      tag: develop
       pullPolicy: Always
     port: 8080
     replicas: 1
@@ -115,7 +121,7 @@ services:
     name: social-service
     image:
       repository: ghcr.io/tbd-htwg/backend/tripplanning-social-service
-      tag: latest
+      tag: develop
       pullPolicy: Always
     port: 8081
     replicas: 1
@@ -146,7 +152,7 @@ services:
     name: external-info-service
     image:
       repository: ghcr.io/tbd-htwg/backend/tripplanning-external-info-service
-      tag: latest
+      tag: develop
       pullPolicy: Always
     port: 8082
     replicas: 1
@@ -174,7 +180,7 @@ services:
     name: customfield-service
     image:
       repository: ghcr.io/tbd-htwg/backend/tripplanning-customfield-service
-      tag: latest
+      tag: prod
       pullPolicy: Always
     port: 8084
     replicas: 1

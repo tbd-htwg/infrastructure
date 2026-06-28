@@ -1,6 +1,8 @@
 global:
   tier: free
   tenantId: free
+  deployment:
+    environment: dev
   identityPlatform:
     tenantId: ""
   storage:

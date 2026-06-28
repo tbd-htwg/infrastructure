@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: api-router-deployment-info
+  labels:
+    {{- include "tripplanning.labels" . | nindent 4 }}
+    app.kubernetes.io/component: api-router
+data:
+  deployment-info.json: |
+    {{ dict
+      "environment" .Values.global.deployment.environment
+      "branch" .Values.global.deployment.branch
+      "commit" .Values.global.deployment.commit
+      "repository" .Values.global.deployment.repository
+      "runId" .Values.global.deployment.runId
+      "tier" .Values.global.tier
+      "tenantId" .Values.global.tenantId
+      "services" (dict
+        "apiRouter" (dict "image" (printf "%s:%s" .Values.services.apiRouter.image.repository .Values.services.apiRouter.image.tag) "tag" .Values.services.apiRouter.image.tag)
+        "trip" (dict "image" (printf "%s:%s" .Values.services.trip.image.repository .Values.services.trip.image.tag) "tag" .Values.services.trip.image.tag)
+        "social" (dict "image" (printf "%s:%s" .Values.services.social.image.repository .Values.services.social.image.tag) "tag" .Values.services.social.image.tag)
+        "externalInfo" (dict "image" (printf "%s:%s" .Values.services.externalInfo.image.repository .Values.services.externalInfo.image.tag) "tag" .Values.services.externalInfo.image.tag)
+        "customfield" (dict "enabled" .Values.services.customfield.enabled "image" (printf "%s:%s" .Values.services.customfield.image.repository .Values.services.customfield.image.tag) "tag" .Values.services.customfield.image.tag)
+        "platform" (dict "enabled" true "image" "ghcr.io/tbd-htwg/backend/tripplanning-platform-service:prod" "tag" "prod")
+      )
+    | toPrettyJson | nindent 4 }}

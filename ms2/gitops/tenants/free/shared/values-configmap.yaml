@@ -6,6 +6,8 @@ metadata:
 data:
   values.yaml: |
     global:
+      deployment:
+        environment: dev
       frontend:
         bucketName: "${FRONTEND_BUCKET}"
       storage:
@@ -22,7 +24,7 @@ data:
         replicas: 1
         image:
           repository: ghcr.io/tbd-htwg/backend/tripplanning-trip-service
-          tag: latest
+          tag: develop
           pullPolicy: Always
         resources:
           requests:
@@ -52,7 +54,7 @@ data:
           maxUnavailable: 0
         image:
           repository: ghcr.io/tbd-htwg/backend/tripplanning-social-service
-          tag: latest
+          tag: develop
           pullPolicy: Always
         resources:
           requests:
@@ -74,7 +76,7 @@ data:
           maxUnavailable: 0
         image:
           repository: ghcr.io/tbd-htwg/backend/tripplanning-external-info-service
-          tag: latest
+          tag: develop
           pullPolicy: Always
         resources:
           requests:
