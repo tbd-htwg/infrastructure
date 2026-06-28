@@ -1,0 +1,24 @@
+tenantId: tripper-ultimate
+tier: standard
+hostnames:
+- tripper-ultimate.k8s.tbd-htwg.de
+identityPlatform:
+  displayName: tripper-ultimate
+  emailPasswordEnabled: true
+  mfaEnabled: false
+  tenantId: tripper-ultimate-eqeid
+frontend:
+  bucketPrefix: standard/tripper-ultimate
+  brandName: Tripper Ultimate
+  colorScheme: default
+  brandIcon: assets/brand-icon.png
+database:
+  cloudSqlInstance: tripplanning-standard
+  databaseName: tripplanning_std_tripper_ultimate
+  userName: tripplanning_app_tripper_ultimate
+storage:
+  imagesPrefix: standard/tripper-ultimate
+search:
+  indexName: tripentity-tripper-ultimate
+cache:
+  keyPrefix: std:tripper-ultimate
