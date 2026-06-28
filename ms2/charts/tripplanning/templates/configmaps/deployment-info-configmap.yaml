@@ -11,16 +11,18 @@ data:
       "environment" .Values.global.deployment.environment
       "branch" .Values.global.deployment.branch
       "commit" .Values.global.deployment.commit
+      "shortCommit" (trunc 12 .Values.global.deployment.commit)
       "repository" .Values.global.deployment.repository
       "runId" .Values.global.deployment.runId
+      "builtAt" ""
       "tier" .Values.global.tier
       "tenantId" .Values.global.tenantId
       "services" (dict
-        "apiRouter" (dict "image" (printf "%s:%s" .Values.services.apiRouter.image.repository .Values.services.apiRouter.image.tag) "tag" .Values.services.apiRouter.image.tag)
-        "trip" (dict "image" (printf "%s:%s" .Values.services.trip.image.repository .Values.services.trip.image.tag) "tag" .Values.services.trip.image.tag)
-        "social" (dict "image" (printf "%s:%s" .Values.services.social.image.repository .Values.services.social.image.tag) "tag" .Values.services.social.image.tag)
-        "externalInfo" (dict "image" (printf "%s:%s" .Values.services.externalInfo.image.repository .Values.services.externalInfo.image.tag) "tag" .Values.services.externalInfo.image.tag)
-        "customfield" (dict "enabled" .Values.services.customfield.enabled "image" (printf "%s:%s" .Values.services.customfield.image.repository .Values.services.customfield.image.tag) "tag" .Values.services.customfield.image.tag)
-        "platform" (dict "enabled" true "image" "ghcr.io/tbd-htwg/backend/tripplanning-platform-service:prod" "tag" "prod")
+        "apiRouter" (dict "image" (printf "%s:%s" .Values.services.apiRouter.image.repository .Values.services.apiRouter.image.tag) "tag" .Values.services.apiRouter.image.tag "commit" "" "shortCommit" "")
+        "trip" (dict "image" (printf "%s:%s" .Values.services.trip.image.repository .Values.services.trip.image.tag) "tag" .Values.services.trip.image.tag "commit" "" "shortCommit" "")
+        "social" (dict "image" (printf "%s:%s" .Values.services.social.image.repository .Values.services.social.image.tag) "tag" .Values.services.social.image.tag "commit" "" "shortCommit" "")
+        "externalInfo" (dict "image" (printf "%s:%s" .Values.services.externalInfo.image.repository .Values.services.externalInfo.image.tag) "tag" .Values.services.externalInfo.image.tag "commit" "" "shortCommit" "")
+        "customfield" (dict "enabled" .Values.services.customfield.enabled "image" (printf "%s:%s" .Values.services.customfield.image.repository .Values.services.customfield.image.tag) "tag" .Values.services.customfield.image.tag "commit" "" "shortCommit" "")
+        "platform" (dict "enabled" true "image" "ghcr.io/tbd-htwg/backend/tripplanning-platform-service:prod" "tag" "prod" "commit" "" "shortCommit" "")
       )
     | toPrettyJson | nindent 4 }}

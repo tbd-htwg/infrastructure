@@ -62,7 +62,8 @@ data:
         add_header X-Api-Router "tripplanning" always;
         add_header Cache-Control "no-store" always;
         default_type application/json;
-        alias /usr/share/nginx/html/deployment-info.json;
+        root /usr/share/nginx/html;
+        try_files /deployment-info-live/deployment-info.json /deployment-info-default/deployment-info.json =404;
       }
 
 {{- if .Values.apiRouter.enforceKnownHosts }}
