@@ -1,0 +1,22 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: tripplanning-enterprise-one-cloud-away
+  namespace: tripplanning-ent-one-cloud-away
+  annotations:
+    tripplanning.htwg.dev/values-checksum: 67ce98946a37f1f77eb31773b6e7946dc95c66c140cde4793b734923000eb2f6
+spec:
+  interval: 10m
+  chart:
+    spec:
+      chart: ms2/charts/tripplanning
+      reconcileStrategy: Revision
+      sourceRef:
+        kind: GitRepository
+        name: flux-system
+        namespace: flux-system
+      interval: 1m
+  valuesFrom:
+    - kind: ConfigMap
+      name: tripplanning-enterprise-one-cloud-away-values
+      valuesKey: values.yaml

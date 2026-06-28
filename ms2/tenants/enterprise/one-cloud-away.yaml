@@ -1,0 +1,39 @@
+tenantId: one-cloud-away
+tier: enterprise
+projectId: tbd-cloudappdev
+namespace: tripplanning-ent-one-cloud-away
+hostnames:
+- one-cloud-away.enterprise.k8s.tbd-htwg.de
+identityPlatform:
+  displayName: one-cloud-away
+  emailPasswordEnabled: true
+  mfaEnabled: true
+  tenantId: one-cloud-away-2kv19
+frontend:
+  bucketPrefix: enterprise/one-cloud-away
+  brandName: One Cloud Away
+  colorScheme: default
+  brandIcon: assets/brand-icon.png
+database:
+  cloudSqlInstance: tripplanning-ent-one-cloud-away
+  databaseName: tripplanning
+  userName: tripplanning_app
+storage:
+  imageBucketName: tbd-cloudappdev-one-cloud-away-images-bucket
+search:
+  releaseName: opensearch-one-cloud-away
+cache:
+  dedicated: true
+services:
+  trip:
+    image:
+      tag: latest
+      pullPolicy: Always
+  social:
+    image:
+      tag: latest
+      pullPolicy: Always
+  externalInfo:
+    image:
+      tag: latest
+      pullPolicy: Always
