@@ -1,0 +1,24 @@
+tenantId: std1
+tier: standard
+hostnames:
+- std1.k8s.tbd-htwg.de
+identityPlatform:
+  displayName: std1
+  emailPasswordEnabled: true
+  mfaEnabled: false
+  tenantId: std1-dc1mj
+frontend:
+  bucketPrefix: standard/std1
+  brandName: Standard Test
+  colorScheme: default
+  brandIcon: assets/brand-icon.png
+database:
+  cloudSqlInstance: tripplanning-standard
+  databaseName: tripplanning_std_std1
+  userName: tripplanning_app_std1
+storage:
+  imagesPrefix: standard/std1
+search:
+  indexName: tripentity-std1
+cache:
+  keyPrefix: std:std1
