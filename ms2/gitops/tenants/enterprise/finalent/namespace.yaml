@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: tripplanning-ent-finalent
+  labels:
+    app.kubernetes.io/name: tripplanning
+    tier: enterprise
+    tenant_id: finalent
+    tripplanning.htwg.dev/tier: enterprise
+    tripplanning.htwg.dev/tenant-id: finalent
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: tripplanning-enterprise-quota
+  namespace: tripplanning-ent-finalent
+spec:
+  hard:
+    requests.cpu: "8"
+    requests.memory: 16Gi
+    limits.cpu: "24"
+    limits.memory: 32Gi
+    pods: "40"
+    persistentvolumeclaims: "5"

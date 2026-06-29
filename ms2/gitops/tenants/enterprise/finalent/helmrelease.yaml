@@ -1,0 +1,22 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: tripplanning-enterprise-finalent
+  namespace: tripplanning-ent-finalent
+  annotations:
+    tripplanning.htwg.dev/values-checksum: 55e57996f75d089f5dd83f3c5f3482724520e29109f9f21b31c32ce8e07ddbe9
+spec:
+  interval: 10m
+  chart:
+    spec:
+      chart: ms2/charts/tripplanning
+      reconcileStrategy: Revision
+      sourceRef:
+        kind: GitRepository
+        name: flux-system
+        namespace: flux-system
+      interval: 1m
+  valuesFrom:
+    - kind: ConfigMap
+      name: tripplanning-enterprise-finalent-values
+      valuesKey: values.yaml
