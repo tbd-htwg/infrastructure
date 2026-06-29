@@ -29,16 +29,62 @@ services:
     image:
       tag: latest
       pullPolicy: Always
+    replicas: 2
+    resources:
+      limits:
+        cpu: 1000m
+        memory: 1Gi
+      requests:
+        cpu: 100m
+        memory: 512Mi
   social:
     image:
       tag: latest
       pullPolicy: Always
+    replicas: 1
+    resources:
+      limits:
+        cpu: 750m
+        memory: 768Mi
+      requests:
+        cpu: 50m
+        memory: 384Mi
   externalInfo:
     image:
       tag: latest
       pullPolicy: Always
+    replicas: 1
+    resources:
+      limits:
+        cpu: 500m
+        memory: 512Mi
+      requests:
+        cpu: 50m
+        memory: 256Mi
   customfield:
     enabled: true
     image:
       tag: latest
       pullPolicy: Always
+    replicas: 1
+    resources:
+      limits:
+        cpu: 500m
+        memory: 512Mi
+      requests:
+        cpu: 50m
+        memory: 256Mi
+autoscaling:
+  enabled: true
+  trip:
+    minReplicas: 2
+    maxReplicas: 4
+  social:
+    minReplicas: 1
+    maxReplicas: 3
+  externalInfo:
+    minReplicas: 1
+    maxReplicas: 3
+  customfield:
+    minReplicas: 1
+    maxReplicas: 3

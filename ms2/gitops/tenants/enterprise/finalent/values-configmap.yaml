@@ -59,7 +59,7 @@ data:
             cpu: 200m
             memory: 128Mi
       trip:
-        replicas: 1
+        replicas: 2
         image:
           repository: ghcr.io/tbd-htwg/backend/tripplanning-trip-service
           tag: latest
@@ -154,7 +154,7 @@ data:
       scaleUpStabilizationSeconds: 30
       scaleDownStabilizationSeconds: 300
       trip:
-        minReplicas: 1
+        minReplicas: 2
         maxReplicas: 4
         targetCPUUtilizationPercentage: 70
         targetMemoryUtilizationPercentage: 0

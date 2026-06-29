@@ -4,7 +4,7 @@ metadata:
   name: tripplanning-enterprise-finalent
   namespace: tripplanning-ent-finalent
   annotations:
-    tripplanning.htwg.dev/values-checksum: 55e57996f75d089f5dd83f3c5f3482724520e29109f9f21b31c32ce8e07ddbe9
+    tripplanning.htwg.dev/values-checksum: e3c66e7fba5a1bdbcf9e1b84c94b3f3a4d4c0806961d762fae33aaf6d7b5c2d5
 spec:
   interval: 10m
   chart:
