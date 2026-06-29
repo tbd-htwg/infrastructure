@@ -100,7 +100,7 @@ data:
         bootstrap:
           waitForValkey: true
       externalInfo:
-        replicas: 1
+        replicas: 2
         image:
           repository: ghcr.io/tbd-htwg/backend/tripplanning-external-info-service
           tag: latest
@@ -162,7 +162,7 @@ data:
         minReplicas: 1
         maxReplicas: 3
       externalInfo:
-        minReplicas: 1
+        minReplicas: 2
         maxReplicas: 3
       customfield:
         minReplicas: 1
