@@ -9,6 +9,10 @@ data:
   values.yaml: |
     apiRouter:
       tenants:
+      - tenantId: finalstd
+        identityPlatformTenantId: finalstd-v1urj
+        hostnames:
+        - finalstd.k8s.tbd-htwg.de
       - tenantId: tripper-ultimate
         identityPlatformTenantId: tripper-ultimate-eqeid
         hostnames:
@@ -23,26 +27,26 @@ data:
       cloudSql:
         enabled: true
         connectionName: tbd-cloudappdev:europe-west1:tripplanning-standard
-        databaseName: tripplanning_std_tripper_ultimate
-        userName: tripplanning_app_tripper_ultimate
+        databaseName: tripplanning_std_finalstd
+        userName: tripplanning_app_finalstd
       search:
-        indexName: tripentity-tripper-ultimate
+        indexName: tripentity-finalstd
       cache:
-        keyPrefix: std:tripper-ultimate
+        keyPrefix: std:finalstd
       storage:
-        imagesPrefix: standard/tripper-ultimate
+        imagesPrefix: standard/finalstd
     services:
       trip:
         secretRefs:
         - trip-service-secrets
         - trip-service-db-secrets
         env:
-          CORS_ALLOWED_ORIGINS: https://k8s.tbd-htwg.de,https://tripper-ultimate.k8s.tbd-htwg.de,https://xtripmanager.k8s.tbd-htwg.de
+          CORS_ALLOWED_ORIGINS: https://k8s.tbd-htwg.de,https://finalstd.k8s.tbd-htwg.de,https://tripper-ultimate.k8s.tbd-htwg.de,https://xtripmanager.k8s.tbd-htwg.de
           TRIPPLANNING_TENANT_DATASOURCE_ROUTING: 'true'
           TRIPPLANNING_PLATFORM_BASE_URL: http://platform-service.tripplanning-system:8083
       social:
         env:
-          CORS_ALLOWED_ORIGINS: https://k8s.tbd-htwg.de,https://tripper-ultimate.k8s.tbd-htwg.de,https://xtripmanager.k8s.tbd-htwg.de
+          CORS_ALLOWED_ORIGINS: https://k8s.tbd-htwg.de,https://finalstd.k8s.tbd-htwg.de,https://tripper-ultimate.k8s.tbd-htwg.de,https://xtripmanager.k8s.tbd-htwg.de
       externalInfo:
         env:
-          CORS_ALLOWED_ORIGINS: https://k8s.tbd-htwg.de,https://tripper-ultimate.k8s.tbd-htwg.de,https://xtripmanager.k8s.tbd-htwg.de
+          CORS_ALLOWED_ORIGINS: https://k8s.tbd-htwg.de,https://finalstd.k8s.tbd-htwg.de,https://tripper-ultimate.k8s.tbd-htwg.de,https://xtripmanager.k8s.tbd-htwg.de
